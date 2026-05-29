@@ -32,7 +32,7 @@ export default function Layout() {
           <div className="logo-img">
             <img src="/logo.png" alt="Egypro" onError={e => { e.target.style.display='none'; }} />
           </div>
-          <div>
+          <div style={{ textAlign: 'center', width: '100%' }}>
             <div className="logo-text">ESAT</div>
             <div className="logo-sub">Egypro Safety Audit Tracker</div>
           </div>
