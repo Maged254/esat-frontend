@@ -1,0 +1,77 @@
+import React from 'react';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../utils/AuthContext';
+
+const NAV = [
+  { section: 'Overview' },
+  { to: '/', label: 'Dashboard', icon: '⊞', exact: true },
+  { section: 'Operations' },
+  { to: '/employees', label: 'Employees', icon: '👥' },
+  { to: '/audit/new', label: 'New Audit', icon: '✓' },
+  { to: '/history', label: 'Audit History', icon: '⏱' },
+  { section: 'Compliance' },
+  { to: '/ncr', label: 'NCR List', icon: '⚠', badge: true },
+  { to: '/purchase-requests', label: 'Purchase Requests', icon: '🛒' },
+  { section: 'Admin', roles: ['admin'] },
+  { to: '/admin', label: 'Admin Panel', icon: '⚙', roles: ['admin'] },
+];
+
+export default function Layout() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const initials = user?.name
+    ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+    : 'U';
+
+  return (
+    <div className="layout">
+      <aside className="sidebar">
+        <NavLink to="/" className="sidebar-logo">
+          <div className="logo-img">
+            <img src="/logo.png" alt="Egypro" onError={e => { e.target.style.display='none'; }} />
+          </div>
+          <div>
+            <div className="logo-text">ESAT</div>
+            <div className="logo-sub">Safety Audit Tracker</div>
+          </div>
+        </NavLink>
+
+        <nav className="nav">
+          {NAV.map((item, i) => {
+            if (item.section) {
+              if (item.roles && !item.roles.includes(user?.role)) return null;
+              return <div key={i} className="nav-section">{item.section}</div>;
+            }
+            if (item.roles && !item.roles.includes(user?.role)) return null;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-chip" onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
+            <div className="avatar av-green" style={{ width: 28, height: 28, fontSize: 10 }}>{initials}</div>
+            <div>
+              <div className="user-name">{user?.name}</div>
+              <div className="user-role">{user?.role?.replace('_', ' ')} · Egypro</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
