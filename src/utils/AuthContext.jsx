@@ -15,8 +15,9 @@ export function AuthProvider({ children }) {
     if (token) {
       api.get('/auth/me')
         .then(res => {
-          setUser(res.data);
-          localStorage.setItem('esat_user', JSON.stringify(res.data));
+          const userData = { ...res.data, name: res.data.full_name || res.data.name };
+          setUser(userData);
+          localStorage.setItem('esat_user', JSON.stringify(userData));
         })
         .catch(() => logout())
         .finally(() => setLoading(false));
