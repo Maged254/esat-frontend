@@ -31,7 +31,7 @@ export default function LoginPage() {
                onError={e => { e.target.style.display='none'; }} />
           <div>
             <div className="login-title">ESAT</div>
-            <div className="login-sub">Egypro Safety Audit Tracker</div>
+            <div className="login-sub">Egypro Egypro Safety Audit Tracker</div>
           </div>
         </div>
 

@@ -33,7 +33,7 @@ export default function Layout() {
           </div>
           <div>
             <div className="logo-text">ESAT</div>
-            <div className="logo-sub">Safety Audit Tracker</div>
+            <div className="logo-sub">Egypro Safety Audit Tracker</div>
           </div>
         </NavLink>
 
