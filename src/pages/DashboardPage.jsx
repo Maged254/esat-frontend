@@ -1,3 +1,4 @@
+import { useAuth } from "../utils/AuthContext";
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -10,6 +11,7 @@ const STATUS_TAG = {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const { user } = useAuth();
   const [overdue, setOverdue] = useState([]);
   const navigate = useNavigate();
 
@@ -49,7 +51,7 @@ export default function DashboardPage() {
       <div className="content">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <div style={{ fontSize: 20, fontWeight: 500 }}>{greeting()}, Safety Officer</div>
+            <div style={{ fontSize: 20, fontWeight: 500 }}>{greeting()}, {user?.name || "Safety Officer"}</div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{dateStr} · Nairobi</div>
           </div>
           <img src="/logo.png" alt="Egypro" style={{ height: 40, opacity: 0.6 }}
