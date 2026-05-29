@@ -11,6 +11,7 @@ import AuditHistoryPage from './pages/AuditHistoryPage';
 import NCRPage from './pages/NCRPage';
 import PurchaseRequestsPage from './pages/PurchaseRequestsPage';
 import AdminPage from './pages/AdminPage';
+import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="history" element={<AuditHistoryPage />} />
             <Route path="ncr" element={<NCRPage />} />
             <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
+            <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={
               <ProtectedRoute roles={['admin']}>
                 <AdminPage />

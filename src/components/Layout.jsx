@@ -13,7 +13,8 @@ const NAV = [
   { to: '/ncr', label: 'NCR List', icon: '⚠', badge: true },
   { to: '/purchase-requests', label: 'Purchase Requests', icon: '🛒' },
   { section: 'Admin', roles: ['admin'] },
-  { to: '/admin', label: 'Admin Panel', icon: '⚙', roles: ['admin'] },
+  { to: "/profile", label: "My Profile", icon: "👤" },
+  { to: "/admin", label: "Admin Panel", icon: "⚙", roles: ["admin"] },
 ];
 
 export default function Layout() {
