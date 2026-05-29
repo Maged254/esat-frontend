@@ -10,11 +10,11 @@ const NAV = [
   { to: '/audit/new', label: 'New Audit', icon: '✓' },
   { to: '/history', label: 'Audit History', icon: '⏱' },
   { section: 'Compliance' },
-  { to: '/ncr', label: 'NCR List', icon: '⚠', badge: true },
+  { to: '/ncr', label: 'NCR List', icon: '⚠' },
   { to: '/purchase-requests', label: 'Purchase Requests', icon: '🛒' },
   { section: 'Admin', roles: ['admin'] },
-  { to: "/profile", label: "My Profile", icon: "👤" },
-  { to: "/admin", label: "Admin Panel", icon: "⚙", roles: ["admin"] },
+  { to: '/admin', label: 'Admin Panel', icon: '⚙', roles: ['admin'] },
+  { to: '/profile', label: 'My Profile', icon: '👤', roles: ['admin'] },
 ];
 
 export default function Layout() {
@@ -61,7 +61,10 @@ export default function Layout() {
 
         <div className="sidebar-footer">
           <div className="user-chip" onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
-            <div className="avatar av-green" style={{ width: 28, height: 28, fontSize: 10 }}>{initials}</div>
+            {user?.profile_picture
+              ? <img src={user.profile_picture} alt={user.name} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+              : <div className="avatar av-green" style={{ width: 28, height: 28, fontSize: 10 }}>{initials}</div>
+            }
             <div>
               <div className="user-name">{user?.name}</div>
               <div className="user-role">{user?.role?.replace('_', ' ')} · Egypro</div>

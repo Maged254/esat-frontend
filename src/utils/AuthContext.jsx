@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../utils/api';
+import api from './api';
 
 const AuthContext = createContext(null);
 
@@ -14,7 +14,10 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('esat_token');
     if (token) {
       api.get('/auth/me')
-        .then(res => setUser(res.data))
+        .then(res => {
+          setUser(res.data);
+          localStorage.setItem('esat_user', JSON.stringify(res.data));
+        })
         .catch(() => logout())
         .finally(() => setLoading(false));
     } else {
