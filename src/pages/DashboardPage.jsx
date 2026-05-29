@@ -90,7 +90,7 @@ export default function DashboardPage() {
             </div>
             <table>
               <thead>
-                <tr><th>Employee</th><th>Department</th><th>Last audit</th><th></th></tr>
+                <tr><th>Employee</th><th>Project</th><th>Last audit</th><th></th></tr>
               </thead>
               <tbody>
                 {overdue.slice(0, 5).map((e, i) => (
@@ -104,7 +104,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </td>
-                    <td>{e.department || '—'}</td>
+                    <td>{e.project || "—"}</td>
                     <td>
                       <span className={`dot ${e.days_since_audit > 45 ? 'dot-red' : 'dot-amber'}`}></span>
                       {e.days_since_audit ? `${e.days_since_audit} days` : 'Never'}
