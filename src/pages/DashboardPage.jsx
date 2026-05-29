@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
         <div className="stat-grid">
           <div className="stat-card">
-            <div className="stat-label">Total active employees</div>
+            <div className="stat-label">Total Active Project Members</div>
             <div className="stat-value navy">{data?.employees.active ?? '—'}</div>
             <div className="stat-sub">{data?.employees.exits_this_year ?? 0} exits this year</div>
           </div>
