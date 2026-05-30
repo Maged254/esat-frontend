@@ -157,6 +157,7 @@ export function EmployeesPage() {
 // ── AuditHistoryPage ─────────────────────────────────────────
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
+  const navigate = useNavigate();
   useEffect(() => { api.get('/audits').then(r=>setAudits(r.data)).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
   const STATUS = { compliant:<span className="tag tag-green">Compliant</span>, partial:<span className="tag tag-amber">Partial</span>, non_compliant:<span className="tag tag-red">Non-compliant</span> };
@@ -173,7 +174,7 @@ export function AuditHistoryPage() {
             <thead><tr><th>Employee</th><th>National ID</th><th>Department</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
             <tbody>
               {audits.map((a,i)=>(
-                <tr key={a.id}>
+                <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate(`/audits/${a.id}`)}>
                   <td><div className="emp-cell"><div className={`avatar ${['av-teal','av-navy','av-coral','av-purple'][i%4]}`}>{initials(a.employee_name)}</div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.employee_number}</div></div></div></td>
                   <td>{a.national_id || a.employee_national_id || '—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
