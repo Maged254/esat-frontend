@@ -294,24 +294,18 @@ export function NCRPage() {
         <div className="card">
           <div className="card-header"><span className="card-title">Open NCR items</span></div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Category</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th></tr></thead>
             <tbody>
               {items.map(n=>(
                 <tr key={n.id}>
                   <td style={{padding:'0 0 0 8px'}}><div style={{width:3,height:40,background:n.condition==='not_good'?'var(--danger)':'var(--warning)',borderRadius:2}}></div></td>
                   <td><div className="emp-cell"><div className="avatar av-coral" style={{width:26,height:26,fontSize:10}}>{n.employee_name?.split(' ').map(w=>w[0]).join('')}</div><span className="emp-name">{n.employee_name}</span></div></td>
                   <td>{n.ppe_name}</td>
-                  <td><span className="tag tag-gray" style={{fontSize:10}}>{n.category?.replace('_',' ')}</span></td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
                   <td>{n.size_value||'—'}</td>
                   <td style={{color:'#6b7280',fontSize:12}}>{n.comment||'—'}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>{new Date(n.created_at).toLocaleDateString('en-GB')}</td>
-                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ordered'?'tag-navy':'tag-green'}`}>{n.status}</span></td>
-                  <td>
-                    <select className="form-select" style={{fontSize:11,padding:'3px 6px',height:26}} value={n.status} onChange={e=>updateStatus(n.id,e.target.value)}>
-                      <option value="pending">Pending</option><option value="ordered">Ordered</option><option value="resolved">Resolved</option>
-                    </select>
-                  </td>
+                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ordered'||n.status==='purchase_requested'?'tag-navy':n.status==='available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{n.status==='pending'?'Pending':n.status==='purchase_requested'?'Purchase Requested':n.status==='ordered'?'Ordered':n.status==='available'?'Available':n.status==='distributed'?'Distributed':n.status==='resolved'?'Resolved':'Canceled'}</span></td>
                 </tr>
               ))}
               {!items.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No open NCRs</td></tr>}
