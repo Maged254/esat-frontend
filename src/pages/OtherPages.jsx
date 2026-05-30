@@ -7,6 +7,40 @@ export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '' });
   const navigate = useNavigate();
+  const [importing, setImporting] = useState(false);
+
+  const handleCSVImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    const text = await file.text();
+    const lines = text.trim().split(/\r?\n/);
+    const headers = lines[0].split(',');
+    const rows = lines.slice(1).map(line => {
+      const vals = line.split(',');
+      const obj = {};
+      headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || '').trim(); });
+      return obj;
+    });
+    let success = 0, failed = 0, errors = [];
+    for (const row of rows) {
+      try {
+        await api.post('/employees', row);
+        success++;
+      } catch(err) {
+        failed++;
+        errors.push(row.employee_number + ': ' + (err.response?.data?.error || 'Error'));
+      }
+    }
+    setImporting(false);
+    e.target.value = '';
+    load();
+    let msg = `Import complete: ${success} added`;
+    if (failed > 0) msg += `, ${failed} failed:
+` + errors.slice(0,5).join('
+');
+    alert(msg);
+  };
 
   const load = () => {
     const params = new URLSearchParams();
@@ -27,7 +61,10 @@ export function EmployeesPage() {
           <span className="topbar-title">Employees</span>
         </div>
         <div className="topbar-right">
-          <button className="btn">↑ Import CSV</button>
+          <label className="btn" style={{cursor:'pointer'}}>
+            {importing ? 'Importing...' : '↑ Import CSV'}
+            <input type="file" accept=".csv" style={{display:'none'}} onChange={handleCSVImport} disabled={importing} />
+          </label>
           <button className="btn btn-primary">+ Add Employee</button>
         </div>
       </div>
