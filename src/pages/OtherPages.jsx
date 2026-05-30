@@ -237,6 +237,7 @@ export function AuditHistoryPage() {
                 <option value="">All Auditors</option>
                 {users.map(u=><option key={u.id} value={u.id}>{u.full_name}</option>)}
               </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '', audited_by: '' })}>✕ Clear</button>
             </div>
           </div>
           <table>
