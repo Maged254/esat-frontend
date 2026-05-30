@@ -132,22 +132,24 @@ export default function DashboardPage() {
               <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
             </div>
             <div className="card-body">
-              {[
-                { label: 'Foot Protection', val: 43, cls: 'danger' },
-                { label: 'Fall Protection', val: 28, cls: 'warning' },
-                { label: 'Head Protection', val: 14, cls: 'navy' },
-                { label: 'Body Protection', val: 14, cls: '' },
-              ].map(r => (
-                <div key={r.label} style={{ marginBottom: 14 }}>
-                  <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
-                    <span>{r.label}</span>
-                    <span style={{ color: '#6b7280' }}>{Math.round(r.val / 7)} items</span>
+              {(data?.ncr?.by_category || []).map((r, i) => {
+                const cls = ['danger','warning','navy','','teal'][i % 5];
+                const label = r.category.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+                const max = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count)));
+                const pct = max > 0 ? Math.round((parseInt(r.count)/max)*100) : 0;
+                return (
+                  <div key={r.category} style={{ marginBottom: 14 }}>
+                    <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
+                      <span>{label}</span>
+                      <span style={{ color: '#6b7280' }}>{r.count} items</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className={'progress-fill ' + cls} style={{ width: pct + '%' }}></div>
+                    </div>
                   </div>
-                  <div className="progress-bar">
-                    <div className={`progress-fill ${r.cls}`} style={{ width: `${r.val}%` }}></div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              {(!data?.ncr?.by_category?.length) && <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No open NCRs</div>}
               <div style={{ paddingTop: 12, borderTop: '0.5px solid #e5e7eb', marginTop: 4 }}>
                 <button className="btn btn-navy" style={{ width: '100%', justifyContent: 'center' }}
                   onClick={() => navigate('/purchase-requests')}>
