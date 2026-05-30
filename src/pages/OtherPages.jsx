@@ -157,6 +157,7 @@ export function EmployeesPage() {
 // ── AuditHistoryPage ─────────────────────────────────────────
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
+  const [stats, setStats] = useState({});
   const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '' });
   const navigate = useNavigate();
 
@@ -167,6 +168,7 @@ export function AuditHistoryPage() {
   };
 
   useEffect(() => { load(); }, [filters]);
+  useEffect(() => { api.get('/audits/stats').then(r=>setStats(r.data)).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
   const exportCSV = () => {
@@ -200,6 +202,17 @@ export function AuditHistoryPage() {
         <div className="topbar-right"><button className="btn" onClick={exportCSV}>↓ Export CSV</button></div>
       </div>
       <div className="content">
+        <div className="stat-grid" style={{marginBottom:16}}>
+          <div className="stat-card"><div className="stat-label">Total Audits</div><div className="stat-value navy">{parseInt(stats.total)||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Compliant</div><div className="stat-value green">{parseInt(stats.compliant)||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Partial</div><div className="stat-value warning">{parseInt(stats.partial)||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Non-Compliant</div><div className="stat-value danger">{parseInt(stats.non_compliant)||0}</div></div>
+          <div className="stat-card">
+            <div className="stat-label">This Month</div>
+            <div className="stat-value" style={{color: parseInt(stats.this_month) >= parseInt(stats.last_month) ? 'var(--eg-green)' : 'var(--danger)'}}>{parseInt(stats.this_month)||0}</div>
+            <div style={{fontSize:11,color:'#6b7280',marginTop:4}}>vs {parseInt(stats.last_month)||0} last month</div>
+          </div>
+        </div>
         <div className="card" style={{marginBottom:16}}>
           <div style={{padding:'12px 16px',display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
             <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
@@ -221,7 +234,9 @@ export function AuditHistoryPage() {
           </div>
         </div>
         <div className="card">
-          <div className="card-header"><span className="card-title">All Audits</span></div>
+          <div className="card-header">
+            <span className="card-title">All Audits</span>
+          </div>
           <table>
             <thead><tr><th>Employee</th><th>National ID</th><th>Department</th><th>Project</th><th>Organization</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
             <tbody>
