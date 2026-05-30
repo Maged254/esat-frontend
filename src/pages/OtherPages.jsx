@@ -88,19 +88,19 @@ export function AuditHistoryPage() {
         <div className="card">
           <div className="card-header"><span className="card-title">All audits</span></div>
           <table>
-            <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
+            <thead><tr><th>Employee</th><th>National ID</th><th>Department</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
             <tbody>
               {audits.map((a,i)=>(
                 <tr key={a.id}>
                   <td><div className="emp-cell"><div className={`avatar ${['av-teal','av-navy','av-coral','av-purple'][i%4]}`}>{initials(a.employee_name)}</div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.employee_number}</div></div></div></td>
-                  <td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.audited_by_name}</td>
+                  <td>{a.national_id || a.employee_national_id || '—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
                   <td><span className={`tag ${a.issues_count>0?'tag-red':'tag-green'}`}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
                   <td>{STATUS[a.overall_status]}</td>
                 </tr>
               ))}
-              {!audits.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
+              {!audits.length && <tr><td colSpan={9} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
             </tbody>
           </table>
         </div>
