@@ -169,20 +169,22 @@ tr:hover td { background: #f9fafb; }
 .form-input:read-only { background: #f9fafb; }
 
 /* ── Audit PPE rows ──────────────────────────────────────── */
-.ppe-col-header { background: var(--eg-navy); }
+.ppe-col-header { background: #f3f4f6; }
 .ppe-section-header {
-  font-size: 12px; font-weight: 500; color: var(--text-secondary);
-  text-transform: uppercase; letter-spacing: 0.06em;
-  padding: 10px 18px; background: #f9fafb;
-  border-bottom: var(--border); border-top: var(--border);
-  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--eg-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .ppe-col-header {
   display: grid; grid-template-columns: 1fr 200px 80px 1fr 70px;
   gap: 0; background: #f9fafb; border-bottom: var(--border);
 }
-.ppe-col-header div { padding: 8px 12px; font-size: 11px; font-weight: 600; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; background: var(--eg-navy); }
-.ppe-row { display: grid; grid-template-columns: 1.5fr 260px 100px 1fr 70px; gap: 0; border-bottom: var(--border); align-items: center; }
+.ppe-col-header div { padding: 8px 12px; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+.ppe-row { display: grid; grid-template-columns: 1.5fr 260px 110px 1fr 90px; gap: 0; border-bottom: var(--border); align-items: center; }
 .ppe-row:last-child { border-bottom: none; }
 .ppe-row:hover { background: #f9fafb; }
 .ppe-name { padding: 10px 16px; font-size: 13px; }
