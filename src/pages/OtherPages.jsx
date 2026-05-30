@@ -157,7 +157,6 @@ export function EmployeesPage() {
 // ── AuditHistoryPage ─────────────────────────────────────────
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
-  const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
   const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '', audited_by: '' });
   const navigate = useNavigate();
@@ -169,7 +168,7 @@ export function AuditHistoryPage() {
   };
 
   useEffect(() => { load(); }, [filters]);
-  useEffect(() => { api.get('/audits/stats').then(r=>setStats(r.data)).catch(console.error); }, []);
+
   useEffect(() => { api.get('/users').then(r=>setUsers(r.data)).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
@@ -205,14 +204,13 @@ export function AuditHistoryPage() {
       </div>
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:"repeat(5,1fr)"}}>
-          <div className="stat-card"><div className="stat-label">Total Audits</div><div className="stat-value navy">{parseInt(stats.total)||0}</div></div>
-          <div className="stat-card"><div className="stat-label">Compliant</div><div className="stat-value green">{parseInt(stats.compliant)||0}</div></div>
-          <div className="stat-card"><div className="stat-label">Partial</div><div className="stat-value warning">{parseInt(stats.partial)||0}</div></div>
-          <div className="stat-card"><div className="stat-label">Non-Compliant</div><div className="stat-value danger">{parseInt(stats.non_compliant)||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Total Audits</div><div className="stat-value navy">{audits.length}</div></div>
+          <div className="stat-card"><div className="stat-label">Compliant</div><div className="stat-value green">{audits.filter(a=>a.overall_status==='compliant').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Partial</div><div className="stat-value warning">{audits.filter(a=>a.overall_status==='partial').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Non-Compliant</div><div className="stat-value danger">{audits.filter(a=>a.overall_status==='non_compliant').length}</div></div>
           <div className="stat-card">
             <div className="stat-label">This Month</div>
-            <div className="stat-value" style={{color: parseInt(stats.this_month) >= parseInt(stats.last_month) ? 'var(--eg-green)' : 'var(--danger)'}}>{parseInt(stats.this_month)||0}</div>
-            <div style={{fontSize:11,color:'#6b7280',marginTop:4}}>vs {parseInt(stats.last_month)||0} last month</div>
+            {(() => { const now = new Date(); const thisMonth = audits.filter(a=>{ const d=new Date(a.audit_date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length; const lastMonth = audits.filter(a=>{ const d=new Date(a.audit_date); const lm=new Date(now.getFullYear(),now.getMonth()-1); return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear(); }).length; return <><div className="stat-value" style={{color:thisMonth>=lastMonth?'var(--eg-green)':'var(--danger)'}}>{thisMonth}</div><div style={{fontSize:11,color:'#6b7280',marginTop:4}}>vs {lastMonth} last month</div></>; })()}
           </div>
         </div>
         <div className="card">
@@ -266,7 +264,6 @@ export function AuditHistoryPage() {
 // ── NCRPage ──────────────────────────────────────────────────
 export function NCRPage() {
   const [items, setItems] = useState([]);
-  const [stats, setStats] = useState({});
   const navigate = useNavigate();
   useEffect(() => {
     api.get('/ncr').then(r=>setItems(r.data)).catch(console.error);
