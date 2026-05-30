@@ -26,12 +26,12 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo">
-          <img src="/logo.png" alt="Egypro" style={{ width: 44, height: 44, borderRadius: 8 }}
+        <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
+          <img src="/logo.png" alt="Egypro" style={{ width: 72, height: 72, borderRadius: 12 }}
                onError={e => { e.target.style.display='none'; }} />
-          <div>
-            <div className="login-title">ESAT</div>
-            <div className="login-sub">Egypro Egypro Safety Audit Tracker</div>
+          <div style={{textAlign:'center'}}>
+            <div className="login-title" style={{fontSize:52,letterSpacing:4,fontWeight:800}}>ESAT</div>
+            <div className="login-sub" style={{fontSize:16,marginTop:4,letterSpacing:1}}>Egypro Safety Audit Tracker</div>
           </div>
         </div>
 
