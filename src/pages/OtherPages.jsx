@@ -157,8 +157,16 @@ export function EmployeesPage() {
 // ── AuditHistoryPage ─────────────────────────────────────────
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
+  const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '' });
   const navigate = useNavigate();
-  useEffect(() => { api.get('/audits').then(r=>setAudits(r.data)).catch(console.error); }, []);
+
+  const load = () => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    api.get(`/audits?${params}`).then(r=>setAudits(r.data)).catch(console.error);
+  };
+
+  useEffect(() => { load(); }, [filters]);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
   const exportCSV = () => {
@@ -184,6 +192,28 @@ export function AuditHistoryPage() {
       <div className="topbar">
         <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Audit History</span></div>
         <div className="topbar-right"><button className="btn" onClick={exportCSV}>↓ Export CSV</button></div>
+      </div>
+      <div className="content">
+        <div className="card" style={{marginBottom:16}}>
+          <div style={{padding:'12px 16px',display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+            <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+            <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+            <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+              <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
+            </select>
+            <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
+              <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
+            </select>
+            <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+              <option value="">All Projects</option>
+              {[...new Set(audits.map(a=>a.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+            </select>
+            <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
+              <option value="">All Clients</option>
+              {[...new Set(audits.map(a=>a.client).filter(Boolean))].sort().map(cl=><option key={cl} value={cl}>{cl}</option>)}
+            </select>
+          </div>
+        </div
       </div>
       <div className="content">
         <div className="card">
