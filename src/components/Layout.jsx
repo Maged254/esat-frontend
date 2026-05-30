@@ -12,6 +12,7 @@ const NAV = [
   { section: 'Compliance' },
   { to: '/ncr', label: 'NCR List', icon: '⚠' },
   { to: '/purchase-requests', label: 'Purchase Requests', icon: '🛒' },
+  { to: '/ppe-tracker', label: 'PPE Tracker', icon: '📦' },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: '⚙', roles: ['admin'] },
   { to: '/profile', label: 'My Profile', icon: '👤', roles: ['admin'] },

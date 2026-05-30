@@ -13,6 +13,7 @@ import PurchaseRequestsPage from './pages/PurchaseRequestsPage';
 import AdminPage from './pages/AdminPage';
 import ProfilePage from './pages/ProfilePage';
 import AuditDetailPage from './pages/AuditDetailPage';
+import PPERequestTrackerPage from './pages/PPERequestTrackerPage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="audits/:auditId" element={<AuditDetailPage />} />
             <Route path="ncr" element={<NCRPage />} />
             <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
+            <Route path="ppe-tracker" element={<PPERequestTrackerPage />} />
             <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={
               <ProtectedRoute roles={['admin']}>
