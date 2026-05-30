@@ -28,12 +28,15 @@ export default function NewAuditPage() {
   const [items, setItems] = useState({});    // { ppeId: { condition, size, comment, applicable } }
   const [auditDate, setAuditDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [users, setUsers] = useState([]);
+  const [auditedBy, setAuditedBy] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
 
   useEffect(() => {
     api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
+    api.get('/users').then(r => { setUsers(r.data); if (r.data.length > 0) setAuditedBy(r.data[0].id); }).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -90,6 +93,7 @@ export default function NewAuditPage() {
       await api.post('/audits', {
         employee_id: selectedEmp.id,
         audit_date: auditDate,
+        audited_by_override: auditedBy,
         notes,
         items: auditItems,
       });
@@ -226,6 +230,12 @@ export default function NewAuditPage() {
                 <div className="form-group">
                   <label className="form-label">Audit date</label>
                   <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280"}} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Audited by</label>
+                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)}>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">General notes (optional)</label>
