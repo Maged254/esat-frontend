@@ -265,6 +265,7 @@ export function AuditHistoryPage() {
 // ── NCRPage ──────────────────────────────────────────────────
 export function NCRPage() {
   const [items, setItems] = useState([]);
+  const [stats, setStats] = useState({});
   const navigate = useNavigate();
   useEffect(() => {
     api.get('/ncr').then(r=>setItems(r.data)).catch(console.error);
