@@ -5,7 +5,7 @@ import api from '../utils/api';
 
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: 'yes' });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -105,6 +105,11 @@ export function EmployeesPage() {
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
                 <option value="">All Clients</option>
                 {[...new Set(employees.map(e=>e.client).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.san} onChange={e=>setFilters(p=>({...p,san:e.target.value}))}>
+                <option value="">All</option>
+                <option value="yes">Safety Audit Needed</option>
+                <option value="no">No Audit Needed</option>
               </select>
             </div>
           </div>
