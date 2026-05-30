@@ -133,10 +133,10 @@ export default function DashboardPage() {
             </div>
             <div className="card-body">
               {(data?.ncr?.by_category || []).map((r, i) => {
-                const cls = ['danger','warning','navy','','teal'][i % 5];
+                const pct2 = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
+                const cls = pct2 >= 75 ? 'danger' : pct2 >= 40 ? 'warning' : 'navy';
                 const label = r.category.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
-                const max = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count)));
-                const pct = max > 0 ? Math.round((parseInt(r.count)/max)*100) : 0;
+                const pct = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
                 return (
                   <div key={r.category} style={{ marginBottom: 14 }}>
                     <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
