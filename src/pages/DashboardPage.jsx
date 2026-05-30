@@ -178,7 +178,7 @@ export default function DashboardPage() {
                     <td style={{fontSize:12,color:'#6b7280'}}>{u.this_month} this month</td>
                   </tr>
                 ))}
-                {!leaderboard.length && <tr><td colSpan={5} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
+                {!leaderboard.length && <tr><td colSpan={4} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
               </tbody>
             </table>
           </div>
