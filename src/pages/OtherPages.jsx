@@ -10,13 +10,10 @@ export function EmployeesPage() {
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUserRole(payload.role);
-      } catch {}
-    }
+    try {
+      const user = JSON.parse(localStorage.getItem('esat_user'));
+      if (user) setUserRole(user.role);
+    } catch {}
   }, []);
 
   const toggleSAN = async (emp) => {
