@@ -52,12 +52,12 @@ export function EmployeesPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Employee</th><th>National ID</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {employees.map((e, i) => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.employee_number}</div></div></div></td>
-                  <td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
+                  <td>{e.national_id || e.NationalIDNumber || '—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
                   <td><span className={`tag ${e.resource_type==='inhouse'?'tag-navy':'tag-gray'}`}>{e.resource_type||'—'}</span></td>
                   <td>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</td>
                   <td><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status}</span></td>
