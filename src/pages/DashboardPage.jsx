@@ -13,11 +13,13 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const { user } = useAuth();
   const [overdue, setOverdue] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/dashboard').then(r => setData(r.data)).catch(console.error);
     api.get('/employees/overdue').then(r => setOverdue(r.data)).catch(console.error);
+    api.get('/audits/leaderboard').then(r => setLeaderboard(r.data)).catch(console.error);
   }, []);
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
@@ -160,11 +162,32 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Recent audits</span>
-            <button className="btn btn-sm" onClick={() => navigate('/history')}>View all</button>
+        <div className="two-col" style={{marginBottom:16}}>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Auditor Leaderboard</span>
+            </div>
+            <table>
+              <thead><tr><th>#</th><th>Auditor</th><th>Role</th><th>Total Audits</th><th>This Month</th></tr></thead>
+              <tbody>
+                {leaderboard.map((u, i) => (
+                  <tr key={u.id}>
+                    <td style={{fontWeight:600,color:'#6b7280',fontSize:13}}>{i+1}</td>
+                    <td><div className="emp-cell"><div className={'avatar ' + avatarClass(i)}>{u.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div><div className="emp-name">{u.full_name}</div></div></td>
+                    <td><span className="tag tag-gray" style={{fontSize:10}}>{u.role.replace('_',' ')}</span></td>
+                    <td style={{fontWeight:600}}>{u.total_audits}</td>
+                    <td style={{fontSize:12,color:'#6b7280'}}>{u.this_month} this month</td>
+                  </tr>
+                ))}
+                {!leaderboard.length && <tr><td colSpan={5} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
+              </tbody>
+            </table>
           </div>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Recent audits</span>
+              <button className="btn btn-sm" onClick={() => navigate('/history')}>View all</button>
+            </div>
           <table>
             <thead>
               <tr><th>Employee</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Status</th></tr>
@@ -198,6 +221,7 @@ export default function DashboardPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </>
