@@ -71,7 +71,7 @@ export function EmployeesPage() {
           <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{employees.filter(e=>e.employment_status==='active').length}</div></div>
           <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{employees.filter(e=>e.resource_type==='inhouse').length}</div></div>
           <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{employees.filter(e=>e.resource_type==='outsource').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Exits (this year)</div><div className="stat-value">{employees.filter(e=>e.employment_status==='exit').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{employees.filter(e=>e.employment_status==='exit').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header">
