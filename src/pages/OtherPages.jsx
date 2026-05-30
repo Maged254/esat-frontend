@@ -160,16 +160,34 @@ export function AuditHistoryPage() {
   const navigate = useNavigate();
   useEffect(() => { api.get('/audits').then(r=>setAudits(r.data)).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
+
+  const exportCSV = () => {
+    const headers = ['employee_name','employee_number','national_id','department','project','audited_by_name','audit_date','total_items','issues_count','overall_status'];
+    const rows = audits.map(a => headers.map(h => {
+      const val = a[h];
+      if (val === null || val === undefined) return '';
+      if (h === 'audit_date') return new Date(val).toLocaleDateString('en-GB');
+      return String(val).includes(',') ? `"${val}"` : val;
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ESAT_Audit_History_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const STATUS = { compliant:<span className="tag tag-green">Compliant</span>, partial:<span className="tag tag-amber">Partial</span>, non_compliant:<span className="tag tag-red">Non-compliant</span> };
   return (
     <>
       <div className="topbar">
         <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Audit History</span></div>
-        <div className="topbar-right"><button className="btn">↓ Export</button></div>
+        <div className="topbar-right"><button className="btn" onClick={exportCSV}>↓ Export CSV</button></div>
       </div>
       <div className="content">
         <div className="card">
-          <div className="card-header"><span className="card-title">All audits</span></div>
+          <div className="card-header"><span className="card-title">All Audits</span></div>
           <table>
             <thead><tr><th>Employee</th><th>National ID</th><th>Department</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
             <tbody>
