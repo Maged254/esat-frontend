@@ -229,15 +229,15 @@ export default function NewAuditPage() {
               <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
                   <label className="form-label">Audit date</label>
-                  <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280"}} />
+                  <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Audited by</label>
-                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)}>
+                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)} style={{height:38}}>
                     {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{gridColumn:'1 / -1'}}>
                   <label className="form-label">General notes (optional)</label>
                   <input className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Overall observations..." />
                 </div>
