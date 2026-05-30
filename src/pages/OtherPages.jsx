@@ -266,14 +266,28 @@ export function AuditHistoryPage() {
 export function NCRPage() {
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({});
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState([]);
+  const [userRole, setUserRole] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try { const user = JSON.parse(localStorage.getItem('esat_user')); if (user) setUserRole(user.role); } catch {}
+  }, []);
+
   useEffect(() => {
     api.get('/ncr').then(r=>setItems(r.data)).catch(console.error);
     api.get('/ncr/stats').then(r=>setStats(r.data)).catch(console.error);
   }, []);
-  const updateStatus = async (id, status) => {
-    await api.put(`/ncr/${id}/status`, { status });
-    setItems(prev => prev.map(i => i.id===id ? {...i,status} : i));
+
+  const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
+
+  const approvePurchaseRequest = async () => {
+    if (selected.length === 0) return;
+    await Promise.all(selected.map(id => api.put(`/ncr/${id}/status`, { status: 'purchase_requested' })));
+    setItems(prev => prev.map(i => selected.includes(i.id) ? {...i, status: 'purchase_requested'} : i));
+    setSelected([]);
+    setSelecting(false);
   };
   return (
     <>
@@ -281,7 +295,16 @@ export function NCRPage() {
         <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
         <div className="topbar-right">
           <button className="btn">↓ Export</button>
-          <button className="btn btn-navy" onClick={()=>navigate('/purchase-requests')}>🛒 Create Purchase Request</button>
+          {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && (
+            <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve Purchase Request</button>
+          )}
+          {selecting && (
+            <>
+              <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected</span>
+              <button className="btn btn-primary" onClick={approvePurchaseRequest} disabled={selected.length===0}>✓ Approve ({selected.length})</button>
+              <button className="btn" onClick={()=>{setSelecting(false);setSelected([]);}}>✕ Cancel</button>
+            </>
+          )}
         </div>
       </div>
       <div className="content">
@@ -294,7 +317,7 @@ export function NCRPage() {
         <div className="card">
           <div className="card-header"><span className="card-title">Open NCR items</span></div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th></tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th>{selecting && <th>Select</th>}</tr></thead>
             <tbody>
               {items.map(n=>(
                 <tr key={n.id}>
@@ -306,6 +329,7 @@ export function NCRPage() {
                   <td style={{color:'#6b7280',fontSize:12}}>{n.comment||'—'}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>{new Date(n.created_at).toLocaleDateString('en-GB')}</td>
                   <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ordered'||n.status==='purchase_requested'?'tag-navy':n.status==='available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{n.status==='pending'?'Pending':n.status==='purchase_requested'?'Purchase Requested':n.status==='ordered'?'Ordered':n.status==='available'?'Available':n.status==='distributed'?'Distributed':n.status==='resolved'?'Resolved':'Canceled'}</span></td>
+                  {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                 </tr>
               ))}
               {!items.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No open NCRs</td></tr>}

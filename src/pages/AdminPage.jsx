@@ -134,7 +134,9 @@ export default function AdminPage() {
                   <label className="form-label">Role</label>
                   <select className="form-select" value={form.role} onChange={e => setForm(p => ({...p, role: e.target.value}))}>
                     <option value="ehs_officer">EHS Officer</option>
+                    <option value="ehs_manager">EHS Manager</option>
                     <option value="supervisor">Supervisor</option>
+                    <option value="scm_officer">SCM Officer</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
