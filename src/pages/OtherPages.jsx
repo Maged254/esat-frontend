@@ -158,7 +158,8 @@ export function EmployeesPage() {
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
   const [stats, setStats] = useState({});
-  const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '' });
+  const [users, setUsers] = useState([]);
+  const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '', audited_by: '' });
   const navigate = useNavigate();
 
   const load = () => {
@@ -169,6 +170,7 @@ export function AuditHistoryPage() {
 
   useEffect(() => { load(); }, [filters]);
   useEffect(() => { api.get('/audits/stats').then(r=>setStats(r.data)).catch(console.error); }, []);
+  useEffect(() => { api.get('/users').then(r=>setUsers(r.data)).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
   const exportCSV = () => {
@@ -232,6 +234,10 @@ export function AuditHistoryPage() {
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:110}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
                 <option value="">All Clients</option>
                 {[...new Set(audits.map(a=>a.client).filter(Boolean))].sort().map(cl=><option key={cl} value={cl}>{cl}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.audited_by} onChange={e=>setFilters(p=>({...p,audited_by:e.target.value}))}>
+                <option value="">All Auditors</option>
+                {users.map(u=><option key={u.id} value={u.id}>{u.full_name}</option>)}
               </select>
             </div>
           </div>
