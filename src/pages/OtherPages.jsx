@@ -116,7 +116,7 @@ export function EmployeesPage() {
           <table>
             <thead><tr><th>Employee</th><th>National ID</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {employees.map((e, i) => (
+              {employees.filter(e => { if (filters.san === '') return true; if (filters.san === 'yes') return e.san !== false; return e.san === false; }).map((e, i) => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.employee_number}</div></div></div></td>
                   <td>{e.national_id || e.NationalIDNumber || '—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
