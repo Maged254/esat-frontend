@@ -42,9 +42,7 @@ export function EmployeesPage() {
     e.target.value = '';
     load();
     let msg = `Import complete: ${success} added`;
-    if (failed > 0) msg += `, ${failed} failed:
-` + errors.slice(0,5).join('
-');
+    if (failed > 0) msg += `, ${failed} failed:\n` + errors.slice(0,5).join('\n');
     alert(msg);
   };
 
