@@ -9,6 +9,12 @@ export function EmployeesPage() {
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
 
+  const load = () => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(console.error);
+  };
+
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -40,12 +46,6 @@ export function EmployeesPage() {
 ` + errors.slice(0,5).join('
 ');
     alert(msg);
-  };
-
-  const load = () => {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(console.error);
   };
 
   useEffect(() => { load(); }, [filters]);
