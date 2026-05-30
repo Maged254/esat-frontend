@@ -68,6 +68,7 @@ export default function AuditDetailPage() {
               ['Department', audit.department || '—'],
               ['Project', audit.project || '—'],
               ['Client', audit.client || '—'],
+              ['Organization', audit.organization || '—'],
               ['Resource Type', audit.resource_type || '—'],
               ['Audit Date', new Date(audit.audit_date).toLocaleDateString('en-GB')],
               ['Audited By', audit.audited_by_name],
