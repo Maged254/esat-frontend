@@ -167,7 +167,7 @@ export function AuditHistoryPage() {
   };
 
   useEffect(() => { load(); }, [filters]);
-  const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
+  const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||||'?';
 
   const exportCSV = () => {
     const headers = ['employee_name','employee_number','national_id','department','project','organization','audited_by_name','audit_date','total_items','issues_count','overall_status'];
@@ -186,7 +186,9 @@ export function AuditHistoryPage() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
   const STATUS = { compliant:<span className="tag tag-green">Compliant</span>, partial:<span className="tag tag-amber">Partial</span>, non_compliant:<span className="tag tag-red">Non-compliant</span> };
+
   return (
     <>
       <div className="topbar">
@@ -213,9 +215,7 @@ export function AuditHistoryPage() {
               {[...new Set(audits.map(a=>a.client).filter(Boolean))].sort().map(cl=><option key={cl} value={cl}>{cl}</option>)}
             </select>
           </div>
-        </div
-      </div>
-      <div className="content">
+        </div>
         <div className="card">
           <div className="card-header"><span className="card-title">All Audits</span></div>
           <table>
@@ -224,14 +224,14 @@ export function AuditHistoryPage() {
               {audits.map((a,i)=>(
                 <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate(`/audits/${a.id}`)}>
                   <td><div className="emp-cell"><div className={`avatar ${['av-teal','av-navy','av-coral','av-purple'][i%4]}`}>{initials(a.employee_name)}</div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.employee_number}</div></div></div></td>
-                  <td>{a.national_id || a.employee_national_id || '—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.organization||'—'}</td><td>{a.audited_by_name}</td>
+                  <td>{a.national_id||'—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.organization||'—'}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
                   <td><span className={`tag ${a.issues_count>0?'tag-red':'tag-green'}`}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
                   <td>{STATUS[a.overall_status]}</td>
                 </tr>
               ))}
-              {!audits.length && <tr><td colSpan={9} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
+              {!audits.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
             </tbody>
           </table>
         </div>
