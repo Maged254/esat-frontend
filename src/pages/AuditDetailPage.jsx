@@ -44,7 +44,7 @@ export default function AuditDetailPage() {
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-breadcrumb" style={{cursor:'pointer'}} onClick={()=>navigate('/audits')}>Audit History</span>
+          <span className="topbar-breadcrumb" style={{cursor:'pointer'}} onClick={()=>navigate('/history')}>Audit History</span>
           <span className="topbar-sep">›</span>
           <span className="topbar-title">Audit Report</span>
         </div>
