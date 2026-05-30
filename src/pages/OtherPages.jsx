@@ -61,6 +61,24 @@ export function EmployeesPage() {
 
   useEffect(() => { load(); }, [filters]);
 
+  const exportCSV = () => {
+    const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
+    const rows = employees.map(e => headers.map(h => {
+      const val = e[h];
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+      return String(val).includes(',') ? `"${val}"` : val;
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ESAT_Employees_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   const avatarClass = i => ['av-teal','av-navy','av-coral','av-purple'][i % 4];
 
@@ -72,6 +90,7 @@ export function EmployeesPage() {
           <span className="topbar-title">Employees</span>
         </div>
         <div className="topbar-right">
+          {userRole === 'admin' && <button className="btn" onClick={exportCSV}>↓ Export CSV</button>}
           <label className="btn" style={{cursor:'pointer'}}>
             {importing ? 'Importing...' : '↑ Import CSV'}
             <input type="file" accept=".csv" style={{display:'none'}} onChange={handleCSVImport} disabled={importing} />
