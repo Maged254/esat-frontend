@@ -225,7 +225,7 @@ export default function NewAuditPage() {
               <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
                   <label className="form-label">Audit date</label>
-                  <input className="form-input" type="date" value={auditDate} onChange={e => setAuditDate(e.target.value)} />
+                  <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280"}} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">General notes (optional)</label>
