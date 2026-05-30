@@ -5,7 +5,7 @@ import api from '../utils/api';
 
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '' });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
 
@@ -77,12 +77,21 @@ export function EmployeesPage() {
           <div className="card-header">
             <span className="card-title">Employee list</span>
             <div className="flex gap-2">
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:200}} placeholder="Search..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
                 <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
               </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
                 <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                <option value="">All Projects</option>
+                {[...new Set(employees.map(e=>e.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
+                <option value="">All Clients</option>
+                {[...new Set(employees.map(e=>e.client).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
               </select>
             </div>
           </div>
