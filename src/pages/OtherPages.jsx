@@ -257,7 +257,7 @@ export function AuditHistoryPage() {
             <tbody>
               {audits.map((a,i)=>(
                 <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('/audits/' + a.id)}>
-                  <td><div className="emp-cell"><div className={'avatar ' + ['av-teal','av-navy','av-coral','av-purple'][i%4]}>{initials(a.employee_name)}</div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.employee_number}</div></div></div></td>
+                  <td><div className="emp-cell"><div className={'avatar ' + ['av-teal','av-navy','av-coral','av-purple'][i%4]}>{initials(a.employee_name)}</div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
                   <td>{a.national_id||'—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.organization||'—'}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
