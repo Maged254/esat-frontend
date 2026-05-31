@@ -78,9 +78,10 @@ export default function Layout() {
       <main className="main" style={{position:'relative'}}>
         <img src="/egypro-watermark.png" alt="" style={{
           position:'fixed',
-          bottom:'5%',
-          right:'5%',
-          width:300,
+          top:'50%',
+          left:'58%',
+          transform:'translate(-50%,-50%)',
+          width:400,
           opacity:0.06,
           pointerEvents:'none',
           zIndex:999,
