@@ -165,7 +165,7 @@ export default function PPERequestTrackerPage() {
                     </td>
                     <td>{r.ppe_name}</td>
                     <td>{r.size_value || '—'}</td>
-                    {dateCell(r.date_flagged, null)}
+                    {dateCell(r.date_flagged, r.flagged_by_name)}
                     {dateCell(r.date_purchase_requested, r.purchase_requested_by_name)}
                     {dateCell(r.date_ordered, r.ordered_by_name)}
                     {dateCell(r.date_available, r.available_by_name)}
