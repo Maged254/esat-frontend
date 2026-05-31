@@ -158,8 +158,20 @@ export function EmployeesPage() {
 export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
   const [users, setUsers] = useState([]);
+  const [userRole, setUserRole] = useState('');
   const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '', audited_by: '' });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    try { const user = JSON.parse(localStorage.getItem('esat_user')); if (user) setUserRole(user.role); } catch {}
+  }, []);
+
+  const deleteAudit = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this audit? All linked NCR items and PPE requests will also be deleted.')) return;
+    await api.delete('/audits/' + id);
+    setAudits(prev => prev.filter(a => a.id !== id));
+  };
 
   const load = () => {
     const params = new URLSearchParams();
