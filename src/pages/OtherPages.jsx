@@ -149,7 +149,7 @@ export function EmployeesPage() {
             <tbody>
               {employees.filter(e => {
                 if (filters.audit_age) {
-                  const days = parseInt(e.days_since_audit) || 9999;
+                  const days = e.days_since_audit !== null && e.days_since_audit !== undefined ? parseInt(e.days_since_audit) : 99999;
                   if (filters.audit_age === '1month' && days > 30) return false;
                   if (filters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
                   if (filters.audit_age === 'over2months' && days <= 60) return false;
