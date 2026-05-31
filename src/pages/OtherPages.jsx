@@ -297,6 +297,12 @@ export function NCRPage() {
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
+  const deleteNCR = async (id) => {
+    if (!window.confirm('Delete this NCR item? The linked PPE request will also be deleted.')) return;
+    await api.delete('/ncr/' + id);
+    setItems(prev => prev.filter(i => i.id !== id));
+  };
+
   const approvePurchaseRequest = async () => {
     if (selected.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve a purchase request for ${selected.length} NCR item(s)?`)) return;
@@ -354,7 +360,7 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th>{selecting && <th>Select</th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
@@ -367,6 +373,7 @@ export function NCRPage() {
                   <td style={{fontSize:12,color:'#6b7280'}}>{new Date(n.created_at).toLocaleDateString('en-GB')}</td>
                   <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ordered'||n.status==='purchase_requested'?'tag-navy':n.status==='available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{n.status==='pending'?'Pending':n.status==='purchase_requested'?'Purchase Requested':n.status==='ordered'?'Ordered':n.status==='available'?'Available':n.status==='distributed'?'Distributed':n.status==='resolved'?'Resolved':'Canceled'}</span></td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
+                  {userRole === 'admin' && !selecting && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}
               {!filteredItems.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
