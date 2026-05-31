@@ -114,11 +114,11 @@ export default function PPERequestTrackerPage() {
       </div>
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value navy">{requests.length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
-          <div className="stat-card"><div className="stat-label">EHS Requested</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
-          <div className="stat-card"><div className="stat-label">In Progress</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered'||r.status==='warehouse_available').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{requests.filter(r=>r.status==='distributed').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending EHS</div><div className="stat-value warning">{filtered.filter(r=>r.status==='pending').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending SCM</div><div className="stat-value navy">{filtered.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{filtered.filter(r=>r.status==='scm_ordered').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending Projects</div><div className="stat-value warning">{filtered.filter(r=>r.status==='warehouse_available').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
