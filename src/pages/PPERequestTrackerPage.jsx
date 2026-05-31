@@ -25,7 +25,7 @@ const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: '', search: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '' });
   const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
@@ -103,11 +103,11 @@ export default function PPERequestTrackerPage() {
                   <th>Employee</th>
                   <th>PPE Item</th>
                   <th>Size</th>
-                  <th>Date Flagged</th>
-                  <th>Date Purchase Request</th>
-                  <th>Date Ordered</th>
-                  <th>Date Availed</th>
-                  <th>Date Distributed</th>
+                  <th>📅 Flagged</th>
+                  <th>📅 Purchase Request</th>
+                  <th>📅 Ordered</th>
+                  <th>📅 Availed</th>
+                  <th>📅 Distributed</th>
                   <th>Status</th>
                 </tr>
               </thead>
