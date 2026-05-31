@@ -319,8 +319,8 @@ export function NCRPage() {
   const approvePurchaseRequest = async () => {
     if (selected.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve a purchase request for ${selected.length} NCR item(s)?`)) return;
-    await Promise.all(selected.map(id => api.put(`/ncr/${id}/status`, { status: 'purchase_requested' })));
-    setItems(prev => prev.map(i => selected.includes(i.id) ? {...i, status: 'purchase_requested'} : i));
+    await Promise.all(selected.map(id => api.put(`/ncr/${id}/status`, { status: 'ehs_purchase_requested' })));
+    setItems(prev => prev.map(i => selected.includes(i.id) ? {...i, status: 'ehs_purchase_requested'} : i));
     setSelected([]);
     setSelecting(false);
     alert(`${selected.length} item(s) approved for purchase request successfully.`);
