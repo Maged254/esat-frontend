@@ -269,6 +269,7 @@ export function NCRPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [userRole, setUserRole] = useState('');
+  const [filters, setFilters] = useState({ search: '', period: 'current', ppe: '', status: 'pending' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -279,6 +280,20 @@ export function NCRPage() {
     api.get('/ncr').then(r=>setItems(r.data)).catch(console.error);
     api.get('/ncr/stats').then(r=>setStats(r.data)).catch(console.error);
   }, []);
+
+  const filteredItems = items.filter(n => {
+    const now = new Date();
+    const created = new Date(n.created_at);
+    if (filters.period === 'current' && (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear())) return false;
+    if (filters.period === 'previous') {
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1);
+      if (created.getMonth() !== prev.getMonth() || created.getFullYear() !== prev.getFullYear()) return false;
+    }
+    if (filters.search && !n.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.ppe && n.ppe_name !== filters.ppe) return false;
+    if (filters.status && n.status !== filters.status) return false;
+    return true;
+  });
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
@@ -317,11 +332,31 @@ export function NCRPage() {
           <div className="stat-card"><div className="stat-label">Resolved (month)</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
         </div>
         <div className="card">
-          <div className="card-header"><span className="card-title">Open NCR items</span></div>
+          <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
+            <span className="card-title">Open NCR items</span>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
+                <option value="current">Current Month</option>
+                <option value="previous">Previous Month</option>
+                <option value="all">All Records</option>
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
+                <option value="">All PPE Items</option>
+                {[...new Set(items.map(n=>n.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+                <option value="pending">Pending</option>
+                <option value="purchase_requested">Purchase Requested</option>
+                <option value="">All Status</option>
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'current',ppe:'',status:'pending'})}>✕ Clear</button>
+            </div>
+          </div>
           <table>
             <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th>{selecting && <th>Select</th>}</tr></thead>
             <tbody>
-              {items.map(n=>(
+              {filteredItems.map(n=>(
                 <tr key={n.id}>
                   <td style={{padding:'0 0 0 8px'}}><div style={{width:3,height:40,background:n.condition==='not_good'?'var(--danger)':'var(--warning)',borderRadius:2}}></div></td>
                   <td><div className="emp-cell"><div className="avatar av-coral" style={{width:26,height:26,fontSize:10}}>{n.employee_name?.split(' ').map(w=>w[0]).join('')}</div><span className="emp-name">{n.employee_name}</span></div></td>
@@ -334,7 +369,7 @@ export function NCRPage() {
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                 </tr>
               ))}
-              {!items.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No open NCRs</td></tr>}
+              {!filteredItems.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
             </tbody>
           </table>
         </div>
