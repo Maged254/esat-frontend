@@ -140,16 +140,17 @@ export default function PPERequestTrackerPage() {
                   <th rowSpan={2}>Employee</th>
                   <th rowSpan={2}>PPE Item</th>
                   <th rowSpan={2}>Size</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1}}>EHS</th>
-                  <th colSpan={3} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1}}>SCM</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #0c447c',borderRight:'2px solid #0c447c'}}>EHS</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #1d9e75',borderRight:'2px solid #1d9e75'}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #e65100',borderRight:'2px solid #e65100'}}>Projects</th>
                   <th rowSpan={2}>Status</th>
                 </tr>
                 <tr>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff'}}>Flagged</th>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff'}}>Purchase Request</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Ordered</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Availed</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Distributed</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'2px solid #0c447c'}}>Flagged</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'2px solid #0c447c'}}>Purchase Request</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'2px solid #1d9e75'}}>Ordered</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'2px solid #1d9e75'}}>Availed</th>
+                  <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'2px solid #e65100',borderRight:'2px solid #e65100'}}>Distributed</th>
                 </tr>
               </thead>
               <tbody>
