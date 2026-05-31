@@ -152,12 +152,7 @@ export default function DashboardPage() {
                 );
               })}
               {(!data?.ncr?.by_category?.length) && <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No open NCRs</div>}
-              <div style={{ paddingTop: 12, borderTop: '0.5px solid #e5e7eb', marginTop: 4 }}>
-                <button className="btn btn-navy" style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={() => navigate('/purchase-requests')}>
-                  🛒 Generate purchase request
-                </button>
-              </div>
+
             </div>
           </div>
         </div>

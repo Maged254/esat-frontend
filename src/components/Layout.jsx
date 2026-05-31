@@ -11,7 +11,6 @@ const NAV = [
   { to: '/history', label: 'Audit History', icon: '⏱', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'Compliance', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { to: '/ncr', label: 'NCR List', icon: '⚠', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/purchase-requests', label: 'Purchase Requests', icon: '🛒', roles: ['admin','ehs_manager'] },
   { section: 'SCM', roles: ['admin','scm_officer'] },
   { to: '/ppe-tracker', label: 'PPE Tracker', icon: '📦', roles: ['admin','scm_officer'] },
   { section: 'Admin', roles: ['admin'] },
