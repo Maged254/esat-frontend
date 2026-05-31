@@ -148,7 +148,7 @@ export default function PPERequestTrackerPage() {
                 <option value="current">Current Month</option>
                 <option value="previous">Previous Month</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'ehs_purchase_requested',search:'',ppe:'',period:''})}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:'',ppe:'',period:''})}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
