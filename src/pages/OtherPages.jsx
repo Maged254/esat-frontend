@@ -63,7 +63,7 @@ export function EmployeesPage() {
 
   const exportCSV = () => {
     const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
-    const rows = employees.map(e => headers.map(h => {
+    const rows = auditAgeFiltered.map(e => headers.map(h => {
       const val = e[h];
       if (val === null || val === undefined) return '';
       if (typeof val === 'boolean') return val ? 'Yes' : 'No';
