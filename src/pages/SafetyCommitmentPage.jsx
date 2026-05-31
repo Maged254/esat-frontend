@@ -48,9 +48,9 @@ export default function SafetyCommitmentPage() {
           {RULES.map((rule, i) => (
             <div key={rule.num} style={{
               background: rule.type==='NEVER'
-                ? 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(226,75,74,0.08))'
-                : 'linear-gradient(145deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04))',
-              border: rule.type==='NEVER' ? '1px solid rgba(226,75,74,0.3)' : '1px solid rgba(255,255,255,0.15)',
+                ? 'linear-gradient(145deg, rgba(255,220,220,0.18) 0%, rgba(226,75,74,0.08) 100%)'
+                : 'linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%)',
+              border: rule.type==='NEVER' ? '1px solid rgba(226,75,74,0.4)' : '1px solid rgba(255,255,255,0.25)',
               borderRadius:12, padding:'16px 12px',
               display:'flex', flexDirection:'column', alignItems:'center', gap:8, textAlign:'center',
               boxShadow: '0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
