@@ -81,9 +81,9 @@ export default function Layout() {
           bottom:'5%',
           right:'5%',
           width:300,
-          opacity:0.05,
+          opacity:0.06,
           pointerEvents:'none',
-          zIndex:0,
+          zIndex:999,
           userSelect:'none',
         }} />
         <div style={{position:'relative',zIndex:1}}>
