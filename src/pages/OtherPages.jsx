@@ -399,7 +399,7 @@ export function NCRPage() {
                 <option value="purchase_requested">Purchase Requested</option>
                 <option value="">All Status</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'current',ppe:'',status:'pending'})}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:''})}>✕ Clear</button>
             </div>
           </div>
           <table>
