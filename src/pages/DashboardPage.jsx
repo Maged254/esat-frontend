@@ -199,7 +199,7 @@ export default function DashboardPage() {
                       <div className={`avatar ${avatarClass(i)}`}>{initials(a.employee_name)}</div>
                       <div>
                         <div className="emp-name">{a.employee_name}</div>
-                        <div className="emp-id">{a.employee_number}</div>
+                        <div className="emp-id">{a.national_id||a.employee_number}</div>
                       </div>
                     </div>
                   </td>

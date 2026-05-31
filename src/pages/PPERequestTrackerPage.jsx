@@ -185,7 +185,7 @@ export default function PPERequestTrackerPage() {
                     )}
                     <td>
                       <div className="emp-name">{r.employee_name}</div>
-                      <div className="emp-id">{r.employee_number}</div>
+                      <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
                     </td>
                     <td>{r.ppe_name}</td>
                     <td>{r.size_value || '—'}</td>
