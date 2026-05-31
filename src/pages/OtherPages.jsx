@@ -79,6 +79,15 @@ export function EmployeesPage() {
     URL.revokeObjectURL(url);
   };
 
+  const auditAgeFiltered = employees.filter(e => {
+    if (!filters.audit_age) return true;
+    const days = e.days_since_audit !== null && e.days_since_audit !== undefined ? parseInt(e.days_since_audit) : 99999;
+    if (filters.audit_age === '1month' && days > 30) return false;
+    if (filters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
+    if (filters.audit_age === 'over2months' && days <= 60) return false;
+    return true;
+  });
+
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   const avatarClass = i => ['av-teal','av-navy','av-coral','av-purple'][i % 4];
 
@@ -100,10 +109,10 @@ export function EmployeesPage() {
       </div>
       <div className="content">
         <div className="stat-grid">
-          <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{employees.filter(e=>e.employment_status==='active').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{employees.filter(e=>e.resource_type==='inhouse').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{employees.filter(e=>e.resource_type==='outsource').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{employees.filter(e=>e.employment_status==='exit').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{auditAgeFiltered.filter(e=>e.employment_status==='active').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{auditAgeFiltered.filter(e=>e.resource_type==='inhouse').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{auditAgeFiltered.filter(e=>e.resource_type==='outsource').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{auditAgeFiltered.filter(e=>e.employment_status==='exit').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header">
