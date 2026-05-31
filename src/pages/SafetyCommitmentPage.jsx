@@ -60,8 +60,8 @@ export default function SafetyCommitmentPage() {
               transition:'all 0.5s ease '+(0.1+i*0.07)+'s',
             }}>
               <img src={rule.icon} alt={'Rule '+rule.num} style={{ width:58, height:58, objectFit:'contain' }} />
-              <div style={{ fontSize:10, fontWeight:800, letterSpacing:1.5, color:rule.type==='NEVER'?'#c0392b':'#0f6e56', textTransform:'uppercase' }}>{rule.type}</div>
-              <div style={{ fontSize:14, color:'#1a2a3a', lineHeight:1.5, fontWeight:500 }}>{rule.text}</div>
+              <div style={{ fontSize:15, fontWeight:800, letterSpacing:1.5, color:rule.type==='NEVER'?'#c0392b':'#0f6e56', textTransform:'uppercase' }}>{rule.type}</div>
+              <div style={{ fontSize:14, color:'#0c447c', lineHeight:1.5, fontWeight:500 }}>{rule.text}</div>
             </div>
           ))}
         </div>
