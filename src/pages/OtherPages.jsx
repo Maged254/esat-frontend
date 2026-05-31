@@ -5,7 +5,7 @@ import api from '../utils/api';
 
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: 'yes' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: 'yes', job_title: '' });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -130,7 +130,8 @@ export function EmployeesPage() {
                 <option value="yes">Safety Audit Needed</option>
                 <option value="no">No Audit Needed</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:''})}>✕ Clear</button>
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:''})}>✕ Clear</button>
             </div>
           </div>
           <table>
