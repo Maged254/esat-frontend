@@ -33,6 +33,7 @@ export default function NewAuditPage() {
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
+  const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
   useEffect(() => {
     api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
@@ -121,10 +122,18 @@ export default function NewAuditPage() {
     return acc;
   }, {});
 
-  const filteredEmps = employees.filter(e =>
-    e.full_name.toLowerCase().includes(empSearch.toLowerCase()) ||
-    e.employee_number.toLowerCase().includes(empSearch.toLowerCase())
-  );
+  const filteredEmps = employees.filter(e => {
+    if (empSearch && !e.full_name.toLowerCase().includes(empSearch.toLowerCase()) && !(e.national_id||'').includes(empSearch)) return false;
+    if (empFilters.project && e.project !== empFilters.project) return false;
+    if (empFilters.department && e.department !== empFilters.department) return false;
+    if (empFilters.audit_age) {
+      const days = parseInt(e.days_since_audit) || 9999;
+      if (empFilters.audit_age === '1month' && days > 30) return false;
+      if (empFilters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
+      if (empFilters.audit_age === 'over2months' && days <= 60) return false;
+    }
+    return true;
+  });
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
 
@@ -171,14 +180,24 @@ export default function NewAuditPage() {
               <span className="card-title">Select employee to audit</span>
             </div>
             <div style={{ padding: 16 }}>
-              <input
-                className="form-input"
-                placeholder="Search by name or employee number..."
-                value={empSearch}
-                onChange={e => setEmpSearch(e.target.value)}
-                style={{ marginBottom: 12 }}
-                autoFocus
-              />
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+                <input className="form-input" placeholder="Search by name or national ID..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{flex:1,minWidth:200}} autoFocus />
+                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.project} onChange={e=>setEmpFilters(p=>({...p,project:e.target.value}))}>
+                  <option value="">All Projects</option>
+                  {[...new Set(employees.map(e=>e.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
+                  <option value="">All Departments</option>
+                  {[...new Set(employees.map(e=>e.department).filter(Boolean))].sort().map(d=><option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:180}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
+                  <option value="">All Last Audit</option>
+                  <option value="1month">Within 1 Month</option>
+                  <option value="2months">1 - 2 Months</option>
+                  <option value="over2months">More than 2 Months</option>
+                </select>
+                <button className="btn" style={{height:38,padding:'4px 12px',fontSize:13}} onClick={()=>{setEmpSearch('');setEmpFilters({project:'',department:'',audit_age:''});}}>✕ Clear</button>
+              </div>
             </div>
             <table>
               <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Last Audit</th><th></th></tr></thead>
