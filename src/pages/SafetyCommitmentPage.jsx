@@ -47,10 +47,8 @@ export default function SafetyCommitmentPage() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:20 }}>
           {RULES.map((rule, i) => (
             <div key={rule.num} style={{
-              background: rule.type==='NEVER'
-                ? 'linear-gradient(145deg, #fff5f5 0%, #ffe0e0 100%)'
-                : 'linear-gradient(145deg, #ffffff 0%, #e8f0f7 100%)',
-              border: rule.type==='NEVER' ? '1px solid #f5c0c0' : '1px solid #c8daea',
+              background: '#ffffff',
+              border: '1px solid #c8daea',
               borderRadius:12, padding:'16px 12px',
               display:'flex', flexDirection:'column', alignItems:'center', gap:8, textAlign:'center',
               boxShadow: '0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
