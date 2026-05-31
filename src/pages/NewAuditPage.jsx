@@ -30,13 +30,14 @@ export default function NewAuditPage() {
   const [notes, setNotes] = useState('');
   const [users, setUsers] = useState([]);
   const [auditedBy, setAuditedBy] = useState('');
+  const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
 
   useEffect(() => {
     api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
-    api.get('/users').then(r => { setUsers(r.data); if (r.data.length > 0) setAuditedBy(r.data[0].id); }).catch(console.error);
+    api.get('/users').then(r => { setUsers(r.data); }).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -79,6 +80,14 @@ export default function NewAuditPage() {
 
   const handleSubmit = async () => {
     if (!selectedEmp) return;
+    const errors = [];
+    if (!auditedBy) errors.push('Please select who conducted the audit.');
+    const applicableItems = ppeItems.filter(p => items[p.id]?.applicable);
+    if (applicableItems.length === 0) errors.push('Please mark at least one PPE item as applicable.');
+    const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && !items[p.id]?.size);
+    if (missingSizes.length > 0) errors.push('Please select a size for: ' + missingSizes.map(p=>p.name).join(', ') + '.');
+    if (errors.length > 0) { setValidationErrors(errors); return; }
+    setValidationErrors([]);
     setSubmitting(true);
     try {
       const auditItems = ppeItems
@@ -226,14 +235,20 @@ export default function NewAuditPage() {
             </div>
 
             <div className="card">
-              <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
+              {validationErrors.length > 0 && (
+              <div style={{background:'#fcebeb',border:'1px solid #e24b4a',borderRadius:8,padding:'12px 16px',margin:'12px 16px 0'}}>
+                {validationErrors.map((e,i) => <div key={i} style={{color:'#c0392b',fontSize:13,marginBottom:i<validationErrors.length-1?6:0}}>⚠ {e}</div>)}
+              </div>
+            )}
+            <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
                   <label className="form-label">Audit date</label>
                   <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Audited by</label>
-                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)} style={{height:38}}>
+                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)} style={{height:38,borderColor:!auditedBy?'#e24b4a':''}}>
+                    <option value=''>-- Select auditor --</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                   </select>
                 </div>
