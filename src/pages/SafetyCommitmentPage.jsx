@@ -48,9 +48,9 @@ export default function SafetyCommitmentPage() {
           {RULES.map((rule, i) => (
             <div key={rule.num} style={{
               background: rule.type==='NEVER'
-                ? 'linear-gradient(145deg, rgba(255,220,220,0.18) 0%, rgba(226,75,74,0.08) 100%)'
-                : 'linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 100%)',
-              border: rule.type==='NEVER' ? '1px solid rgba(226,75,74,0.4)' : '1px solid rgba(255,255,255,0.25)',
+                ? 'linear-gradient(145deg, #fff5f5 0%, #ffe0e0 100%)'
+                : 'linear-gradient(145deg, #ffffff 0%, #e8f0f7 100%)',
+              border: rule.type==='NEVER' ? '1px solid #f5c0c0' : '1px solid #c8daea',
               borderRadius:12, padding:'16px 12px',
               display:'flex', flexDirection:'column', alignItems:'center', gap:8, textAlign:'center',
               boxShadow: '0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
@@ -60,8 +60,8 @@ export default function SafetyCommitmentPage() {
               transition:'all 0.5s ease '+(0.1+i*0.07)+'s',
             }}>
               <img src={rule.icon} alt={'Rule '+rule.num} style={{ width:58, height:58, objectFit:'contain' }} />
-              <div style={{ fontSize:10, fontWeight:800, letterSpacing:1.5, color:rule.type==='NEVER'?'#e24b4a':'#1d9e75', textTransform:'uppercase' }}>{rule.type}</div>
-              <div style={{ fontSize:14, color:'rgba(255,255,255,0.85)', lineHeight:1.5 }}>{rule.text}</div>
+              <div style={{ fontSize:10, fontWeight:800, letterSpacing:1.5, color:rule.type==='NEVER'?'#c0392b':'#0f6e56', textTransform:'uppercase' }}>{rule.type}</div>
+              <div style={{ fontSize:14, color:'#1a2a3a', lineHeight:1.5, fontWeight:500 }}>{rule.text}</div>
             </div>
           ))}
         </div>
