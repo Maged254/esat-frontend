@@ -130,6 +130,7 @@ export function EmployeesPage() {
                 <option value="yes">Safety Audit Needed</option>
                 <option value="no">No Audit Needed</option>
               </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:''})}>✕ Clear</button>
             </div>
           </div>
           <table>
