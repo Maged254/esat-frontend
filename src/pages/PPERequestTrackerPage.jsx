@@ -56,8 +56,9 @@ export default function PPERequestTrackerPage() {
   });
 
   const canEdit = (r) => {
-    if (r.status === 'canceled' || r.status === 'distributed') return false;
-    if (userRole === 'admin') return true;
+    if (r.status === 'canceled' || r.status === 'distributed' || r.status === 'pending') return false;
+    if (userRole === 'admin' && r.status !== 'pending') return true;
+    if (userRole === 'scm_officer' && r.status === 'ehs_purchase_requested') return true;
     if (userRole === 'scm_officer' && !['pending', 'ehs_purchase_requested'].includes(r.status)) return true;
     return false;
   };
