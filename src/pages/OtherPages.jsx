@@ -373,7 +373,7 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Date flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
@@ -383,7 +383,10 @@ export function NCRPage() {
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
                   <td>{n.size_value||'—'}</td>
                   <td style={{color:'#6b7280',fontSize:12}}>{n.comment||'—'}</td>
-                  <td style={{fontSize:12,color:'#6b7280'}}>{new Date(n.created_at).toLocaleDateString('en-GB')}</td>
+                  <td style={{fontSize:12}}>
+                    <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
+                    <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
+                  </td>
                   <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{
                     n.status==='pending'?'Pending':
                     n.status==='ehs_purchase_requested'?'EHS Purchase Requested':
