@@ -24,7 +24,7 @@ export function EmployeesPage() {
 
   const load = () => {
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'audit_age') params.append(k, v); });
     api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(console.error);
   };
 
@@ -147,7 +147,15 @@ export function EmployeesPage() {
           <table>
             <thead><tr><th>Employee</th><th>National ID</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {employees.map((e, i) => (
+              {employees.filter(e => {
+                if (filters.audit_age) {
+                  const days = parseInt(e.days_since_audit) || 9999;
+                  if (filters.audit_age === '1month' && days > 30) return false;
+                  if (filters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
+                  if (filters.audit_age === 'over2months' && days <= 60) return false;
+                }
+                return true;
+              }).map((e, i) => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
                   <td>{e.national_id || e.NationalIDNumber || '—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
