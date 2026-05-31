@@ -51,12 +51,7 @@ export default function PPERequestTrackerPage() {
 
   const updateStatus = async (id, status) => {
     await api.put('/ppe-requests/' + id + '/status', { status });
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status,
-      date_purchase_requested: status === 'ehs_purchase_requested' ? new Date().toISOString() : r.date_purchase_requested,
-      date_ordered: status === 'scm_ordered' ? new Date().toISOString() : r.date_ordered,
-      date_available: status === 'warehouse_available' ? new Date().toISOString() : r.date_available,
-      date_distributed: status === 'distributed' ? new Date().toISOString() : r.date_distributed,
-    } : r));
+    api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
   };
 
   const filtered = requests.filter(r => {
