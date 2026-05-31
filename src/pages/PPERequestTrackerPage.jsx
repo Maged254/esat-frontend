@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 
-const STATUS_FLOW = ['pending', 'ehs_purchase_requested', 'scm_ordered', 'warehouse_available', 'distributed', 'canceled'];
+const STATUS_FLOW = ['pending', 'ehs_purchase_requested', 'scm_ordered', 'warehouse_available', 'distributed'];
 
 const STATUS_LABELS = {
   pending: 'Pending',
