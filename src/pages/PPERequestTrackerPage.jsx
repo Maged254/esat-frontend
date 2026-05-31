@@ -140,17 +140,17 @@ export default function PPERequestTrackerPage() {
                   <th rowSpan={2}>Employee</th>
                   <th rowSpan={2}>PPE Item</th>
                   <th rowSpan={2}>Size</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #0c447c',borderRight:'2px solid #0c447c'}}>EHS</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #1d9e75',borderRight:'2px solid #1d9e75'}}>SCM</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'2px solid #e65100',borderRight:'2px solid #e65100'}}>Projects</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>EHS</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Projects</th>
                   <th rowSpan={2}>Status</th>
                 </tr>
                 <tr>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'2px solid #0c447c'}}>Flagged</th>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'2px solid #0c447c'}}>Purchase Request</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'2px solid #1d9e75'}}>Ordered</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'2px solid #1d9e75'}}>Availed</th>
-                  <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'2px solid #e65100',borderRight:'2px solid #e65100'}}>Distributed</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'1px solid #e5e7eb'}}>Purchase Request</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'1px solid #e5e7eb'}}>Ordered</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'1px solid #e5e7eb'}}>Availed</th>
+                  <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Distributed</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,11 +170,11 @@ export default function PPERequestTrackerPage() {
                     </td>
                     <td>{r.ppe_name}</td>
                     <td>{r.size_value || '—'}</td>
-                    {dateCell(r.date_flagged, r.flagged_by_name)}
-                    {dateCell(r.date_purchase_requested, r.purchase_requested_by_name)}
-                    {dateCell(r.date_ordered, r.ordered_by_name)}
-                    {dateCell(r.date_available, r.available_by_name)}
-                    {dateCell(r.date_distributed, r.distributed_by_name)}
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.date_distributed?<div><div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>{r.distributed_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}</div>:'—'}</td>
                     <td><span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span></td>
                   </tr>
                 ))}
