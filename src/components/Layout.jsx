@@ -30,14 +30,8 @@ export default function Layout() {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <NavLink to="/" className="sidebar-logo">
-          <div className="logo-img">
-            <img src="/logo.png" alt="Egypro" onError={e => { e.target.style.display='none'; }} />
-          </div>
-          <div style={{ textAlign: 'center', width: '100%' }}>
-            <div className="logo-text">ESAT</div>
-            <div className="logo-sub">Egypro Safety Audit Tracker</div>
-          </div>
+        <NavLink to="/" className="sidebar-logo" style={{padding:'12px 0'}}>
+          <img src="/esat-logo.png" alt="ESAT" style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
         </NavLink>
 
         <nav className="nav">
