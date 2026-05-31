@@ -15,7 +15,7 @@ export default function LoginPage() {
     setError(''); setLoading(true);
     try {
       await login(email, password);
-      navigate('/');
+      navigate('/safety-commitment');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Check your credentials.');
     } finally {
