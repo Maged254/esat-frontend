@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 
-const STATUS_FLOW = ['pending', 'ehs_purchase_requested', 'scm_ordered', 'warehouse_available', 'distributed'];
-
 const STATUS_LABELS = {
   pending: 'Pending',
   ehs_purchase_requested: 'EHS Purchase Requested',
@@ -21,7 +19,12 @@ const STATUS_COLORS = {
   canceled: 'tag-red',
 };
 
-const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '—';
+const ELIGIBLE_STATUSES = {
+  scm_ordered: ['ehs_purchase_requested'],
+  warehouse_available: ['ehs_purchase_requested', 'scm_ordered'],
+  distributed: ['ehs_purchase_requested', 'scm_ordered', 'warehouse_available'],
+};
+
 const dateCell = (date, name) => (
   <td style={{fontSize:12}}>
     {date ? (
@@ -37,6 +40,9 @@ export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
   const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '' });
   const [userRole, setUserRole] = useState('');
+  const [bulkTarget, setBulkTarget] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     try {
@@ -49,10 +55,22 @@ export default function PPERequestTrackerPage() {
     api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
   }, []);
 
-  const updateStatus = async (id, status) => {
-    await api.put('/ppe-requests/' + id + '/status', { status });
-    api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
+  const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
+
+  const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
+
+  const startBulk = (target) => { setBulkTarget(target); setSelected([]); setShowMenu(false); };
+  const cancelBulk = () => { setBulkTarget(null); setSelected([]); };
+
+  const applyBulk = async () => {
+    if (selected.length === 0) return;
+    if (!window.confirm('Change ' + selected.length + ' item(s) to "' + STATUS_LABELS[bulkTarget] + '"?')) return;
+    await Promise.all(selected.map(id => api.put('/ppe-requests/' + id + '/status', { status: bulkTarget })));
+    reload();
+    cancelBulk();
   };
+
+  const isEligible = (r) => bulkTarget && ELIGIBLE_STATUSES[bulkTarget]?.includes(r.status);
 
   const filtered = requests.filter(r => {
     if (filters.status && r.status !== filters.status) return false;
@@ -60,18 +78,7 @@ export default function PPERequestTrackerPage() {
     return true;
   });
 
-  const canEdit = (r) => {
-    if (r.status === 'canceled' || r.status === 'distributed' || r.status === 'pending') return false;
-    if (userRole === 'admin' && r.status !== 'pending') return true;
-    if (userRole === 'scm_officer' && r.status === 'ehs_purchase_requested') return true;
-    if (userRole === 'scm_officer' && !['pending', 'ehs_purchase_requested'].includes(r.status)) return true;
-    return false;
-  };
-
-  const getOptions = (r) => {
-    if (userRole === 'scm_officer') return ['scm_ordered', 'warehouse_available', 'distributed', 'canceled'];
-    return STATUS_FLOW.filter(s => s !== 'pending');
-  };
+  const canEdit = userRole === 'scm_officer' || userRole === 'admin';
 
   return (
     <>
@@ -81,14 +88,37 @@ export default function PPERequestTrackerPage() {
           <span className="topbar-sep">›</span>
           <span className="topbar-title">PPE Request Tracker</span>
         </div>
+        <div className="topbar-right">
+          {canEdit && !bulkTarget && (
+            <div style={{position:'relative',display:'inline-block'}}>
+              <button className="btn btn-navy" onClick={()=>setShowMenu(p=>!p)}>⚡ Change Status ▾</button>
+              {showMenu && (
+                <div style={{position:'absolute',right:0,top:'110%',background:'white',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',zIndex:100,minWidth:200}}>
+                  {['scm_ordered','warehouse_available','distributed'].map(s=>(
+                    <button key={s} onClick={()=>startBulk(s)} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid #f3f4f6'}}>
+                      {STATUS_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {bulkTarget && (
+            <>
+              <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected → {STATUS_LABELS[bulkTarget]}</span>
+              <button className="btn btn-primary" onClick={applyBulk} disabled={selected.length===0}>✓ Apply ({selected.length})</button>
+              <button className="btn" onClick={cancelBulk}>✕ Cancel</button>
+            </>
+          )}
+        </div>
       </div>
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value navy">{filtered.length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{filtered.filter(r=>r.status==='pending').length}</div></div>
-          <div className="stat-card"><div className="stat-label">EHS Requested</div><div className="stat-value navy">{filtered.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
-          <div className="stat-card"><div className="stat-label">In Progress</div><div className="stat-value navy">{filtered.filter(r=>r.status==='scm_ordered'||r.status==='warehouse_available').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{filtered.filter(r=>r.status==='distributed').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value navy">{requests.length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
+          <div className="stat-card"><div className="stat-label">EHS Requested</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
+          <div className="stat-card"><div className="stat-label">In Progress</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered'||r.status==='warehouse_available').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{requests.filter(r=>r.status==='distributed').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
@@ -97,7 +127,7 @@ export default function PPERequestTrackerPage() {
               <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
                 <option value="">All Status</option>
-                {STATUS_FLOW.map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
               </select>
               <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:''})}>✕ Clear</button>
             </div>
@@ -106,20 +136,29 @@ export default function PPERequestTrackerPage() {
             <table>
               <thead>
                 <tr>
+                  {bulkTarget && <th>Select</th>}
                   <th>Employee</th>
                   <th>PPE Item</th>
                   <th>Size</th>
-                  <th>📅 Flagged</th>
-                  <th>📅 Purchase Request</th>
-                  <th>📅 Ordered</th>
-                  <th>📅 Availed</th>
-                  <th>📅 Distributed</th>
+                  <th>Flagged</th>
+                  <th>Purchase Request</th>
+                  <th>Ordered</th>
+                  <th>Availed</th>
+                  <th>Distributed</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(r => (
-                  <tr key={r.id}>
+                  <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
+                    {bulkTarget && (
+                      <td style={{textAlign:'center'}}>
+                        {isEligible(r) && (
+                          <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
+                            style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
+                        )}
+                      </td>
+                    )}
                     <td>
                       <div className="emp-name">{r.employee_name}</div>
                       <div className="emp-id">{r.employee_number}</div>
@@ -131,19 +170,10 @@ export default function PPERequestTrackerPage() {
                     {dateCell(r.date_ordered, r.ordered_by_name)}
                     {dateCell(r.date_available, r.available_by_name)}
                     {dateCell(r.date_distributed, r.distributed_by_name)}
-                    <td>
-                      {canEdit(r) ? (
-                        <select className="form-select" style={{fontSize:11,padding:'3px 6px',height:26}} value={r.status} onChange={e=>updateStatus(r.id,e.target.value)}>
-                          <option value={r.status}>{STATUS_LABELS[r.status]}</option>
-                          {getOptions(r).filter(s=>s!==r.status).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-                        </select>
-                      ) : (
-                        <span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span>
-                      )}
-                    </td>
+                    <td><span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span></td>
                   </tr>
                 ))}
-                {!filtered.length && <tr><td colSpan={9} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
+                {!filtered.length && <tr><td colSpan={bulkTarget?10:9} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
               </tbody>
             </table>
           </div>
