@@ -38,7 +38,7 @@ const dateCell = (date, name) => (
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '' });
   const [userRole, setUserRole] = useState('');
   const [bulkTarget, setBulkTarget] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -75,6 +75,16 @@ export default function PPERequestTrackerPage() {
   const filtered = requests.filter(r => {
     if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.ppe && r.ppe_name !== filters.ppe) return false;
+    if (filters.period) {
+      const now = new Date();
+      const flagged = new Date(r.date_flagged);
+      if (filters.period === 'current' && (flagged.getMonth() !== now.getMonth() || flagged.getFullYear() !== now.getFullYear())) return false;
+      if (filters.period === 'previous') {
+        const prev = new Date(now.getFullYear(), now.getMonth() - 1);
+        if (flagged.getMonth() !== prev.getMonth() || flagged.getFullYear() !== prev.getFullYear()) return false;
+      }
+    }
     return true;
   });
 
@@ -124,12 +134,21 @@ export default function PPERequestTrackerPage() {
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
             <span className="card-title">PPE Request Tracker</span>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
                 <option value="">All Status</option>
                 {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:''})}>✕ Clear</button>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
+                <option value="">All PPE Items</option>
+                {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
+                <option value="">All Records</option>
+                <option value="current">Current Month</option>
+                <option value="previous">Previous Month</option>
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'ehs_purchase_requested',search:'',ppe:'',period:''})}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
