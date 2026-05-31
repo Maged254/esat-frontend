@@ -326,9 +326,9 @@ export function NCRPage() {
       </div>
       <div className="content">
         <div className="stat-grid">
-          <div className="stat-card"><div className="stat-label">Total open</div><div className="stat-value danger">{stats.total_open||0}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending order</div><div className="stat-value warning">{stats.pending||0}</div></div>
-          <div className="stat-card"><div className="stat-label">Ordered</div><div className="stat-value navy">{stats.ordered||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Total Open</div><div className="stat-value danger">{filteredItems.length}</div></div>
+          <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{filteredItems.filter(n=>n.status==='pending').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Purchase Requested</div><div className="stat-value navy">{filteredItems.filter(n=>n.status==='purchase_requested').length}</div></div>
           <div className="stat-card"><div className="stat-label">Resolved (month)</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
         </div>
         <div className="card">
