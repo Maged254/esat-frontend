@@ -75,8 +75,20 @@ export default function Layout() {
         </div>
       </aside>
 
-      <main className="main">
-        <Outlet />
+      <main className="main" style={{position:'relative'}}>
+        <img src="/egypro-watermark.png" alt="" style={{
+          position:'fixed',
+          bottom:'5%',
+          right:'5%',
+          width:300,
+          opacity:0.05,
+          pointerEvents:'none',
+          zIndex:0,
+          userSelect:'none',
+        }} />
+        <div style={{position:'relative',zIndex:1}}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );
