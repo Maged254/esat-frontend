@@ -67,6 +67,7 @@ export function EmployeesPage() {
       const val = e[h];
       if (val === null || val === undefined) return '';
       if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+      if (h === 'last_audit_date' && val) return new Date(val).toLocaleDateString('en-GB');
       return String(val).includes(',') ? `"${val}"` : val;
     }).join(','));
     const csv = [headers.join(','), ...rows].join('\n');
