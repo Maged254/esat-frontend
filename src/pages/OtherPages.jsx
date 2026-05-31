@@ -251,6 +251,7 @@ export function AuditHistoryPage() {
                   <td>{a.total_items}</td>
                   <td><span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
                   <td>{STATUS[a.overall_status]}</td>
+                  {userRole==='admin' && <td><button onClick={e=>deleteAudit(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}
               {!audits.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
