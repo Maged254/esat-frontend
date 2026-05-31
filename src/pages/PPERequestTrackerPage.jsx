@@ -136,16 +136,20 @@ export default function PPERequestTrackerPage() {
             <table>
               <thead>
                 <tr>
-                  {bulkTarget && <th>Select</th>}
-                  <th>Employee</th>
-                  <th>PPE Item</th>
-                  <th>Size</th>
-                  <th>Flagged</th>
-                  <th>Purchase Request</th>
-                  <th>Ordered</th>
-                  <th>Availed</th>
-                  <th>Distributed</th>
-                  <th>Status</th>
+                  {bulkTarget && <th rowSpan={2}></th>}
+                  <th rowSpan={2}>Employee</th>
+                  <th rowSpan={2}>PPE Item</th>
+                  <th rowSpan={2}>Size</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1}}>EHS</th>
+                  <th colSpan={3} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1}}>SCM</th>
+                  <th rowSpan={2}>Status</th>
+                </tr>
+                <tr>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff'}}>Flagged</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff'}}>Purchase Request</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Ordered</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Availed</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4'}}>Distributed</th>
                 </tr>
               </thead>
               <tbody>
