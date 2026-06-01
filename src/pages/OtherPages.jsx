@@ -312,7 +312,7 @@ export function NCRPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '', project: '' });
+  const [filters, setFilters] = useState({ search: '', periods: [], ppes: [], statuses: [], projects: [] });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -327,15 +327,17 @@ export function NCRPage() {
   const filteredItems = items.filter(n => {
     const now = new Date();
     const created = new Date(n.created_at);
-    if (filters.period === 'current' && (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear())) return false;
-    if (filters.period === 'previous') {
-      const prev = new Date(now.getFullYear(), now.getMonth() - 1);
-      if (created.getMonth() !== prev.getMonth() || created.getFullYear() !== prev.getFullYear()) return false;
+    if (filters.periods.length > 0) {
+      const inCurrent = created.getMonth()===now.getMonth()&&created.getFullYear()===now.getFullYear();
+      const prev = new Date(now.getFullYear(),now.getMonth()-1);
+      const inPrevious = created.getMonth()===prev.getMonth()&&created.getFullYear()===prev.getFullYear();
+      const match = (filters.periods.includes('current')&&inCurrent)||(filters.periods.includes('previous')&&inPrevious)||(filters.periods.includes('all'));
+      if (!match) return false;
     }
     if (filters.search && !n.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.ppe && n.ppe_name !== filters.ppe) return false;
-    if (filters.status && n.status !== filters.status) return false;
-    if (filters.project && n.project !== filters.project) return false;
+    if (filters.ppes.length > 0 && !filters.ppes.includes(n.ppe_name)) return false;
+    if (filters.statuses.length > 0 && !filters.statuses.includes(n.status)) return false;
+    if (filters.projects.length > 0 && !filters.projects.includes(n.project)) return false;
     return true;
   });
 
