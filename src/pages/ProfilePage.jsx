@@ -51,7 +51,7 @@ export default function ProfilePage() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 500 }}>{user?.name}</div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>{user?.email}</div>
-                <span className={`tag ${user?.role === 'admin' ? 'tag-amber' : user?.role === 'ehs_officer' ? 'tag-teal' : 'tag-navy'}`} style={{ marginTop: 4 }}>
+                <span style={{ display: 'none' }}>
                   {ROLE_LABELS[user?.role]}
                 </span>
               </div>

@@ -15,7 +15,7 @@ const NAV = [
   { to: '/ppe-tracker', label: 'PPE Tracker', icon: 'ti-shield-check', roles: ['admin','scm_officer'] },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
-  { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin'] },
+  { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer'] },
 ];
 
 export default function Layout() {
@@ -62,7 +62,7 @@ export default function Layout() {
             }
             <div>
               <div className="user-name">{user?.name}</div>
-              <div className="user-role">{user?.role?.replace('_', ' ')} · Egypro</div>
+              <div className="user-role">Egypro</div>
             </div>
           </div>
         </div>
