@@ -386,9 +386,9 @@ export function NCRPage() {
             <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
               <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
+                <option value="">All Records</option>
                 <option value="current">Current Month</option>
                 <option value="previous">Previous Month</option>
-                <option value="all">All Records</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
                 <option value="">All PPE Items</option>
