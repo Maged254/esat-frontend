@@ -312,7 +312,7 @@ export function NCRPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '' });
+  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '', project: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -335,6 +335,7 @@ export function NCRPage() {
     if (filters.search && !n.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.ppe && n.ppe_name !== filters.ppe) return false;
     if (filters.status && n.status !== filters.status) return false;
+    if (filters.project && n.project !== filters.project) return false;
     return true;
   });
 
@@ -399,7 +400,11 @@ export function NCRPage() {
                 <option value="purchase_requested">Purchase Requested</option>
                 <option value="">All Status</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:''})}>✕ Clear</button>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                <option value="">All Projects</option>
+                {[...new Set(items.map(n=>n.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:''})}>✕ Clear</button>
             </div>
           </div>
           <table>
