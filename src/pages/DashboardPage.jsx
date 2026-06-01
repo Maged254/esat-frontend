@@ -88,28 +88,23 @@ export default function DashboardPage() {
         <div className="stat-grid" style={{ marginTop: 16 }}>
           <div className="stat-card">
             <div className="stat-label">EHS Delay</div>
-            <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
-            <div className="stat-sub">Longest pending → EHS approval</div>
+            <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
+            <div className="stat-sub">Longest Pending → EHS Approval</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">SCM Delay</div>
-            <div className="stat-value warning">{data?.delays?.scm ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
-            <div className="stat-sub">Longest EHS approved → SCM ordered</div>
+            <div className="stat-value warning">{data?.delays?.scm ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
+            <div className="stat-sub">Longest EHS Approved → SCM Ordered</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Suppliers Delay</div>
-            <div className="stat-value warning">{data?.delays?.suppliers ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
-            <div className="stat-sub">Longest SCM ordered → warehouse</div>
+            <div className="stat-value warning">{data?.delays?.suppliers ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
+            <div className="stat-sub">Longest SCM Ordered → Warehouse</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Projects Delay</div>
-            <div className="stat-value warning">{data?.delays?.projects ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
-            <div className="stat-sub">Longest warehouse → distributed</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-label">Total Delay</div>
-            <div className="stat-value danger">{data?.delays?.total ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
-            <div className="stat-sub">Longest pending → not distributed</div>
+            <div className="stat-value warning">{data?.delays?.projects ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
+            <div className="stat-sub">Longest Warehouse → Distributed</div>
           </div>
         </div>
 
