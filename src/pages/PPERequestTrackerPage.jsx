@@ -149,10 +149,10 @@ export default function PPERequestTrackerPage() {
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(5,1fr)'}}>
           <div className="stat-card"><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending EHS</div><div className="stat-value warning">{filtered.filter(r=>r.status==='pending').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending SCM</div><div className="stat-value navy">{filtered.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{filtered.filter(r=>r.status==='scm_ordered').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Pending Projects</div><div className="stat-value warning">{filtered.filter(r=>r.status==='warehouse_available').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer'}} onClick={()=>setFilters(p=>({...p,status:'pending'}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer'}} onClick={()=>setFilters(p=>({...p,status:'ehs_purchase_requested'}))}><div className="stat-label">Pending SCM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer'}} onClick={()=>setFilters(p=>({...p,status:'scm_ordered'}))}><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer'}} onClick={()=>setFilters(p=>({...p,status:'warehouse_available'}))}><div className="stat-label">Pending Projects</div><div className="stat-value warning">{requests.filter(r=>r.status==='warehouse_available').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
