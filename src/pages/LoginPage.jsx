@@ -27,12 +27,8 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/logo.png" alt="Egypro" style={{ width: 72, height: 72, borderRadius: 12 }}
+          <img src="/favicon.png" alt="ESAT" style={{ width: 220, objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
-          <div style={{textAlign:'center'}}>
-            <div className="login-title" style={{fontSize:52,letterSpacing:4,fontWeight:800}}>ESAT</div>
-            <div className="login-sub" style={{fontSize:16,marginTop:4,letterSpacing:1}}>Egypro Safety Audit Tracker</div>
-          </div>
         </div>
 
         {error && <div className="login-error">{error}</div>}
