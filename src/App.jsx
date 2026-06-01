@@ -15,6 +15,7 @@ import ProfilePage from './pages/ProfilePage';
 import AuditDetailPage from './pages/AuditDetailPage';
 import PPERequestTrackerPage from './pages/PPERequestTrackerPage';
 import SafetyCommitmentPage from './pages/SafetyCommitmentPage';
+import GraphsPage from './pages/GraphsPage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="ncr" element={<NCRPage />} />
             <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
             <Route path="ppe-tracker" element={<PPERequestTrackerPage />} />
+            <Route path="graphs" element={<GraphsPage />} />
             <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={
               <ProtectedRoute roles={['admin']}>

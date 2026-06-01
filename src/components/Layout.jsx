@@ -13,6 +13,8 @@ const NAV = [
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'SCM', roles: ['admin','scm_officer'] },
   { to: '/ppe-tracker', label: 'PPE Tracker', icon: 'ti-shield-check', roles: ['admin','scm_officer'] },
+  { section: 'Insights', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer'] },
+  { to: '/graphs', label: 'Graphs', icon: 'ti-chart-bar', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer'] },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
   { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer'] },
