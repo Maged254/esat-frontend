@@ -84,6 +84,35 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* PPE Delay Cards */}
+        <div className="stat-grid" style={{ marginTop: 16 }}>
+          <div className="stat-card">
+            <div className="stat-label">EHS Delay</div>
+            <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
+            <div className="stat-sub">Longest pending → EHS approval</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">SCM Delay</div>
+            <div className="stat-value warning">{data?.delays?.scm ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
+            <div className="stat-sub">Longest EHS approved → SCM ordered</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Suppliers Delay</div>
+            <div className="stat-value warning">{data?.delays?.suppliers ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
+            <div className="stat-sub">Longest SCM ordered → warehouse</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Projects Delay</div>
+            <div className="stat-value warning">{data?.delays?.projects ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
+            <div className="stat-sub">Longest warehouse → distributed</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Total Delay</div>
+            <div className="stat-value danger">{data?.delays?.total ?? '—'}<span style={{fontSize:13,fontWeight:400}}> days</span></div>
+            <div className="stat-sub">Longest pending → not distributed</div>
+          </div>
+        </div>
+
         <div className="two-col">
           <div className="card">
             <div className="card-header">
