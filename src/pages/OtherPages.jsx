@@ -22,6 +22,12 @@ export function EmployeesPage() {
     setEmployees(prev => prev.map(e => e.id === emp.id ? {...e, san: newVal} : e));
   };
 
+  const deleteEmployee = async (emp) => {
+    if (!window.confirm(`Delete ${emp.full_name}? This will permanently delete the employee and all their audits, NCR items, and PPE requests.`)) return;
+    await api.delete('/employees/' + emp.id);
+    setEmployees(prev => prev.filter(e => e.id !== emp.id));
+  };
+
   const load = () => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'audit_age') params.append(k, v); });
@@ -179,7 +185,12 @@ export function EmployeesPage() {
                   <td>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</td>
                   <td>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</td>
                   <td><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status}</span></td>
-                  <td>{e.employment_status==='active' && <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/audit/new/${e.id}`)}>Audit</button>}</td>
+                  <td>
+                    <div style={{display:'flex',gap:6}}>
+                      {e.employment_status==='active' && <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/audit/new/${e.id}`)}>Audit</button>}
+                      {userRole==='admin' && <button onClick={()=>deleteEmployee(e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete Employee">🗑</button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -195,7 +206,7 @@ export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
   const [users, setUsers] = useState([]);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: '', audited_by: '' });
+  const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: 'active', audited_by: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
