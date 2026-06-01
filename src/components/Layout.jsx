@@ -4,18 +4,18 @@ import { useAuth } from '../utils/AuthContext';
 
 const NAV = [
   { section: 'Overview', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/', label: 'Dashboard', icon: '⊞', exact: true, roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/', label: 'Dashboard', icon: 'ti-layout-dashboard', exact: true, roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/employees', label: 'Employees', icon: '👥', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/audit/new', label: 'New Audit', icon: '✓', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/history', label: 'Audit History', icon: '⏱', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/employees', label: 'Employees', icon: 'ti-users', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/history', label: 'Audit History', icon: 'ti-history', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'Compliance', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
-  { to: '/ncr', label: 'NCR List', icon: '⚠', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'SCM', roles: ['admin','scm_officer'] },
-  { to: '/ppe-tracker', label: 'PPE Tracker', icon: '📦', roles: ['admin','scm_officer'] },
+  { to: '/ppe-tracker', label: 'PPE Tracker', icon: 'ti-shield-check', roles: ['admin','scm_officer'] },
   { section: 'Admin', roles: ['admin'] },
-  { to: '/admin', label: 'Admin Panel', icon: '⚙', roles: ['admin'] },
-  { to: '/profile', label: 'My Profile', icon: '👤', roles: ['admin'] },
+  { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
+  { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin'] },
 ];
 
 export default function Layout() {
