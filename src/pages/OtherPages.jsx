@@ -379,7 +379,7 @@ export function NCRPage() {
           <div className="stat-card"><div className="stat-label">Total Open</div><div className="stat-value danger">{filteredItems.length}</div></div>
           <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{filteredItems.filter(n=>n.status==='pending').length}</div></div>
           <div className="stat-card"><div className="stat-label">Purchase Requested</div><div className="stat-value navy">{filteredItems.filter(n=>n.status==='purchase_requested').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Resolved (month)</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
+          <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
@@ -402,7 +402,7 @@ export function NCRPage() {
                 <option value="scm_ordered">SCM Ordered</option>
                 <option value="warehouse_available">Warehouse Available</option>
                 <option value="distributed">Distributed</option>
-                <option value="resolved">Resolved</option>
+                <option value="distributed">Distributed</option>
                 <option value="canceled">Canceled</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
