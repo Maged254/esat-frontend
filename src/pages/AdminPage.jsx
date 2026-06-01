@@ -3,6 +3,8 @@ import api from '../utils/api';
 
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('');
   const [ppeItems, setPpeItems] = useState([]);
   const [editingPpe, setEditingPpe] = useState(null);
   const [ppeSearch, setPpeSearch] = useState('');
@@ -181,7 +183,7 @@ export default function AdminPage() {
           <table>
             <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {users.map(u => (
+              {users.filter(u => (!userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) && (!userRoleFilter || u.role === userRoleFilter)).map(u => (
                 <tr key={u.id}>
                   <td>
                     <div className="emp-cell">
