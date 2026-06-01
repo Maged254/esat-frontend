@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/favicon.png" alt="ESAT" style={{ width: 220, objectFit:'contain' }}
+          <img src="/favicon.png" alt="ESAT" style={{ width: 440, objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
