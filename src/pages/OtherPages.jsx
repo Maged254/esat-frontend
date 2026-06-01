@@ -396,9 +396,14 @@ export function NCRPage() {
                 {[...new Set(items.map(n=>n.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
-                <option value="pending">Pending</option>
-                <option value="purchase_requested">Purchase Requested</option>
                 <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="ehs_purchase_requested">EHS Purchase Requested</option>
+                <option value="scm_ordered">SCM Ordered</option>
+                <option value="warehouse_available">Warehouse Available</option>
+                <option value="distributed">Distributed</option>
+                <option value="resolved">Resolved</option>
+                <option value="canceled">Canceled</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                 <option value="">All Projects</option>
