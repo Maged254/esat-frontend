@@ -402,7 +402,6 @@ export function NCRPage() {
                 <option value="scm_ordered">SCM Ordered</option>
                 <option value="warehouse_available">Warehouse Available</option>
                 <option value="distributed">Distributed</option>
-                <option value="distributed">Distributed</option>
                 <option value="canceled">Canceled</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
