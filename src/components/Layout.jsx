@@ -47,7 +47,7 @@ export default function Layout() {
                 end={item.exact}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
+<i className={`ti ${item.icon}`} style={{ fontSize: 18 }} aria-hidden="true"></i>
                 {item.label}
               </NavLink>
             );
