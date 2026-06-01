@@ -4,6 +4,34 @@ import api from '../utils/api';
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [ppeItems, setPpeItems] = useState([]);
+  const [editingPpe, setEditingPpe] = useState(null); // {id, name, category, has_size, size_type, sort_order, is_active} or 'new'
+  const [ppeForm, setPpeForm] = useState({});
+  const [ppeSaving, setPpeSaving] = useState(false);
+
+  const CATEGORIES = [
+    'Head Protection','Eye & Face Protection','Hearing Protection',
+    'Respiratory Protection','Hand Protection','Body Protection',
+    'Foot Protection','Fall Protection','WAH Equipment'
+  ];
+
+  const openEdit = (p) => { setEditingPpe(p.id); setPpeForm({ ...p }); };
+  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'Head Protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true }); };
+  const cancelEdit = () => { setEditingPpe(null); setPpeForm({}); };
+
+  const savePpe = async () => {
+    setPpeSaving(true);
+    try {
+      if (editingPpe === 'new') {
+        const r = await api.post('/ppe', ppeForm);
+        setPpeItems(prev => [...prev, r.data]);
+      } else {
+        const r = await api.put('/ppe/' + editingPpe, ppeForm);
+        setPpeItems(prev => prev.map(p => p.id === editingPpe ? r.data : p));
+      }
+      cancelEdit();
+    } catch(e) { alert('Save failed'); }
+    setPpeSaving(false);
+  };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null });
@@ -176,16 +204,63 @@ export default function AdminPage() {
 
         {/* PPE Config */}
         <div className="card">
-          <div className="card-header"><span className="card-title">PPE checklist configuration</span></div>
+          <div className="card-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <span className="card-title">PPE checklist configuration</span>
+            <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={openNew}>+ Add Item</button>
+          </div>
+
+          {editingPpe && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Item Name</label>
+                  <input className="form-input" value={ppeForm.name || ''} onChange={e => setPpeForm(f=>({...f, name:e.target.value}))} placeholder="e.g. Safety Helmet (Yellow)" />
+                </div>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Category</label>
+                  <select className="form-input" value={ppeForm.category || ''} onChange={e => setPpeForm(f=>({...f, category:e.target.value}))}>
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:12, fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Sort Order</label>
+                  <input className="form-input" type="number" value={ppeForm.sort_order || 99} onChange={e => setPpeForm(f=>({...f, sort_order:parseInt(e.target.value)}))} />
+                </div>
+                <div style={{ display:'flex', gap:24, alignItems:'center', paddingTop:20 }}>
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer' }}>
+                    <input type="checkbox" checked={!!ppeForm.has_size} onChange={e => setPpeForm(f=>({...f, has_size:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
+                    Has Size
+                  </label>
+                  {ppeForm.has_size && (
+                    <select className="form-input" style={{ width:'auto' }} value={ppeForm.size_type || 'clothing'} onChange={e => setPpeForm(f=>({...f, size_type:e.target.value}))}>
+                      <option value="clothing">S–XXL</option>
+                      <option value="shoe">38–47</option>
+                      <option value="harness">S–XL</option>
+                    </select>
+                  )}
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer' }}>
+                    <input type="checkbox" checked={!!ppeForm.is_active} onChange={e => setPpeForm(f=>({...f, is_active:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
+                    Active
+                  </label>
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button className="btn btn-primary" style={{ fontSize:13 }} onClick={savePpe} disabled={ppeSaving}>{ppeSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={cancelEdit}>Cancel</button>
+              </div>
+            </div>
+          )}
+
           <table>
-            <thead><tr><th>PPE item</th><th>Category</th><th>Size</th><th>Active</th></tr></thead>
+            <thead><tr><th>PPE item</th><th>Category</th><th>Size</th><th>Active</th><th></th></tr></thead>
             <tbody>
               {ppeItems.map(p => (
-                <tr key={p.id}>
+                <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>
                   <td>{p.name}</td>
-                  <td><span className="tag tag-gray" style={{ fontSize: 10 }}>{p.category?.replace(/_/g,' ')}</span></td>
-                  <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize: 10 }}>{p.size_type === 'shoe' ? '38–47' : 'S–XXL'}</span> : '—'}</td>
-                  <td><input type="checkbox" defaultChecked={p.is_active} style={{ accentColor: '#1D9E75' }} /></td>
+                  <td><span className="tag tag-gray" style={{ fontSize:10 }}>{p.category?.replace(/_/g,' ')}</span></td>
+                  <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXL'}</span> : '—'}</td>
+                  <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
+                  <td><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button></td>
                 </tr>
               ))}
             </tbody>
