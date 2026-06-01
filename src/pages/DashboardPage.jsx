@@ -130,17 +130,17 @@ export default function DashboardPage() {
 
           <div className="card">
             <div className="card-header">
-              <span className="card-title">NCRs by category</span>
+              <span className="card-title">NCRs by PPE item</span>
               <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
             </div>
             <div className="card-body">
               {(data?.ncr?.by_category || []).map((r, i) => {
                 const pct2 = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
                 const cls = pct2 >= 75 ? 'danger' : pct2 >= 40 ? 'warning' : 'navy';
-                const label = r.category.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+                const label = r.ppe_name;
                 const pct = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
                 return (
-                  <div key={r.category} style={{ marginBottom: 14 }}>
+                  <div key={r.ppe_name} style={{ marginBottom: 14 }}>
                     <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
                       <span>{label}</span>
                       <span style={{ color: '#6b7280' }}>{r.count} items</span>
