@@ -312,7 +312,7 @@ export function NCRPage() {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', period: 'current', ppe: '', status: 'pending' });
+  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '' });
   const navigate = useNavigate();
 
   useEffect(() => {
