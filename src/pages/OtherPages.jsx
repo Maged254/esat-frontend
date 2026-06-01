@@ -61,6 +61,12 @@ export function EmployeesPage() {
 
   useEffect(() => { load(); }, [filters]);
 
+  // Auto-refresh employees every 60 seconds
+  useEffect(() => {
+    const interval = setInterval(() => { load(); }, 60000);
+    return () => clearInterval(interval);
+  }, [filters]);
+
   const exportCSV = () => {
     const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
     const rows = auditAgeFiltered.map(e => headers.map(h => {
