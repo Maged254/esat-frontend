@@ -38,7 +38,7 @@ const dateCell = (date, name) => (
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '' });
   const [userRole, setUserRole] = useState('');
   const [bulkTarget, setBulkTarget] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -75,6 +75,7 @@ export default function PPERequestTrackerPage() {
   const filtered = requests.filter(r => {
     if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.project && r.project !== filters.project) return false;
     if (filters.ppe && r.ppe_name !== filters.ppe) return false;
     if (filters.period) {
       const now = new Date();
@@ -172,7 +173,11 @@ export default function PPERequestTrackerPage() {
                 <option value="current">Current Month</option>
                 <option value="previous">Previous Month</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:'',ppe:'',period:''})}>✕ Clear</button>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                <option value="">All Projects</option>
+                {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:'',ppe:'',period:'',project:''})}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
