@@ -126,6 +126,18 @@ export default function AdminPage() {
               + Add User
             </button>
           </div>
+          <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search name..." value={userSearch} onChange={e=>setUserSearch(e.target.value)} />
+            <select className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:180 }} value={userRoleFilter} onChange={e=>setUserRoleFilter(e.target.value)}>
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="ehs_manager">EHS Manager</option>
+              <option value="ehs_officer">EHS Officer</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="scm_officer">SCM Officer</option>
+            </select>
+            {(userSearch||userRoleFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setUserSearch('');setUserRoleFilter('');}}>✕ Clear</button>}
+          </div>
 
           {showAddUser && (
             <div style={{ padding: 18, borderBottom: '0.5px solid #e5e7eb', background: '#f9fafb' }}>
