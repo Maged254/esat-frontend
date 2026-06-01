@@ -184,7 +184,6 @@ export default function PPERequestTrackerPage() {
             <table>
               <thead>
                 <tr>
-                  {bulkTarget && <th rowSpan={2}></th>}
                   <th rowSpan={2}>Employee</th>
                   <th rowSpan={2}>PPE Item</th>
                   <th rowSpan={2}>Size</th>
@@ -192,6 +191,7 @@ export default function PPERequestTrackerPage() {
                   <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>SCM</th>
                   <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Projects</th>
                   <th rowSpan={2}>Status</th>
+                  {bulkTarget && <th rowSpan={2}></th>}
                 </tr>
                 <tr>
                   <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
@@ -204,14 +204,6 @@ export default function PPERequestTrackerPage() {
               <tbody>
                 {filtered.map(r => (
                   <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
-                    {bulkTarget && (
-                      <td style={{textAlign:'center'}}>
-                        {isEligible(r) && (
-                          <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
-                            style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
-                        )}
-                      </td>
-                    )}
                     <td>
                       <div className="emp-name">{r.employee_name}</div>
                       <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
@@ -224,6 +216,14 @@ export default function PPERequestTrackerPage() {
                     <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
                     <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.date_distributed?<div><div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>{r.distributed_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}</div>:'—'}</td>
                     <td><span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span></td>
+                    {bulkTarget && (
+                      <td style={{textAlign:'center'}}>
+                        {isEligible(r) && (
+                          <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
+                            style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {!filtered.length && <tr><td colSpan={bulkTarget?10:9} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
