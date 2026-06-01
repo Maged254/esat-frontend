@@ -4,7 +4,9 @@ import api from '../utils/api';
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [ppeItems, setPpeItems] = useState([]);
-  const [editingPpe, setEditingPpe] = useState(null); // {id, name, category, has_size, size_type, sort_order, is_active} or 'new'
+  const [editingPpe, setEditingPpe] = useState(null);
+  const [ppeSearch, setPpeSearch] = useState('');
+  const [ppeCategoryFilter, setPpeCategoryFilter] = useState(''); // {id, name, category, has_size, size_type, sort_order, is_active} or 'new'
   const [ppeForm, setPpeForm] = useState({});
   const [ppeSaving, setPpeSaving] = useState(false);
 
@@ -251,10 +253,18 @@ export default function AdminPage() {
             </div>
           )}
 
+          <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search PPE item..." value={ppeSearch} onChange={e=>setPpeSearch(e.target.value)} />
+            <select className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:200 }} value={ppeCategoryFilter} onChange={e=>setPpeCategoryFilter(e.target.value)}>
+              <option value="">All Categories</option>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {(ppeSearch||ppeCategoryFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setPpeSearch('');setPpeCategoryFilter('');}}>✕ Clear</button>}
+          </div>
           <table>
             <thead><tr><th>PPE item</th><th>Category</th><th>Size</th><th>Active</th><th></th></tr></thead>
             <tbody>
-              {ppeItems.map(p => (
+              {ppeItems.filter(p => (!ppeSearch || p.name.toLowerCase().includes(ppeSearch.toLowerCase())) && (!ppeCategoryFilter || p.category === ppeCategoryFilter)).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>
                   <td>{p.name}</td>
                   <td><span className="tag tag-gray" style={{ fontSize:10 }}>{p.category?.replace(/_/g,' ')}</span></td>
