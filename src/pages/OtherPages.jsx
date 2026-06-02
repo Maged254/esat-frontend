@@ -304,7 +304,7 @@ export function AuditHistoryPage() {
             <tbody>
               {audits.map((a,i)=>(
                 <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('/audits/' + a.id)}>
-                  <td><div className="emp-cell"><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
+                  <td><div className="emp-cell"><div style={{width:4,minWidth:4,borderRadius:2,alignSelf:'stretch',background:a.overall_status==='compliant'?'#1D9E75':a.overall_status==='partial'?'#F59E0B':'#e24b4a',marginRight:8}}></div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
                   <td>{a.national_id||'—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.organization||'—'}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
