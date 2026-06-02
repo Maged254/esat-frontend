@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 
@@ -22,6 +22,7 @@ const NAV = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   const initials = user?.name
@@ -30,7 +31,8 @@ export default function Layout() {
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         <NavLink to="/" className="sidebar-logo" style={{padding:'12px 0'}}>
           <img src="/esat-logo.png" alt="ESAT" style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
         </NavLink>
@@ -48,6 +50,7 @@ export default function Layout() {
                 to={item.to}
                 end={item.exact}
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+                onClick={() => setSidebarOpen(false)}
               >
 <i className={`ti ${item.icon}`} style={{ fontSize: 18 }} aria-hidden="true"></i>
                 {item.label}
@@ -71,7 +74,7 @@ export default function Layout() {
       </aside>
 
       <main className="main" style={{position:'relative'}}>
-
+        <button className="hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle menu">&#9776;</button>
         <div style={{position:'relative',zIndex:1}}>
           <Outlet />
         </div>
