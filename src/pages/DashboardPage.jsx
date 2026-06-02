@@ -11,6 +11,7 @@ const STATUS_TAG = {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const [syncLog, setSyncLog] = useState(null);
   const { user } = useAuth();
   const [overdue, setOverdue] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -20,6 +21,7 @@ export default function DashboardPage() {
     api.get('/dashboard').then(r => setData(r.data)).catch(console.error);
     api.get('/employees/overdue').then(r => setOverdue(r.data)).catch(console.error);
     api.get('/audits/leaderboard').then(r => setLeaderboard(r.data)).catch(console.error);
+    api.get('/sync-log/latest').then(r => setSyncLog(r.data)).catch(console.error);
   }, []);
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
@@ -43,7 +45,9 @@ export default function DashboardPage() {
           <span className="topbar-title">Dashboard</span>
         </div>
         <div className="topbar-right">
-          <span className="badge-info">↺ Synced today 06:00</span>
+          {syncLog && (
+            <span className="badge-info">↺ Synced {new Date(syncLog.synced_at).toLocaleDateString('en-GB', {day:'numeric',month:'short'})} {new Date(syncLog.synced_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'})}</span>
+          )}
           <button className="btn btn-primary" onClick={() => navigate('/audit/new')}>
             + New Audit
           </button>
