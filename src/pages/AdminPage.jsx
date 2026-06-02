@@ -21,6 +21,13 @@ export default function AdminPage() {
   const openEdit = (p) => { setEditingPpe(p.id); setPpeForm({ ...p }); };
   const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'Head Protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true }); };
   const cancelEdit = () => { setEditingPpe(null); setPpeForm({}); };
+  const deletePpe = async (id, name) => {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    try {
+      await api.delete('/ppe/' + id);
+      setPpeItems(prev => prev.filter(p => p.id !== id));
+    } catch(e) { alert('Delete failed'); }
+  };
 
   const savePpe = async () => {
     setPpeSaving(true);
@@ -284,7 +291,7 @@ export default function AdminPage() {
                   <td><span className="tag tag-gray" style={{ fontSize:10 }}>{p.category?.replace(/_/g,' ')}</span></td>
                   <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXL'}</span> : '—'}</td>
                   <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
-                  <td><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button></td>
+                  <td style={{display:'flex',gap:6}}><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }} onClick={() => deletePpe(p.id, p.name)}>Delete</button></td>
                 </tr>
               ))}
             </tbody>
