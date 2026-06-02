@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 {leaderboard.map((u, i) => (
                   <tr key={u.id}>
                     <td style={{fontWeight:600,color:'#6b7280',fontSize:13}}>{i+1}</td>
-                    <td><div className="emp-cell"><div className={'avatar ' + avatarClass(i)}>{u.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div><div className="emp-name">{u.full_name}</div></div></td>
+                    <td><div className="emp-cell">{u.profile_picture ? <img src={u.profile_picture} alt={u.full_name} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0}} /> : <div className={'avatar ' + avatarClass(i)}>{u.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>}<div className="emp-name">{u.full_name}</div></div></td>
                     <td style={{fontWeight:600}}>{u.total_audits}</td>
                     <td style={{fontSize:12,color:'#6b7280'}}>{u.this_month} this month</td>
                   </tr>
