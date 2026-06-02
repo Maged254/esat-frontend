@@ -68,7 +68,7 @@ export default function NewAuditPage() {
     } catch {
       const defaults = {};
       ppeItems.forEach(p => {
-        defaults[p.id] = { condition: 'good', size: '', comment: '', applicable: true };
+        defaults[p.id] = { condition: 'good', size: '', comment: '', applicable: false };
       });
       setItems(defaults);
     }
