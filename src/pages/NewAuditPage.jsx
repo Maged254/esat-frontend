@@ -38,7 +38,7 @@ export default function NewAuditPage() {
   useEffect(() => {
     api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
-    api.get('/users').then(r => { setUsers(r.data); }).catch(console.error);
+    api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com'].includes(u.email))); }).catch(console.error);
   }, []);
 
   useEffect(() => {
