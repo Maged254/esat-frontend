@@ -502,7 +502,7 @@ export function NCRPage() {
               {filteredItems.map(n=>(
                 <tr key={n.id}>
                   <td style={{padding:'0 0 0 8px'}}><div style={{width:3,height:40,background:n.condition==='not_good'?'var(--danger)':'var(--warning)',borderRadius:2}}></div></td>
-                  <td><div><div className="emp-name">{n.employee_name}</div><div className="emp-id">{n.employee_national_id||n.employee_number||'—'}</div></div></td>
+                  <td><div><div className="emp-name">{n.employee_name}</div><div className="emp-id">{n.employee_national_id||'—'}</div></div></td>
                   <td>{n.ppe_name}</td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
                   <td>{n.size_value||'—'}</td>
