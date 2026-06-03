@@ -227,6 +227,44 @@ export function EmployeesPage() {
           </table>
         </div>
       </div>
+      {ppeAssignModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:32,width:560,maxHeight:'80vh',display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:16}}>PPE Assignment</div>
+                <div style={{fontSize:13,color:'#6b7280'}}>{ppeAssignModal.full_name} — {ppeAssignModal.employee_number}</div>
+              </div>
+              <button onClick={()=>setPpeAssignModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
+            </div>
+            <div style={{fontSize:12,color:'#6b7280'}}>Tick the PPE items required for this employee. Only ticked items will appear in audits.</div>
+            <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}}>
+              {['Head Protection','Eye & Face Protection','Hearing Protection','Respiratory Protection','Hand Protection','Body Protection','Foot Protection','Fall Protection','WAH Equipment'].map(cat => {
+                const items = allPpeItems.filter(p => p.category === cat);
+                if (!items.length) return null;
+                return (
+                  <div key={cat}>
+                    <div style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,marginTop:8}}>{cat}</div>
+                    {items.map(p => (
+                      <label key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 8px',borderRadius:6,cursor:'pointer',background:assignedPpe.includes(p.id)?'#f0fdf4':'#f9fafb',marginBottom:2}}>
+                        <input type="checkbox" checked={assignedPpe.includes(p.id)} onChange={()=>togglePpeItem(p.id)} style={{width:16,height:16,accentColor:'#1D9E75'}} />
+                        <span style={{fontSize:14}}>{p.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',borderTop:'1px solid #e5e7eb',paddingTop:12}}>
+              <span style={{fontSize:12,color:'#6b7280'}}>{assignedPpe.length} item{assignedPpe.length!==1?'s':''} selected</span>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn" onClick={()=>setPpeAssignModal(null)}>Cancel</button>
+                <button className="btn btn-primary" onClick={savePpeAssign} disabled={ppeAssignSaving}>{ppeAssignSaving?'Saving...':'Save Assignment'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
