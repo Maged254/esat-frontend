@@ -53,15 +53,15 @@ export default function NewAuditPage() {
     // Load PPE assignments for this employee
     try {
       const res = await api.get(`/employees/${emp.id}/ppe-assignments`);
-      const assignedIds = new Set(res.data.map(p => p.id));
-      // Default applicable = true only if assigned
+      const assignedItems = res.data;
+      setPpeItems(assignedItems);
       const defaults = {};
-      ppeItems.forEach(p => {
+      assignedItems.forEach(p => {
         defaults[p.id] = {
           condition: 'good',
           size: '',
           comment: '',
-          applicable: assignedIds.has(p.id)
+          applicable: true
         };
       });
       setItems(defaults);

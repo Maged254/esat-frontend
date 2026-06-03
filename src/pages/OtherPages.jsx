@@ -229,7 +229,7 @@ export function EmployeesPage() {
       </div>
       {ppeAssignModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:12,padding:32,width:560,maxHeight:'80vh',display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:'#fff',borderRadius:12,padding:32,width:720,maxHeight:'80vh',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div>
                 <div style={{fontWeight:700,fontSize:16}}>PPE Assignment</div>
