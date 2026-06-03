@@ -61,7 +61,7 @@ export default function NewAuditPage() {
           condition: 'good',
           size: '',
           comment: '',
-          applicable: true
+          applicable: false
         };
       });
       setItems(defaults);
