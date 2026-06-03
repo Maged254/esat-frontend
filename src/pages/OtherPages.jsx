@@ -233,7 +233,7 @@ export function EmployeesPage() {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div>
                 <div style={{fontWeight:700,fontSize:16}}>PPE Assignment</div>
-                <div style={{fontSize:13,color:'#6b7280'}}>{ppeAssignModal.full_name} — {ppeAssignModal.employee_number}</div>
+                <div style={{fontSize:13,color:'#6b7280'}}>{ppeAssignModal.full_name} — {ppeAssignModal.national_id || ppeAssignModal.employee_number}</div>
               </div>
               <button onClick={()=>setPpeAssignModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
