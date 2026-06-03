@@ -5,6 +5,10 @@ import api from '../utils/api';
 
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
+  const [ppeAssignModal, setPpeAssignModal] = useState(null); // employee object
+  const [allPpeItems, setAllPpeItems] = useState([]);
+  const [assignedPpe, setAssignedPpe] = useState([]); // array of ppe_item ids
+  const [ppeAssignSaving, setPpeAssignSaving] = useState(false);
   const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: 'yes', job_title: '', audit_age: '' });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
@@ -32,6 +36,16 @@ export function EmployeesPage() {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'audit_age') params.append(k, v); });
     api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(console.error);
+  }
+
+  async function openPpeAssign(emp) {
+    const [ppeRes, assignRes] = await Promise.all([
+      api.get('/ppe'),
+      api.get(`/employees/${emp.id}/ppe-assignments`)
+    ]);
+    setAllPpeItems(ppeRes.data);
+    setAssignedPpe(assignRes.data.map(p => p.id));
+    setPpeAssignModal(emp);
   };
 
   const handleCSVImport = async (e) => {
@@ -66,6 +80,21 @@ export function EmployeesPage() {
   };
 
   useEffect(() => { load(); }, [filters]);
+
+  async function savePpeAssign() {
+    setPpeAssignSaving(true);
+    try {
+      await api.put(`/employees/${ppeAssignModal.id}/ppe-assignments`, { ppe_item_ids: assignedPpe });
+      setPpeAssignModal(null);
+    } catch(e) {
+      alert('Error saving: ' + (e.response?.data?.error || e.message));
+    }
+    setPpeAssignSaving(false);
+  }
+
+  function togglePpeItem(id) {
+    setAssignedPpe(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   // Auto-refresh employees every 60 seconds
   useEffect(() => {
@@ -188,6 +217,7 @@ export function EmployeesPage() {
                   <td>
                     <div style={{display:'flex',gap:6}}>
                       {e.employment_status==='active' && <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/audit/new/${e.id}`)}>Audit</button>}
+                      {['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE">🛡 PPE</button>}
                       {userRole==='admin' && <button onClick={()=>deleteEmployee(e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete Employee">🗑</button>}
                     </div>
                   </td>
