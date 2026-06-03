@@ -292,14 +292,14 @@ export default function NewAuditPage() {
                         <div className="ppe-name">{ppe.name}</div>
                         <div className="ppe-cell">
                           <div className="condition-group">
-                            {['good','not_good','missing'].map(cond => (
+                            {['good','not_good','not_present'].map(cond => (
                               <button
                                 key={cond}
                                 className={`condition-btn ${it.condition === cond ? `sel-${cond === 'not_good' ? 'bad' : cond}` : ''}`}
                                 onClick={() => setItemField(ppe.id, 'condition', cond)}
                                 disabled={!it.applicable}
                               >
-                                {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Missing'}
+                                {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Not Present'}
                               </button>
                             ))}
                           </div>
