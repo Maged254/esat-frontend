@@ -217,7 +217,7 @@ export function EmployeesPage() {
                   <td>
                     <div style={{display:'flex',gap:6}}>
                       {e.employment_status==='active' && <button className="btn btn-primary btn-sm" onClick={()=>navigate(`/audit/new/${e.id}`)}>Audit</button>}
-                      {['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE">🛡 PPE</button>}
+                      {['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>}
                       {userRole==='admin' && <button onClick={()=>deleteEmployee(e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete Employee">🗑</button>}
                     </div>
                   </td>
