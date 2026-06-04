@@ -1,13 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
-const printStyle = `
-@media print {
-  .topbar, .sidebar, .btn { display: none !important; }
-  .content { padding: 0 !important; margin: 0 !important; }
-  .card { box-shadow: none !important; border: 1px solid #ddd !important; page-break-inside: avoid; }
-  body { background: white !important; }
-}
-`;
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -28,6 +22,30 @@ export default function AuditDetailPage() {
   const navigate = useNavigate();
   const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef(null);
+
+  const exportPDF = async () => {
+    setExporting(true);
+    const el = reportRef.current;
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f3f4f6' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let y = 0;
+    let remaining = imgHeight;
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight);
+      remaining -= pageHeight;
+      y += pageHeight;
+      if (remaining > 0) pdf.addPage();
+    }
+    pdf.save(`Audit_Report_${audit.employee_name?.replace(/ /g,'_')}_${audit.audit_date?.slice(0,10)}.pdf`);
+    setExporting(false);
+  };
 
   useEffect(() => {
     api.get(`/audits/${auditId}`)
@@ -49,7 +67,6 @@ export default function AuditDetailPage() {
 
   return (
     <>
-      <style>{printStyle}</style>
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
@@ -60,11 +77,11 @@ export default function AuditDetailPage() {
         </div>
         <div className="topbar-right">
           <button className="btn" onClick={()=>navigate('/audits')}>← Back</button>
-          <button className="btn btn-primary" onClick={()=>window.print()}>↓ Export PDF</button>
+          <button className="btn btn-primary" onClick={exportPDF} disabled={exporting}>{exporting ? 'Exporting...' : '↓ Export PDF'}</button>
         </div>
       </div>
 
-      <div className="content">
+      <div className="content" ref={reportRef}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,padding:'12px 18px',background:'#fff',borderRadius:10,border:'1px solid #e5e7eb'}}>
           <img src="/esat-login-logo.png" alt="ESAT" style={{height:48,objectFit:'contain'}} />
           <div style={{textAlign:'center'}}>
