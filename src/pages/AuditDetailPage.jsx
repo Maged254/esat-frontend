@@ -54,6 +54,10 @@ export default function AuditDetailPage() {
       </div>
 
       <div className="content">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,padding:'12px 18px',background:'#fff',borderRadius:10,border:'1px solid #e5e7eb'}}>
+          <img src="/esat-login-logo.png" alt="ESAT" style={{height:48,objectFit:'contain'}} />
+          <img src="/egypro-watermark.png" alt="Egypro" style={{height:48,objectFit:'contain'}} />
+        </div>
         <div className="card" style={{marginBottom:16}}>
           <div className="card-header">
             <span className="card-title">Audit Summary</span>
