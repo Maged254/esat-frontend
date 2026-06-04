@@ -56,6 +56,9 @@ export default function AuditDetailPage() {
       <div className="content">
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,padding:'12px 18px',background:'#fff',borderRadius:10,border:'1px solid #e5e7eb'}}>
           <img src="/esat-login-logo.png" alt="ESAT" style={{height:48,objectFit:'contain'}} />
+          <div style={{textAlign:'center'}}>
+            <div style={{fontWeight:700,fontSize:18,color:'#1a2e4a',letterSpacing:'0.02em'}}>Egypro Safety Audit Report</div>
+          </div>
           <img src="/egypro-watermark.png" alt="Egypro" style={{height:48,objectFit:'contain'}} />
         </div>
         <div className="card" style={{marginBottom:16}}>
