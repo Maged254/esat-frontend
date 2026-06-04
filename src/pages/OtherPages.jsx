@@ -296,7 +296,7 @@ export function AuditHistoryPage() {
 
   useEffect(() => { load(); }, [filters]);
 
-  useEffect(() => { api.get('/users').then(r=>setUsers(r.data)).catch(console.error); }, []);
+  useEffect(() => { api.get('/users').then(r=>setUsers(r.data.filter(u=>!['sync@egypro.com','admin@egypro.com'].includes(u.email)))).catch(console.error); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
   const exportCSV = () => {
