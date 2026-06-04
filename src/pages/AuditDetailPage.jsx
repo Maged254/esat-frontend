@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from 'react';
+
+const printStyle = `
+@media print {
+  .topbar, .sidebar, .btn { display: none !important; }
+  .content { padding: 0 !important; margin: 0 !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; page-break-inside: avoid; }
+  body { background: white !important; }
+}
+`;
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -40,6 +49,7 @@ export default function AuditDetailPage() {
 
   return (
     <>
+      <style>{printStyle}</style>
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
@@ -50,6 +60,7 @@ export default function AuditDetailPage() {
         </div>
         <div className="topbar-right">
           <button className="btn" onClick={()=>navigate('/audits')}>← Back</button>
+          <button className="btn btn-primary" onClick={()=>window.print()}>↓ Export PDF</button>
         </div>
       </div>
 
