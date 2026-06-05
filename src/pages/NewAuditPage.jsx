@@ -32,6 +32,16 @@ export default function NewAuditPage() {
   const [auditedBy, setAuditedBy] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [auditId, setAuditId] = useState(null);
+  const [docs, setDocs] = useState({
+    'JHA': null,
+    'Toolbox_Talk_Sheet': null,
+    'PPE_Inspection_Checklist': null,
+    'Emergency_Response_Plan': null,
+    'Vehicle_Safety_Checklist': null
+  });
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({});
   const [empSearch, setEmpSearch] = useState('');
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
@@ -107,12 +117,43 @@ export default function NewAuditPage() {
         notes,
         items: auditItems,
       });
-      navigate('/ncr');
+      const res2 = await api.get('/audits');
+      const latest = res2.data?.[0];
+      if (latest) setAuditId(latest.id);
+      setStep(3);
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to submit audit');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUploadAndFinish = async () => {
+    setUploading(true);
+    const token = localStorage.getItem('esat_token');
+    for (const [fieldName, file] of Object.entries(docs)) {
+      if (!file) continue;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('audit_id', auditId);
+        formData.append('employee_id', selectedEmp.id);
+        formData.append('field_name', fieldName);
+        formData.append('national_id', selectedEmp.national_id || 'unknown');
+        formData.append('employee_name', selectedEmp.full_name);
+        formData.append('audit_date', auditDate);
+        await fetch((process.env.REACT_APP_API_URL || 'https://esat-backend-drwm.onrender.com') + '/api/audit-documents/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData
+        });
+        setUploadProgress(p => ({ ...p, [fieldName]: 'done' }));
+      } catch {
+        setUploadProgress(p => ({ ...p, [fieldName]: 'error' }));
+      }
+    }
+    setUploading(false);
+    navigate('/ncr');
   };
 
   // Group PPE by category
@@ -352,6 +393,37 @@ export default function NewAuditPage() {
           </>
         )}
       </div>
+    <>
+      {step === 3 && (
+        <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#0f2a4a', marginBottom: 4 }}>Upload Documents</div>
+            <div style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Attach safety documents for {selectedEmp?.full_name} (all optional)</div>
+            {Object.keys(docs).map(fieldName => (
+              <div key={fieldName} style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>
+                  {fieldName.replace(/_/g, ' ')}
+                  {uploadProgress[fieldName] === 'done' && <span style={{ color: '#16a34a', marginLeft: 8 }}>✓ Uploaded</span>}
+                  {uploadProgress[fieldName] === 'error' && <span style={{ color: '#dc2626', marginLeft: 8 }}>✗ Failed</span>}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={e => setDocs(d => ({ ...d, [fieldName]: e.target.files[0] || null }))}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13 }}
+                />
+                {docs[fieldName] && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>📎 {docs[fieldName].name}</div>}
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button className="btn" onClick={() => navigate('/ncr')} style={{ flex: 1 }}>Skip & Finish</button>
+              <button className="btn btn-primary" onClick={handleUploadAndFinish} disabled={uploading} style={{ flex: 1 }}>
+                {uploading ? 'Uploading...' : 'Upload & Finish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
