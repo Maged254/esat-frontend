@@ -23,6 +23,7 @@ export default function AuditDetailPage() {
   const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [docs, setDocs] = useState([]);
   const reportRef = useRef(null);
 
   const exportPDF = async () => {
@@ -48,6 +49,7 @@ export default function AuditDetailPage() {
   };
 
   useEffect(() => {
+    api.get(`/audit-documents/${auditId}`).then(r => setDocs(r.data || [])).catch(() => {});
     api.get(`/audits/${auditId}`)
       .then(r => { setAudit(r.data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -146,6 +148,22 @@ export default function AuditDetailPage() {
             </div>
           ))}
         </div>
+
+        {docs.length > 0 && (
+          <div className="card" style={{marginTop:16}}>
+            <div className="card-header"><span className="card-title">Attached Documents</span></div>
+            <div style={{padding:'16px 18px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}}>
+              {docs.map(doc => (
+                <a key={doc.id} href={doc.cloudinary_url} target="_blank" rel="noreferrer"
+                  style={{display:'flex',flexDirection:'column',alignItems:'center',padding:16,border:'1px solid #e5e7eb',borderRadius:10,textDecoration:'none',color:'#1a2e4a',background:'#f9fafb',gap:8}}>
+                  <div style={{fontSize:32}}>📄</div>
+                  <div style={{fontSize:12,fontWeight:600,textAlign:'center'}}>{doc.field_name.replace(/_/g,' ')}</div>
+                  <div style={{fontSize:11,color:'#6b7280'}}>View / Download</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
