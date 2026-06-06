@@ -393,7 +393,6 @@ export default function NewAuditPage() {
           </>
         )}
       </div>
-    <>
       {step === 3 && (
         <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
