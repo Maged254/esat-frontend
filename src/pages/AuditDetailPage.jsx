@@ -24,6 +24,7 @@ export default function AuditDetailPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [docs, setDocs] = useState([]);
+  const [preview, setPreview] = useState(null);
 
   const downloadDoc = async (e, doc) => {
     e.preventDefault();
@@ -170,20 +171,34 @@ export default function AuditDetailPage() {
             <div className="card-header"><span className="card-title">Attached Documents</span></div>
             <div style={{padding:'16px 18px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}}>
               {docs.map(doc => (
-                <a key={doc.id} href={doc.cloudinary_url} target="_blank" rel="noreferrer"
-                  style={{position:'relative',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 16px 12px',border:'1px solid #e5e7eb',borderRadius:10,color:'#1a2e4a',background:'#f9fafb',gap:8,textDecoration:'none',cursor:'pointer'}}>
+                <div key={doc.id} onClick={() => setPreview(doc)}
+                  style={{position:'relative',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 16px 12px',border:'1px solid #e5e7eb',borderRadius:10,color:'#1a2e4a',background:'#f9fafb',gap:8,cursor:'pointer'}}>
                   <span onClick={e => downloadDoc(e, doc)}
                     style={{position:'absolute',top:8,right:8,width:24,height:24,borderRadius:6,background:'#f1f5f9',border:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#64748b',fontSize:13,lineHeight:1}}>
                     ↓
                   </span>
                   <div style={{fontSize:28,marginTop:4}}>📄</div>
                   <div style={{fontSize:12,fontWeight:600,textAlign:'center',lineHeight:1.3}}>{doc.field_name.replace(/_/g,' ')}</div>
-                </a>
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
+      {preview && (
+        <div onClick={() => setPreview(null)} style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'white',borderRadius:16,padding:24,maxWidth:'80vw',maxHeight:'85vh',overflow:'auto',position:'relative',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div style={{fontWeight:600,fontSize:15,color:'#1a2e4a'}}>{preview.field_name.replace(/_/g,' ')}</div>
+              <div style={{display:'flex',gap:8}}>
+                <span onClick={e => downloadDoc(e, preview)} style={{padding:'6px 14px',borderRadius:8,background:'#f1f5f9',border:'1px solid #e2e8f0',cursor:'pointer',fontSize:13,color:'#374151'}}>↓ Download</span>
+                <span onClick={() => setPreview(null)} style={{padding:'6px 14px',borderRadius:8,background:'#f1f5f9',border:'1px solid #e2e8f0',cursor:'pointer',fontSize:13,color:'#374151'}}>✕ Close</span>
+              </div>
+            </div>
+            <img src={preview.cloudinary_url} alt={preview.field_name} style={{maxWidth:'100%',borderRadius:8,display:'block'}} />
+          </div>
+        </div>
+      )}
     </>
   );
 }
