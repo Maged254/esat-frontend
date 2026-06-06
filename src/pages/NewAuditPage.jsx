@@ -41,6 +41,7 @@ export default function NewAuditPage() {
     'Vehicle_Safety_Checklist': null
   });
   const [uploading, setUploading] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
   const [uploadProgress, setUploadProgress] = useState({});
   const [empSearch, setEmpSearch] = useState('');
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
@@ -159,7 +160,19 @@ export default function NewAuditPage() {
       }
     }
     setUploading(false);
-    navigate('/ncr');
+    setSuccessMsg(`Audit for ${selectedEmp?.full_name} submitted successfully!`);
+    setTimeout(() => {
+      setSuccessMsg('');
+      setStep(1);
+      setSelectedEmp(null);
+      setItems({});
+      setPpeItems([]);
+      setAuditId(null);
+      setDocs({ JHA: null, Toolbox_Talk_Sheet: null, PPE_Inspection_Checklist: null, Emergency_Response_Plan: null, Vehicle_Safety_Checklist: null });
+      setUploadProgress({});
+      setNotes('');
+      setAuditedBy('');
+    }, 3000);
   };
 
   // Group PPE by category
@@ -402,6 +415,11 @@ export default function NewAuditPage() {
       {step === 3 && (
         <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            {successMsg && (
+              <div style={{ background: '#dcfce7', border: '1px solid #16a34a', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: '#15803d', fontWeight: 600, fontSize: 14 }}>
+                ✅ {successMsg}
+              </div>
+            )}
             <div style={{ fontSize: 22, fontWeight: 700, color: '#0f2a4a', marginBottom: 4 }}>Upload Documents</div>
             <div style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Attach safety documents for {selectedEmp?.full_name}</div>
             {Object.keys(docs).map(fieldName => (
