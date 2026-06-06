@@ -24,6 +24,22 @@ export default function AuditDetailPage() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [docs, setDocs] = useState([]);
+
+  const downloadDoc = async (e, doc) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const token = localStorage.getItem('esat_token');
+    const res = await fetch(`https://esat-backend-drwm.onrender.com/api/audit-documents/${doc.id}/download`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.cloudinary_url.split('/').pop().split('?')[0];
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
   const reportRef = useRef(null);
 
   const exportPDF = async () => {
@@ -156,11 +172,10 @@ export default function AuditDetailPage() {
               {docs.map(doc => (
                 <a key={doc.id} href={doc.cloudinary_url} target="_blank" rel="noreferrer"
                   style={{position:'relative',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 16px 12px',border:'1px solid #e5e7eb',borderRadius:10,color:'#1a2e4a',background:'#f9fafb',gap:8,textDecoration:'none',cursor:'pointer'}}>
-                  <a href={`https://esat-backend-drwm.onrender.com/api/audit-documents/${doc.id}/download`}
-                    onClick={e => e.stopPropagation()}
-                    style={{position:'absolute',top:8,right:8,width:24,height:24,borderRadius:6,background:'#f1f5f9',border:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none',color:'#64748b',fontSize:13,lineHeight:1}}>
+                  <span onClick={e => downloadDoc(e, doc)}
+                    style={{position:'absolute',top:8,right:8,width:24,height:24,borderRadius:6,background:'#f1f5f9',border:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#64748b',fontSize:13,lineHeight:1}}>
                     ↓
-                  </a>
+                  </span>
                   <div style={{fontSize:28,marginTop:4}}>📄</div>
                   <div style={{fontSize:12,fontWeight:600,textAlign:'center',lineHeight:1.3}}>{doc.field_name.replace(/_/g,' ')}</div>
                 </a>
