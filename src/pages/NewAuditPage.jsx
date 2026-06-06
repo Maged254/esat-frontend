@@ -110,16 +110,15 @@ export default function NewAuditPage() {
           comment: items[p.id]?.comment || null,
         }));
 
-      await api.post('/audits', {
+      const auditRes = await api.post('/audits', {
         employee_id: selectedEmp.id,
         audit_date: auditDate,
         audited_by_override: auditedBy,
         notes,
         items: auditItems,
       });
-      const res2 = await api.get('/audits');
-      const latest = res2.data?.[0];
-      if (latest) setAuditId(latest.id);
+      const newAuditId = auditRes.data?.id || auditRes.data?.audit?.id;
+      setAuditId(newAuditId);
       setStep(3);
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to submit audit');
