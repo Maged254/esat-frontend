@@ -141,13 +141,20 @@ export default function NewAuditPage() {
         formData.append('national_id', selectedEmp.national_id || 'unknown');
         formData.append('employee_name', selectedEmp.full_name);
         formData.append('audit_date', auditDate);
-        await fetch((process.env.REACT_APP_API_URL || 'https://esat-backend-drwm.onrender.com') + '/api/audit-documents/upload', {
+        const response = await fetch((process.env.REACT_APP_API_URL || 'https://esat-backend-drwm.onrender.com') + '/api/audit-documents/upload', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
           body: formData
         });
-        setUploadProgress(p => ({ ...p, [fieldName]: 'done' }));
-      } catch {
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          console.error('Upload failed for', fieldName, errData);
+          setUploadProgress(p => ({ ...p, [fieldName]: 'error' }));
+        } else {
+          setUploadProgress(p => ({ ...p, [fieldName]: 'done' }));
+        }
+      } catch (err) {
+        console.error('Upload exception for', fieldName, err);
         setUploadProgress(p => ({ ...p, [fieldName]: 'error' }));
       }
     }
