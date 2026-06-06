@@ -154,12 +154,20 @@ export default function AuditDetailPage() {
             <div className="card-header"><span className="card-title">Attached Documents</span></div>
             <div style={{padding:'16px 18px',display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}}>
               {docs.map(doc => (
-                <a key={doc.id} href={doc.cloudinary_url} target="_blank" rel="noreferrer"
-                  style={{display:'flex',flexDirection:'column',alignItems:'center',padding:16,border:'1px solid #e5e7eb',borderRadius:10,textDecoration:'none',color:'#1a2e4a',background:'#f9fafb',gap:8}}>
+                <div key={doc.id} style={{display:'flex',flexDirection:'column',alignItems:'center',padding:16,border:'1px solid #e5e7eb',borderRadius:10,color:'#1a2e4a',background:'#f9fafb',gap:8}}>
                   <div style={{fontSize:32}}>📄</div>
                   <div style={{fontSize:12,fontWeight:600,textAlign:'center'}}>{doc.field_name.replace(/_/g,' ')}</div>
-                  <div style={{fontSize:11,color:'#6b7280'}}>View / Download</div>
-                </a>
+                  <div style={{display:'flex',gap:8,marginTop:4}}>
+                    <a href={doc.cloudinary_url} target="_blank" rel="noreferrer"
+                      style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'#e0f2fe',color:'#0369a1',textDecoration:'none',fontWeight:500}}>
+                      👁 View
+                    </a>
+                    <a href={doc.cloudinary_url} download
+                      style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'#dcfce7',color:'#15803d',textDecoration:'none',fontWeight:500}}>
+                      ↓ Download
+                    </a>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
