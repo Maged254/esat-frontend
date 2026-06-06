@@ -396,11 +396,11 @@ export default function NewAuditPage() {
         <div style={{ maxWidth: 600, margin: '40px auto', padding: 24 }}>
           <div style={{ background: 'white', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#0f2a4a', marginBottom: 4 }}>Upload Documents</div>
-            <div style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Attach safety documents for {selectedEmp?.full_name} (all optional)</div>
+            <div style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>Attach safety documents for {selectedEmp?.full_name}</div>
             {Object.keys(docs).map(fieldName => (
               <div key={fieldName} style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>
-                  {fieldName.replace(/_/g, ' ')}
+                  {({'JHA': 'Job Hazard Analysis', 'Toolbox_Talk_Sheet': 'Toolbox Talk Sheet', 'PPE_Inspection_Checklist': 'PPE Inspection Checklist', 'Emergency_Response_Plan': 'Emergency Response Plan', 'Vehicle_Safety_Checklist': 'Vehicle Safety Checklist'})[fieldName] || fieldName.replace(/_/g, ' ')}
                   {uploadProgress[fieldName] === 'done' && <span style={{ color: '#16a34a', marginLeft: 8 }}>✓ Uploaded</span>}
                   {uploadProgress[fieldName] === 'error' && <span style={{ color: '#dc2626', marginLeft: 8 }}>✗ Failed</span>}
                 </label>
