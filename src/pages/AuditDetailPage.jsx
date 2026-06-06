@@ -156,7 +156,8 @@ export default function AuditDetailPage() {
               {docs.map(doc => (
                 <a key={doc.id} href={doc.cloudinary_url} target="_blank" rel="noreferrer"
                   style={{position:'relative',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 16px 12px',border:'1px solid #e5e7eb',borderRadius:10,color:'#1a2e4a',background:'#f9fafb',gap:8,textDecoration:'none',cursor:'pointer'}}>
-                  <a href={doc.cloudinary_url} download onClick={e => e.stopPropagation()}
+                  <a href={`https://esat-backend-drwm.onrender.com/api/audit-documents/${doc.id}/download`}
+                    onClick={e => e.stopPropagation()}
                     style={{position:'absolute',top:8,right:8,width:24,height:24,borderRadius:6,background:'#f1f5f9',border:'1px solid #e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',textDecoration:'none',color:'#64748b',fontSize:13,lineHeight:1}}>
                     ↓
                   </a>
