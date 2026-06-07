@@ -377,7 +377,7 @@ export function AuditHistoryPage() {
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
                   <td><span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
-                  <td>{STATUS[a.overall_status]}</td>
+                  <td>{a.employee_present === false ? <span className="tag" style={{background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0'}}>Not Present</span> : STATUS[a.overall_status]}</td>
                   {userRole==='admin' && <td><button onClick={e=>deleteAudit(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}

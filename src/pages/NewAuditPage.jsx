@@ -30,6 +30,7 @@ export default function NewAuditPage() {
   const [notes, setNotes] = useState('');
   const [users, setUsers] = useState([]);
   const [auditedBy, setAuditedBy] = useState('');
+  const [employeePresent, setEmployeePresent] = useState(true);
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [auditId, setAuditId] = useState(null);
@@ -115,6 +116,7 @@ export default function NewAuditPage() {
         employee_id: selectedEmp.id,
         audit_date: auditDate,
         audited_by_override: auditedBy,
+        employee_present: employeePresent,
         notes,
         items: auditItems,
       });
@@ -330,6 +332,21 @@ export default function NewAuditPage() {
                     <option value=''>-- Select auditor --</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                   </select>
+                </div>
+                <div className="form-group" style={{gridColumn:'1 / -1'}}>
+                  <label className="form-label">Employee Present</label>
+                  <div style={{display:'flex',gap:8}}>
+                    <button type="button"
+                      onClick={() => setEmployeePresent(true)}
+                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:employeePresent?'#16a34a':'#e5e7eb',background:employeePresent?'#dcfce7':'#f9fafb',color:employeePresent?'#15803d':'#6b7280',fontWeight:600,cursor:'pointer',fontSize:13}}>
+                      ✓ Present
+                    </button>
+                    <button type="button"
+                      onClick={() => setEmployeePresent(false)}
+                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:!employeePresent?'#dc2626':'#e5e7eb',background:!employeePresent?'#fee2e2':'#f9fafb',color:!employeePresent?'#dc2626':'#6b7280',fontWeight:600,cursor:'pointer',fontSize:13}}>
+                      ✗ Not Present
+                    </button>
+                  </div>
                 </div>
                 <div className="form-group" style={{gridColumn:'1 / -1'}}>
                   <label className="form-label">General notes (optional)</label>
