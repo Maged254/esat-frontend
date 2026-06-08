@@ -44,6 +44,10 @@ export default function NewAuditPage() {
   const [uploading, setUploading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [uploadProgress, setUploadProgress] = useState({});
+  const [locations, setLocations] = useState([]);
+  const [locationId, setLocationId] = useState('');
+  const [locSearch, setLocSearch] = useState('');
+  const [showLocDropdown, setShowLocDropdown] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
@@ -51,6 +55,7 @@ export default function NewAuditPage() {
     api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
     api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com'].includes(u.email))); }).catch(console.error);
+    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -95,6 +100,7 @@ export default function NewAuditPage() {
     if (!selectedEmp) return;
     const errors = [];
     if (!auditedBy) errors.push('Please select who conducted the audit.');
+    if (!locationId) errors.push('Please select a location.');
     const applicableItems = ppeItems.filter(p => items[p.id]?.applicable);
     if (applicableItems.length === 0) errors.push('Please mark at least one PPE item as applicable.');
     const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && !items[p.id]?.size);
@@ -117,6 +123,7 @@ export default function NewAuditPage() {
         audit_date: auditDate,
         audited_by_override: auditedBy,
         employee_present: employeePresent,
+        location_id: locationId || null,
         notes,
         items: auditItems,
       });
