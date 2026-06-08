@@ -132,7 +132,7 @@ export default function AuditDetailPage() {
               ['Project', audit.project || '—'],
               ['Client', audit.client || '—'],
               ['Organization', audit.organization || '—'],
-              ['Resource Type', audit.resource_type || '—'],
+              ['Resource Type', audit.resource_type ? audit.resource_type.charAt(0).toUpperCase() + audit.resource_type.slice(1) : '—'],
               ['Audit Date', new Date(audit.audit_date).toLocaleDateString('en-GB')],
               ['Audited By', audit.audited_by_name],
               ['Location', audit.location_name || '—'],

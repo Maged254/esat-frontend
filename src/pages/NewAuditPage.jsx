@@ -317,7 +317,7 @@ export default function NewAuditPage() {
                 </div>
               </div>
               <span className={`tag ${selectedEmp.resource_type === 'inhouse' ? 'tag-navy' : 'tag-gray'}`}>
-                {selectedEmp.resource_type}
+                {selectedEmp.resource_type ? selectedEmp.resource_type.charAt(0).toUpperCase() + selectedEmp.resource_type.slice(1) : '—'}
               </span>
               <button className="btn btn-sm" onClick={() => setStep(1)}>Change</button>
             </div>
