@@ -368,7 +368,7 @@ export default function NewAuditPage() {
                     </div>
                   )}
                 </div>
-                <div className="form-group" style={{gridColumn:'1 / -1'}}>
+                <div className="form-group">
                   <label className="form-label">Employee Present</label>
                   <div style={{display:'flex',gap:8}}>
                     <button type="button"
