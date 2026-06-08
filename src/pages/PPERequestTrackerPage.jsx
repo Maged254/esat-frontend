@@ -184,23 +184,7 @@ export default function PPERequestTrackerPage() {
             <span className="card-title">PPE Request Tracker</span>
             <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
               <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
-                <option value="">All Status</option>
-                {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
-                <option value="">All PPE Items</option>
-                {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
-                <option value="">All Records</option>
-                <option value="current">Current Month</option>
-                <option value="previous">Previous Month</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
-                <option value="">All Projects</option>
-                {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="National ID..." value={filters.national_id||''} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
               <div style={{position:'relative'}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="All Locations"
                   value={filters.location ? filters.location : locSearch}
@@ -225,7 +209,24 @@ export default function PPERequestTrackerPage() {
                   </div>
                 )}
               </div>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); }}>✕ Clear</button>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+                <option value="">All Status</option>
+                {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
+                <option value="">All PPE Items</option>
+                {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
+                <option value="">All Records</option>
+                <option value="current">Current Month</option>
+                <option value="previous">Previous Month</option>
+              </select>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                <option value="">All Projects</option>
+                {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
