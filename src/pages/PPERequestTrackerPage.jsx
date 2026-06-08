@@ -38,7 +38,10 @@ const dateCell = (date, name) => (
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '', location: '' });
+  const [locations, setLocations] = useState([]);
+  const [locSearch, setLocSearch] = useState('');
+  const [showLocDrop, setShowLocDrop] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [bulkTarget, setBulkTarget] = useState(null);
   const [selected, setSelected] = useState([]);
@@ -56,6 +59,7 @@ export default function PPERequestTrackerPage() {
 
   useEffect(() => {
     api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
+    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
   }, []);
 
   const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
@@ -83,6 +87,7 @@ export default function PPERequestTrackerPage() {
     if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.project && r.project !== filters.project) return false;
+    if (filters.location && r.location_name !== filters.location) return false;
     if (filters.ppe && r.ppe_name !== filters.ppe) return false;
     if (filters.period) {
       const now = new Date();
@@ -196,7 +201,31 @@ export default function PPERequestTrackerPage() {
                 <option value="">All Projects</option>
                 {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'',search:'',ppe:'',period:'',project:''})}>✕ Clear</button>
+              <div style={{position:'relative'}}>
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="All Locations"
+                  value={filters.location ? filters.location : locSearch}
+                  onChange={e=>{ setLocSearch(e.target.value); setFilters(p=>({...p,location:''})); setShowLocDrop(true); }}
+                  onFocus={()=>setShowLocDrop(true)}
+                  onBlur={()=>setTimeout(()=>setShowLocDrop(false),150)}
+                  autoComplete="off"
+                />
+                {showLocDrop && (
+                  <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:180,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:160}}>
+                    <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,location:''})); setLocSearch(''); setShowLocDrop(false); }}>All Locations</div>
+                    {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).map(l=>(
+                      <div key={l.id} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
+                        onMouseDown={()=>{ setFilters(p=>({...p,location:l.name})); setLocSearch(''); setShowLocDrop(false); }}
+                        onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
+                        onMouseLeave={e=>e.currentTarget.style.background='white'}
+                      >{l.name}</div>
+                    ))}
+                    {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).length===0 && (
+                      <div style={{padding:'6px 10px',fontSize:12,color:'#9ca3af'}}>No locations found</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
