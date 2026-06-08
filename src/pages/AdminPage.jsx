@@ -12,6 +12,10 @@ export default function AdminPage() {
   const [ppeForm, setPpeForm] = useState({});
   const [ppeSaving, setPpeSaving] = useState(false);
 
+  // Collapsible sections
+  const [openSections, setOpenSections] = useState({ users: true, ppe: false, locations: false });
+  const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
   // Locations
   const [locations, setLocations] = useState([]);
   const [locSearch, setLocSearch] = useState('');
@@ -136,13 +140,14 @@ export default function AdminPage() {
 
         {/* User Management */}
         <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-header">
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('users')}>
             <span className="card-title">User Management</span>
-            <button className="btn btn-primary" onClick={() => { setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null }); setPreview(null); setError(''); }}>
-              + Add User
-            </button>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null }); setPreview(null); setError(''); }}>+ Add User</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
+            </div>
           </div>
-          <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+          {openSections.users && <><div style={{ display:'flex', gap:8, marginBottom:12 }}>
             <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search name..." value={userSearch} onChange={e=>setUserSearch(e.target.value)} />
             <select className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:180 }} value={userRoleFilter} onChange={e=>setUserRoleFilter(e.target.value)}>
               <option value="">All Roles</option>
@@ -232,15 +237,20 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+          </>}
         </div>
 
         {/* PPE Config */}
         <div className="card">
-          <div className="card-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-            <span className="card-title">PPE checklist configuration</span>
-            <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={openNew}>+ Add Item</button>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('ppe')}>
+            <span className="card-title">PPE Checklist Configuration</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.ppe && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); openNew(); }}>+ Add Item</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.ppe ? '▲' : '▼'}</span>
+            </div>
           </div>
 
+          {openSections.ppe && <>
           {editingPpe && (
             <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
@@ -305,18 +315,20 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+          </>}
         </div>
 
         {/* Locations */}
         <div className="card" style={{ marginTop: 24 }}>
-          <div className="card-header">
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('locations')}>
             <span className="card-title">Locations</span>
-            <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }}
-              onClick={() => { setEditingLoc('new'); setLocForm({ name: '' }); setLocError(''); }}>
-              + Add Location
-            </button>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.locations && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingLoc('new'); setLocForm({ name:'' }); setLocError(''); }}>+ Add Location</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.locations ? '▲' : '▼'}</span>
+            </div>
           </div>
 
+          {openSections.locations && <>
           {editingLoc && (
             <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
               <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingLoc === 'new' ? 'New Location' : 'Edit Location'}</div>
@@ -384,6 +396,7 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+          </>}
         </div>
 
 
