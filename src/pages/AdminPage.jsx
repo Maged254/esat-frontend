@@ -12,6 +12,14 @@ export default function AdminPage() {
   const [ppeForm, setPpeForm] = useState({});
   const [ppeSaving, setPpeSaving] = useState(false);
 
+  // Locations
+  const [locations, setLocations] = useState([]);
+  const [locSearch, setLocSearch] = useState('');
+  const [editingLoc, setEditingLoc] = useState(null); // id or 'new'
+  const [locForm, setLocForm] = useState({ name: '' });
+  const [locSaving, setLocSaving] = useState(false);
+  const [locError, setLocError] = useState('');
+
   const CATEGORIES = [
     'Head Protection','Eye & Face Protection','Hearing Protection',
     'Respiratory Protection','Hand Protection','Body Protection',
@@ -54,6 +62,7 @@ export default function AdminPage() {
   useEffect(() => {
     api.get('/users').then(r => setUsers(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
+    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
   }, []);
 
   const handleImageChange = (e) => {
@@ -297,6 +306,86 @@ export default function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Locations */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header">
+            <span className="card-title">Locations</span>
+            <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }}
+              onClick={() => { setEditingLoc('new'); setLocForm({ name: '' }); setLocError(''); }}>
+              + Add Location
+            </button>
+          </div>
+
+          {editingLoc && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingLoc === 'new' ? 'New Location' : 'Edit Location'}</div>
+              {locError && <div style={{ background:'#FCEBEB', color:'#A32D2D', padding:'8px 12px', borderRadius:6, marginBottom:10, fontSize:13 }}>{locError}</div>}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
+                <div className="form-group" style={{ margin:0, flex:1 }}>
+                  <label className="form-label">Location Name</label>
+                  <input className="form-input" value={locForm.name} onChange={e => setLocForm(f => ({...f, name: e.target.value}))} placeholder="e.g. Nairobi" />
+                </div>
+                <button className="btn btn-primary" style={{ fontSize:13 }} disabled={locSaving} onClick={async () => {
+                  if (!locForm.name.trim()) { setLocError('Name is required'); return; }
+                  setLocSaving(true); setLocError('');
+                  try {
+                    if (editingLoc === 'new') {
+                      const r = await api.post('/locations', locForm);
+                      setLocations(prev => [...prev, r.data].sort((a,b) => a.name.localeCompare(b.name)));
+                    } else {
+                      const r = await api.put('/locations/' + editingLoc, locForm);
+                      setLocations(prev => prev.map(l => l.id === editingLoc ? r.data : l));
+                    }
+                    setEditingLoc(null); setLocForm({ name: '' });
+                  } catch(e) { setLocError(e.response?.data?.error || 'Save failed'); }
+                  setLocSaving(false);
+                }}>{locSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingLoc(null); setLocForm({ name:'' }); setLocError(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom:12 }}>
+            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }}
+              placeholder="Search locations..." value={locSearch} onChange={e => setLocSearch(e.target.value)} />
+          </div>
+
+          <table>
+            <thead><tr><th>Location Name</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {locations.filter(l => !locSearch || l.name.toLowerCase().includes(locSearch.toLowerCase())).map(l => (
+                <tr key={l.id}>
+                  <td style={{ fontWeight:500 }}>{l.name}</td>
+                  <td><span className={`tag ${l.active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{l.active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={() => { setEditingLoc(l.id); setLocForm({ name: l.name }); setLocError(''); }}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={async () => {
+                          const newActive = !l.active;
+                          try {
+                            const r = await api.put('/locations/' + l.id, { active: newActive });
+                            setLocations(prev => prev.map(x => x.id === l.id ? r.data : x));
+                          } catch(e) { alert('Failed to update'); }
+                        }}>{l.active ? 'Deactivate' : 'Activate'}</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete "${l.name}"?`)) return;
+                          try {
+                            await api.delete('/locations/' + l.id);
+                            setLocations(prev => prev.filter(x => x.id !== l.id));
+                          } catch(e) { alert(e.response?.data?.error || 'Delete failed'); }
+                        }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
 
       </div>
     </>
