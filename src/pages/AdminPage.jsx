@@ -57,14 +57,19 @@ export default function AdminPage() {
   };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] });
   const [preview, setPreview] = useState(null);
+  const [allProjects, setAllProjects] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileRef = useRef();
 
   useEffect(() => {
     api.get('/users').then(r => setUsers(r.data)).catch(console.error);
+    api.get('/employees?status=active').then(r => {
+      const projects = [...new Set(r.data.map(e => e.project).filter(Boolean))].sort();
+      setAllProjects(projects);
+    }).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
     api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
   }, []);
@@ -94,7 +99,7 @@ export default function AdminPage() {
       }
       setShowAddUser(false);
       setEditUser(null);
-      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null });
+      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] });
       setPreview(null);
     } catch(e) {
       setError(e.response?.data?.error || 'Failed');
@@ -108,7 +113,7 @@ export default function AdminPage() {
 
   const startEdit = (user) => {
     setEditUser(user);
-    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture });
+    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [] });
     setPreview(user.profile_picture || null);
     setShowAddUser(true);
   };
@@ -145,7 +150,7 @@ export default function AdminPage() {
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('users')}>
             <span className="card-title">User Management</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null }); setPreview(null); setError(''); }}>+ Add User</button>}
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -208,6 +213,31 @@ export default function AdminPage() {
                   </select>
                 </div>
               </div>
+              {['ehs_officer','supervisor','scm_officer'].includes(form.role) && (
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Project Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
+                  <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:160, overflowY:'auto', background:'white' }}>
+                    {allProjects.map(p => (
+                      <label key={p} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:13, cursor:'pointer' }}>
+                        <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                          checked={(form.project_access||[]).includes(p)}
+                          onChange={e => setForm(prev => ({
+                            ...prev,
+                            project_access: e.target.checked
+                              ? [...(prev.project_access||[]), p]
+                              : (prev.project_access||[]).filter(x => x !== p)
+                          }))}
+                        />
+                        {p}
+                      </label>
+                    ))}
+                    {allProjects.length === 0 && <div style={{fontSize:12,color:'#9ca3af'}}>No projects found</div>}
+                  </div>
+                  {(form.project_access||[]).length > 0 && (
+                    <div style={{fontSize:11,color:'#1D9E75',marginTop:4}}>{(form.project_access||[]).length} project(s) selected</div>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary" onClick={handleSubmit}>{editUser ? 'Save Changes' : 'Create User'}</button>
                 <button className="btn" onClick={() => { setShowAddUser(false); setEditUser(null); setError(''); setPreview(null); }}>Cancel</button>
@@ -227,7 +257,12 @@ export default function AdminPage() {
                     </div>
                   </td>
                   <td style={{ color: '#6b7280', fontSize: 12 }}>{u.email}</td>
-                  <td>{ROLE_TAG[u.role]}</td>
+                  <td>{ROLE_TAG[u.role] || <span className="tag tag-gray">{u.role}</span>}</td>
+                  <td style={{fontSize:12,color:'#6b7280'}}>
+                    {['ehs_officer','supervisor','scm_officer'].includes(u.role)
+                      ? (u.project_access?.length > 0 ? u.project_access.join(', ') : <span style={{color:'#e53e3e'}}>No access</span>)
+                      : <span style={{color:'#9ca3af'}}>All projects</span>}
+                  </td>
                   <td><span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
