@@ -115,8 +115,10 @@ export default function AdminPage() {
 
   const ROLE_TAG = {
     admin: <span className="tag tag-amber">Admin</span>,
+    ehs_manager: <span className="tag tag-teal">EHS Manager</span>,
     ehs_officer: <span className="tag tag-teal">EHS Officer</span>,
     supervisor: <span className="tag tag-navy">Supervisor</span>,
+    scm_officer: <span className="tag tag-gray">SCM Officer</span>,
   };
 
   const Avatar = ({ user, size = 32 }) => {
