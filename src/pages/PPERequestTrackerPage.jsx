@@ -141,13 +141,15 @@ export default function PPERequestTrackerPage() {
                       {STATUS_LABELS[s]}
                     </button>
                   ))}
-                  <div style={{padding:'8px 16px 4px',fontSize:11,fontWeight:700,color:'#6b7280',letterSpacing:'0.05em',borderBottom:'1px solid #f3f4f6'}}>DISTRIBUTED</div>
-                  <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('technician'); }} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid #f3f4f6'}}>
-                    Collected by Technician
-                  </button>
-                  <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('courier'); }} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13}}>
-                    Collected by Courier
-                  </button>
+                  <div style={{borderTop:'2px solid #e5e7eb',marginTop:2}}>
+                    <div style={{padding:'8px 16px 4px',fontSize:12,fontWeight:600,color:'#0f2a4a'}}>Distributed</div>
+                    <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('technician'); }} style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'8px 16px 8px 24px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:12,borderBottom:'1px solid #f3f4f6',color:'#374151'}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:'#1d9e75',flexShrink:0,display:'inline-block'}}></span> Collected by Technician
+                    </button>
+                    <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('courier'); }} style={{display:'flex',alignItems:'center',gap:8,width:'100%',padding:'8px 16px 8px 24px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:12,color:'#374151'}}>
+                      <span style={{width:6,height:6,borderRadius:'50%',background:'#e65100',flexShrink:0,display:'inline-block'}}></span> Collected by Courier
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
