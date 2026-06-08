@@ -340,6 +340,34 @@ export default function NewAuditPage() {
                     {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                   </select>
                 </div>
+                <div className="form-group" style={{ position:'relative' }}>
+                  <label className="form-label">Location <span style={{color:'#e24b4a'}}>*</span></label>
+                  <input
+                    className="form-input"
+                    style={{ height:38, borderColor: !locationId && validationErrors.length ? '#e24b4a' : '' }}
+                    placeholder="Search location..."
+                    value={locSearch}
+                    onChange={e => { setLocSearch(e.target.value); setLocationId(''); setShowLocDropdown(true); }}
+                    onFocus={() => setShowLocDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowLocDropdown(false), 150)}
+                    autoComplete="off"
+                  />
+                  {showLocDropdown && (
+                    <div style={{ position:'absolute', top:'100%', left:0, right:0, background:'white', border:'1px solid #e5e7eb', borderRadius:8, maxHeight:200, overflowY:'auto', zIndex:100, boxShadow:'0 4px 12px rgba(0,0,0,0.1)' }}>
+                      {locations.filter(l => !locSearch || l.name.toLowerCase().includes(locSearch.toLowerCase())).map(l => (
+                        <div key={l.id}
+                          style={{ padding:'8px 12px', cursor:'pointer', fontSize:13 }}
+                          onMouseDown={() => { setLocationId(l.id); setLocSearch(l.name); setShowLocDropdown(false); }}
+                          onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'}
+                          onMouseLeave={e => e.currentTarget.style.background='white'}
+                        >{l.name}</div>
+                      ))}
+                      {locations.filter(l => !locSearch || l.name.toLowerCase().includes(locSearch.toLowerCase())).length === 0 && (
+                        <div style={{ padding:'8px 12px', fontSize:13, color:'#9ca3af' }}>No locations found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="form-group" style={{gridColumn:'1 / -1'}}>
                   <label className="form-label">Employee Present</label>
                   <div style={{display:'flex',gap:8}}>
