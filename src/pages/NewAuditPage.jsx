@@ -313,7 +313,7 @@ export default function NewAuditPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500 }}>{selectedEmp.full_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  {selectedEmp.employee_number} · {selectedEmp.job_title} · {selectedEmp.department} · {selectedEmp.project}
+                  {selectedEmp.national_id || selectedEmp.employee_number} · {selectedEmp.job_title} · {selectedEmp.department} · {selectedEmp.project}
                 </div>
               </div>
               <span className={`tag ${selectedEmp.resource_type === 'inhouse' ? 'tag-navy' : 'tag-gray'}`}>
