@@ -43,6 +43,9 @@ export default function PPERequestTrackerPage() {
   const [bulkTarget, setBulkTarget] = useState(null);
   const [selected, setSelected] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
+  const [distributionMethod, setDistributionMethod] = useState('');
+  const [courierTracking, setCourierTracking] = useState('');
+  const [trackingModal, setTrackingModal] = useState(null); // tracking number to show
 
   useEffect(() => {
     try {
@@ -60,12 +63,16 @@ export default function PPERequestTrackerPage() {
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
   const startBulk = (target) => { setBulkTarget(target); setSelected([]); setShowMenu(false); };
-  const cancelBulk = () => { setBulkTarget(null); setSelected([]); };
+  const cancelBulk = () => { setBulkTarget(null); setSelected([]); setDistributionMethod(''); setCourierTracking(''); };
 
   const applyBulk = async () => {
     if (selected.length === 0) return;
     if (!window.confirm('Change ' + selected.length + ' item(s) to "' + STATUS_LABELS[bulkTarget] + '"?')) return;
-    await Promise.all(selected.map(id => api.put('/ppe-requests/' + id + '/status', { status: bulkTarget })));
+    await Promise.all(selected.map(id => api.put('/ppe-requests/' + id + '/status', {
+      status: bulkTarget,
+      distribution_method: bulkTarget === 'distributed' ? distributionMethod : undefined,
+      courier_tracking_number: bulkTarget === 'distributed' && distributionMethod === 'courier' ? courierTracking : undefined,
+    })));
     reload();
     cancelBulk();
   };
@@ -129,19 +136,29 @@ export default function PPERequestTrackerPage() {
               <button className="btn btn-navy" onClick={()=>setShowMenu(p=>!p)}>⚡ Change Status ▾</button>
               {showMenu && (
                 <div style={{position:'absolute',right:0,top:'110%',background:'white',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',zIndex:100,minWidth:200}}>
-                  {['scm_ordered','warehouse_available','distributed'].map(s=>(
+                  {['scm_ordered','warehouse_available'].map(s=>(
                     <button key={s} onClick={()=>startBulk(s)} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid #f3f4f6'}}>
                       {STATUS_LABELS[s]}
                     </button>
                   ))}
+                  <div style={{padding:'8px 16px 4px',fontSize:11,fontWeight:700,color:'#6b7280',letterSpacing:'0.05em',borderBottom:'1px solid #f3f4f6'}}>DISTRIBUTED</div>
+                  <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('technician'); }} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid #f3f4f6'}}>
+                    Collected by Technician
+                  </button>
+                  <button onClick={()=>{ startBulk('distributed'); setDistributionMethod('courier'); }} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13}}>
+                    Collected by Courier
+                  </button>
                 </div>
               )}
             </div>
           )}
           {bulkTarget && (
             <>
-              <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected → {STATUS_LABELS[bulkTarget]}</span>
-              <button className="btn btn-primary" onClick={applyBulk} disabled={selected.length===0}>✓ Apply ({selected.length})</button>
+              <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected → {bulkTarget === 'distributed' ? (distributionMethod === 'courier' ? 'Collected by Courier' : 'Collected by Technician') : STATUS_LABELS[bulkTarget]}</span>
+              {bulkTarget === 'distributed' && distributionMethod === 'courier' && (
+                <input className="form-input" style={{height:30,padding:'4px 10px',fontSize:12,width:200}} placeholder="Courier tracking number..." value={courierTracking} onChange={e=>setCourierTracking(e.target.value)} />
+              )}
+              <button className="btn btn-primary" onClick={applyBulk} disabled={selected.length===0 || (bulkTarget==='distributed' && !distributionMethod)}>✓ Apply ({selected.length})</button>
               <button className="btn" onClick={cancelBulk}>✕ Cancel</button>
             </>
           )}
@@ -218,7 +235,20 @@ export default function PPERequestTrackerPage() {
                     <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
                     <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}</div>:'—'}</td>
                     <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
-                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.date_distributed?<div><div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>{r.distributed_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>
+                      {r.date_distributed ? (
+                        <div>
+                          <div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>
+                          {r.distributed_by_name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}
+                          {r.distribution_method === 'courier' && (
+                            <span
+                              onClick={() => setTrackingModal(r.courier_tracking_number || 'No tracking number entered')}
+                              style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fff3e0',color:'#e65100',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
+                            >Courier ›</span>
+                          )}
+                        </div>
+                      ) : '—'}
+                    </td>
                     <td><span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span></td>
                     {bulkTarget && (
                       <td style={{textAlign:'center'}}>
@@ -236,6 +266,15 @@ export default function PPERequestTrackerPage() {
           </div>
         </div>
       </div>
+      {trackingModal && (
+        <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setTrackingModal(null)}>
+          <div style={{background:'white',borderRadius:12,padding:24,minWidth:300,boxShadow:'0 8px 32px rgba(0,0,0,0.2)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:13,fontWeight:700,color:'#e65100',marginBottom:8}}>Courier Tracking Number</div>
+            <div style={{fontSize:15,fontWeight:600,color:'#0f2a4a',wordBreak:'break-all'}}>{trackingModal}</div>
+            <button className="btn btn-secondary" style={{marginTop:16,width:'100%'}} onClick={()=>setTrackingModal(null)}>Close</button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
