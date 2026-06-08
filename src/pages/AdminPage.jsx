@@ -13,7 +13,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: true, ppe: false, locations: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Locations
@@ -216,7 +216,14 @@ export default function AdminPage() {
               {['ehs_officer','supervisor','scm_officer'].includes(form.role) && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Project Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
-                  <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:160, overflowY:'auto', background:'white' }}>
+                  <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0 8px', fontSize:13, cursor:'pointer', borderBottom:'1px solid #e5e7eb', marginBottom:4 }}>
+                      <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                        checked={(form.project_access||[]).length === allProjects.length && allProjects.length > 0}
+                        onChange={e => setForm(prev => ({ ...prev, project_access: e.target.checked ? [...allProjects] : [] }))}
+                      />
+                      <span style={{fontWeight:600,color:'#0f2a4a'}}>All Projects</span>
+                    </label>
                     {allProjects.map(p => (
                       <label key={p} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:13, cursor:'pointer' }}>
                         <input type="checkbox" style={{ accentColor:'#1D9E75' }}
