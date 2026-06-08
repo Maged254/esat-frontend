@@ -135,6 +135,7 @@ export default function AuditDetailPage() {
               ['Resource Type', audit.resource_type || '—'],
               ['Audit Date', new Date(audit.audit_date).toLocaleDateString('en-GB')],
               ['Audited By', audit.audited_by_name],
+              ['Location', audit.location_name || '—'],
               ['Total Items', audit.items.length],
               ['Issues Found', audit.items.filter(i=>i.condition!=='good').length],
             ].map(([label, value]) => (
