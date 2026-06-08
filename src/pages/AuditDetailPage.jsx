@@ -109,6 +109,15 @@ export default function AuditDetailPage() {
           <img src="/egypro-watermark.png" alt="Egypro" style={{height:48,objectFit:'contain'}} />
         </div>
         <div className="card" style={{marginBottom:16}}>
+          {audit.employee_present === false && (
+            <div style={{background:'#fff3cd',borderBottom:'0.5px solid #ffc107',padding:'10px 18px',display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:20}}>⚠️</span>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:'#856404'}}>Employee Not Present</div>
+                <div style={{fontSize:12,color:'#856404',opacity:0.85}}>This audit was recorded but the employee was absent. It does not count toward audit compliance.</div>
+              </div>
+            </div>
+          )}
           <div className="card-header">
             <span className="card-title">Audit Summary</span>
             <span className={`tag ${STATUS[audit.overall_status]}`}>{STATUS_LABEL[audit.overall_status]}</span>
