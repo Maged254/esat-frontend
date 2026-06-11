@@ -78,6 +78,7 @@ export default function NewAuditPage() {
           condition: 'good',
           size: '',
           comment: '',
+          quantity: 1,
           applicable: false
         };
       });
@@ -85,7 +86,7 @@ export default function NewAuditPage() {
     } catch {
       const defaults = {};
       ppeItems.forEach(p => {
-        defaults[p.id] = { condition: 'good', size: '', comment: '', applicable: false };
+        defaults[p.id] = { condition: 'good', size: '', comment: '', quantity: 1, applicable: false };
       });
       setItems(defaults);
     }
@@ -116,6 +117,7 @@ export default function NewAuditPage() {
           condition: items[p.id]?.condition || 'good',
           size_value: items[p.id]?.size || null,
           comment: items[p.id]?.comment || null,
+          quantity: items[p.id]?.quantity || 1,
         }));
 
       const auditRes = await api.post('/audits', {
@@ -395,7 +397,7 @@ export default function NewAuditPage() {
                     {CATEGORY_LABELS[category] || category}
                   </div>
                   <div className="ppe-col-header">
-                    <div>PPE item</div><div>Condition</div><div>Size</div><div>Comment</div><div>Applicable</div>
+                    <div>PPE item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div><div>Applicable</div>
                   </div>
                   {catItems.map(ppe => {
                     const it = items[ppe.id] || { condition: 'good', size: '', comment: '', applicable: true };
@@ -430,6 +432,16 @@ export default function NewAuditPage() {
                               ))}
                             </select>
                           ) : <span style={{ fontSize: 12, color: '#9ca3af' }}>—</span>}
+                        </div>
+                        <div className="ppe-cell">
+                          <input
+                            type="number"
+                            min="1"
+                            value={it.quantity || 1}
+                            onChange={e => setItemField(ppe.id, 'quantity', parseInt(e.target.value) || 1)}
+                            disabled={!it.applicable}
+                            style={{ width:55, height:32, padding:'4px 8px', borderRadius:6, border:'1px solid', borderColor: (it.quantity||1) > 1 ? '#e53e3e' : '#e5e7eb', background: (it.quantity||1) > 1 ? '#fff5f5' : 'white', color: (it.quantity||1) > 1 ? '#e53e3e' : '#0f2a4a', fontWeight: (it.quantity||1) > 1 ? 700 : 400, fontSize:13, textAlign:'center' }}
+                          />
                         </div>
                         <div className="ppe-cell">
                           <input
