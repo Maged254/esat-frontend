@@ -236,6 +236,7 @@ export default function PPERequestTrackerPage() {
                   <th rowSpan={2}>Employee</th>
                   <th rowSpan={2}>PPE Item</th>
                   <th rowSpan={2}>Size</th>
+                  <th rowSpan={2}>Qty</th>
                   <th rowSpan={2}>Location</th>
                   <th rowSpan={2}>Project</th>
                   <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>EHS</th>
@@ -261,6 +262,7 @@ export default function PPERequestTrackerPage() {
                     </td>
                     <td>{r.ppe_name}</td>
                     <td>{r.size_value || '—'}</td>
+                    <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
                     <td style={{fontSize:12}}>{r.location_name || '—'}</td>
                     <td style={{fontSize:12}}>{r.project || '—'}</td>
                     <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
