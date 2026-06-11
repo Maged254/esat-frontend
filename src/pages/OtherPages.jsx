@@ -239,12 +239,19 @@ export function EmployeesPage() {
             </div>
             <div style={{fontSize:12,color:'#6b7280'}}>Tick the PPE items required for this employee. Only ticked items will appear in audits.</div>
             <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:8}}>
-              {['Head Protection','Eye & Face Protection','Hearing Protection','Respiratory Protection','Hand Protection','Body Protection','Foot Protection','Fall Protection','WAH Equipment'].map(cat => {
-                const items = allPpeItems.filter(p => p.category === cat);
+              {[
+                ['body_protection','Body Protection'],
+                ['documentation_safety_signage','Documentation & Safety Signage'],
+                ['fall_protection','Fall Protection & Rescue Equipment'],
+                ['general_safety','General Safety'],
+                ['maintenance_tools','Maintenance Tools & Equipment'],
+                ['testing_measuring','Testing & Measuring Instruments'],
+              ].map(([catKey, catLabel]) => {
+                const items = allPpeItems.filter(p => p.category === catKey);
                 if (!items.length) return null;
                 return (
-                  <div key={cat}>
-                    <div style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,marginTop:8}}>{cat}</div>
+                  <div key={catKey}>
+                    <div style={{fontSize:11,fontWeight:700,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,marginTop:8}}>{catLabel}</div>
                     {items.map(p => (
                       <label key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 8px',borderRadius:6,cursor:'pointer',background:assignedPpe.includes(p.id)?'#f0fdf4':'#f9fafb',marginBottom:2}}>
                         <input type="checkbox" checked={assignedPpe.includes(p.id)} onChange={()=>togglePpeItem(p.id)} style={{width:16,height:16,accentColor:'#1D9E75'}} />
