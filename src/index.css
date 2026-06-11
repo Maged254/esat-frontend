@@ -180,11 +180,11 @@ tr:hover td { background: #f9fafb; }
   letter-spacing: 0.06em;
 }
 .ppe-col-header {
-  display: grid; grid-template-columns: 1.5fr 260px 110px 1fr 90px;
+  display: grid; grid-template-columns: 1.5fr 260px 110px 70px 1fr 90px;
   gap: 0; background: #f3f4f6; border-bottom: var(--border);
 }
 .ppe-col-header div { padding: 8px 12px; font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
-.ppe-row { display: grid; grid-template-columns: 1.5fr 260px 110px 1fr 90px; gap: 0; border-bottom: var(--border); align-items: center; }
+.ppe-row { display: grid; grid-template-columns: 1.5fr 260px 110px 70px 1fr 90px; gap: 0; border-bottom: var(--border); align-items: center; }
 .ppe-row:last-child { border-bottom: none; }
 .ppe-row:hover { background: #f9fafb; }
 .ppe-name { padding: 10px 16px; font-size: 13px; }
