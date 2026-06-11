@@ -237,7 +237,7 @@ export function EmployeesPage() {
               </div>
               <button onClick={()=>setPpeAssignModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
-            <div style={{fontSize:12,color:'#6b7280'}}>Tick the PPE items required for this employee. Only ticked items will appear in audits. ({allPpeItems.length} items loaded)</div>
+            <div style={{fontSize:12,color:'#6b7280'}}>Tick the PPE/Tool Items required for this employee. Only ticked items will appear in audits. ({allPpeItems.length} items loaded)</div>
             <div style={{overflowY:'auto',maxHeight:'50vh',minHeight:200,display:'flex',flexDirection:'column',gap:8}}>
               {[
                 ['body_protection','Body Protection'],
@@ -484,7 +484,7 @@ export function NCRPage() {
                 <option value="previous">Previous Month</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
-                <option value="">All PPE Items</option>
+                <option value="">All PPE/Tool Items</option>
                 {[...new Set(items.map(n=>n.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
@@ -504,7 +504,7 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
@@ -641,7 +641,7 @@ export function AdminPage() {
           <div className="card">
             <div className="card-header"><span className="card-title">PPE checklist configuration</span><button className="btn btn-sm">+ Add item</button></div>
             <table>
-              <thead><tr><th>PPE item</th><th>Category</th><th>Size</th><th>Active</th></tr></thead>
+              <thead><tr><th>PPE/Tool Item</th><th>Category</th><th>Size</th><th>Active</th></tr></thead>
               <tbody>
                 {ppeItems.map(p=>(
                   <tr key={p.id}>

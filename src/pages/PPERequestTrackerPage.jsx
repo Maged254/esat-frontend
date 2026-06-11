@@ -105,7 +105,7 @@ export default function PPERequestTrackerPage() {
 
   const exportCSV = () => {
     const headers = ['employee_name','employee_number','employee_national_id','ppe_name','size_value','status','date_flagged','flagged_by_name','date_purchase_requested','purchase_requested_by_name','date_ordered','ordered_by_name','date_available','available_by_name','date_distributed','distributed_by_name'];
-    const labels = ['Employee','Employee No','National ID','PPE Item','Size','Status','Date Flagged','Flagged By','Date Purchase Request','Purchase Requested By','Date Ordered','Ordered By','Date Availed','Availed By','Date Distributed','Distributed By'];
+    const labels = ['Employee','Employee No','National ID','PPE/Tool Item','Size','Status','Date Flagged','Flagged By','Date Purchase Request','Purchase Requested By','Date Ordered','Ordered By','Date Availed','Availed By','Date Distributed','Distributed By'];
     const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '';
     const rows = filtered.map(r => [
       r.employee_name, r.employee_number, r.employee_national_id, r.ppe_name, r.size_value||'',
@@ -214,7 +214,7 @@ export default function PPERequestTrackerPage() {
                 {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
-                <option value="">All PPE Items</option>
+                <option value="">All PPE/Tool Items</option>
                 {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
@@ -234,7 +234,7 @@ export default function PPERequestTrackerPage() {
               <thead>
                 <tr>
                   <th rowSpan={2}>Employee</th>
-                  <th rowSpan={2}>PPE Item</th>
+                  <th rowSpan={2}>PPE/Tool Item</th>
                   <th rowSpan={2}>Size</th>
                   <th rowSpan={2}>Qty</th>
                   <th rowSpan={2}>Location</th>

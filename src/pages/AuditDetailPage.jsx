@@ -158,7 +158,7 @@ export default function AuditDetailPage() {
             <div key={category}>
               <div className="ppe-section-header">{CATEGORY_LABELS[category] || category}</div>
               <div className="ppe-col-header">
-                <div>PPE Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div>
+                <div>PPE/Tool Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div>
               </div>
               {items.map(item => (
                 <div key={item.id} className="ppe-row">

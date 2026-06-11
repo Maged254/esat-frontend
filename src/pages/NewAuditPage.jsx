@@ -100,7 +100,7 @@ export default function NewAuditPage() {
     if (!auditedBy) errors.push('Please select who conducted the audit.');
     if (!locationId) errors.push('Please select a location.');
     const applicableItems = ppeItems.filter(p => items[p.id]?.applicable);
-    if (applicableItems.length === 0) errors.push('Please mark at least one PPE item as applicable.');
+    if (applicableItems.length === 0) errors.push('Please mark at least one PPE/Tool Item as applicable.');
     const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && !items[p.id]?.size);
     if (missingSizes.length > 0) errors.push('Please select a size for: ' + missingSizes.map(p=>p.name).join(', ') + '.');
     if (errors.length > 0) { setValidationErrors(errors); return; }
@@ -394,7 +394,7 @@ export default function NewAuditPage() {
                     {CATEGORY_LABELS[category] || category}
                   </div>
                   <div className="ppe-col-header">
-                    <div>PPE item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div><div>Applicable</div>
+                    <div>PPE/Tool Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div><div>Applicable</div>
                   </div>
                   {catItems.map(ppe => {
                     const it = items[ppe.id] || { condition: 'good', size: '', comment: '', applicable: true };

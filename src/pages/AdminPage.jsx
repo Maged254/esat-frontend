@@ -345,7 +345,7 @@ export default function AdminPage() {
           )}
 
           <div style={{ display:'flex', gap:8, marginBottom:12 }}>
-            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search PPE item..." value={ppeSearch} onChange={e=>setPpeSearch(e.target.value)} />
+            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search PPE/Tool Item..." value={ppeSearch} onChange={e=>setPpeSearch(e.target.value)} />
             <select className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:200 }} value={ppeCategoryFilter} onChange={e=>setPpeCategoryFilter(e.target.value)}>
               <option value="">All Categories</option>
               {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
@@ -353,7 +353,7 @@ export default function AdminPage() {
             {(ppeSearch||ppeCategoryFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setPpeSearch('');setPpeCategoryFilter('');}}>✕ Clear</button>}
           </div>
           <table>
-            <thead><tr><th>PPE item</th><th>Category</th><th>Size</th><th>Active</th><th></th></tr></thead>
+            <thead><tr><th>PPE/Tool Item</th><th>Category</th><th>Size</th><th>Active</th><th></th></tr></thead>
             <tbody>
               {ppeItems.filter(p => (!ppeSearch || p.name.toLowerCase().includes(ppeSearch.toLowerCase())) && (!ppeCategoryFilter || p.category === ppeCategoryFilter)).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>

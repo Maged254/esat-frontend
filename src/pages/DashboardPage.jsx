@@ -158,7 +158,7 @@ export default function DashboardPage() {
 
           <div className="card">
             <div className="card-header">
-              <span className="card-title">NCRs by PPE item</span>
+              <span className="card-title">NCRs by PPE/Tool Item</span>
               <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
             </div>
             <div className="card-body">
