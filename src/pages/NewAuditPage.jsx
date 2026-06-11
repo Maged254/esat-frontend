@@ -45,6 +45,8 @@ export default function NewAuditPage() {
   const [locationId, setLocationId] = useState('');
   const [locSearch, setLocSearch] = useState('');
   const [showLocDropdown, setShowLocDropdown] = useState(false);
+  const [auditorSearch, setAuditorSearch] = useState('');
+  const [showAuditorDrop, setShowAuditorDrop] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
@@ -332,12 +334,33 @@ export default function NewAuditPage() {
                   <label className="form-label">Audit date</label>
                   <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{position:'relative'}}>
                   <label className="form-label">Audited by</label>
-                  <select className="form-select" value={auditedBy} onChange={e => setAuditedBy(e.target.value)} style={{height:38,borderColor:!auditedBy?'#e24b4a':''}}>
-                    <option value=''>-- Select auditor --</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
-                  </select>
+                  <input
+                    className="form-input"
+                    style={{height:38, borderColor: !auditedBy && validationErrors.length ? '#e24b4a' : ''}}
+                    placeholder="Search auditor..."
+                    value={auditorSearch}
+                    onChange={e => { setAuditorSearch(e.target.value); setAuditedBy(''); setShowAuditorDrop(true); }}
+                    onFocus={() => setShowAuditorDrop(true)}
+                    onBlur={() => setTimeout(() => setShowAuditorDrop(false), 150)}
+                    autoComplete="off"
+                  />
+                  {showAuditorDrop && (
+                    <div style={{position:'absolute',top:'100%',left:0,right:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
+                      {users.filter(u => !auditorSearch || u.full_name.toLowerCase().includes(auditorSearch.toLowerCase())).map(u => (
+                        <div key={u.id}
+                          style={{padding:'8px 12px',cursor:'pointer',fontSize:13}}
+                          onMouseDown={() => { setAuditedBy(u.id); setAuditorSearch(u.full_name); setShowAuditorDrop(false); }}
+                          onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'}
+                          onMouseLeave={e => e.currentTarget.style.background='white'}
+                        >{u.full_name}</div>
+                      ))}
+                      {users.filter(u => !auditorSearch || u.full_name.toLowerCase().includes(auditorSearch.toLowerCase())).length === 0 && (
+                        <div style={{padding:'8px 12px',fontSize:13,color:'#9ca3af'}}>No auditors found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="form-group" style={{ position:'relative' }}>
                   <label className="form-label">Location <span style={{color:'#e24b4a'}}>*</span></label>
