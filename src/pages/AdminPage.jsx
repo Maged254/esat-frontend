@@ -266,7 +266,7 @@ export default function AdminPage() {
                 <tr key={u.id}>
                   <td>
                     <div className="emp-cell">
-                      <Avatar user={u} size={32} />
+                      <Avatar user={u} size={64} />
                       <span style={{ fontWeight: 500 }}>{u.full_name}</span>
                     </div>
                   </td>
