@@ -238,7 +238,7 @@ export function EmployeesPage() {
               <button onClick={()=>setPpeAssignModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
             <div style={{fontSize:12,color:'#6b7280'}}>Tick the PPE items required for this employee. Only ticked items will appear in audits.</div>
-            <div style={{overflowY:'auto',flex:1,minHeight:0,display:'flex',flexDirection:'column',gap:8}}>
+            <div style={{overflowY:'auto',maxHeight:'50vh',minHeight:200,display:'flex',flexDirection:'column',gap:8}}>
               {[
                 ['body_protection','Body Protection'],
                 ['documentation_safety_signage','Documentation & Safety Signage'],
