@@ -497,7 +497,7 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
