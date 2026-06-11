@@ -6,15 +6,12 @@ const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const SHOE_SIZES = ['36','37','38','39','40','41','42','43','44','45','46','47'];
 
 const CATEGORY_LABELS = {
-  head_protection: 'Head Protection',
-  eye_face_protection: 'Eye & Face Protection',
-  hearing_protection: 'Hearing Protection',
-  respiratory_protection: 'Respiratory Protection',
-  hand_protection: 'Hand Protection',
   body_protection: 'Body Protection',
-  foot_protection: 'Foot Protection',
-  fall_protection: 'Fall Protection',
-  wah_equipment: 'Working at Height Equipment',
+  documentation_safety_signage: 'Documentation & Safety Signage',
+  fall_protection: 'Fall Protection & Rescue Equipment',
+  general_safety: 'General Safety',
+  maintenance_tools: 'Maintenance Tools & Equipment',
+  testing_measuring: 'Testing & Measuring Instruments',
 };
 
 export default function NewAuditPage() {

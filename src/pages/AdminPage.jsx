@@ -25,13 +25,20 @@ export default function AdminPage() {
   const [locError, setLocError] = useState('');
 
   const CATEGORIES = [
-    'Head Protection','Eye & Face Protection','Hearing Protection',
-    'Respiratory Protection','Hand Protection','Body Protection',
-    'Foot Protection','Fall Protection','WAH Equipment'
+    'body_protection','documentation_safety_signage','fall_protection',
+    'general_safety','maintenance_tools','testing_measuring'
   ];
+  const CATEGORY_LABELS = {
+    body_protection: 'Body Protection',
+    documentation_safety_signage: 'Documentation & Safety Signage',
+    fall_protection: 'Fall Protection & Rescue Equipment',
+    general_safety: 'General Safety',
+    maintenance_tools: 'Maintenance Tools & Equipment',
+    testing_measuring: 'Testing & Measuring Instruments',
+  };
 
   const openEdit = (p) => { setEditingPpe(p.id); setPpeForm({ ...p }); };
-  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'Head Protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true }); };
+  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'body_protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true }); };
   const cancelEdit = () => { setEditingPpe(null); setPpeForm({}); };
   const deletePpe = async (id, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -305,7 +312,7 @@ export default function AdminPage() {
                 <div>
                   <label style={{ fontSize:12, fontWeight:600, color:'#64748b', display:'block', marginBottom:4 }}>Category</label>
                   <select className="form-input" value={ppeForm.category || ''} onChange={e => setPpeForm(f=>({...f, category:e.target.value}))}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
                   </select>
                 </div>
                 <div>
@@ -341,7 +348,7 @@ export default function AdminPage() {
             <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }} placeholder="Search PPE item..." value={ppeSearch} onChange={e=>setPpeSearch(e.target.value)} />
             <select className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:200 }} value={ppeCategoryFilter} onChange={e=>setPpeCategoryFilter(e.target.value)}>
               <option value="">All Categories</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
             </select>
             {(ppeSearch||ppeCategoryFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setPpeSearch('');setPpeCategoryFilter('');}}>✕ Clear</button>}
           </div>
@@ -351,7 +358,7 @@ export default function AdminPage() {
               {ppeItems.filter(p => (!ppeSearch || p.name.toLowerCase().includes(ppeSearch.toLowerCase())) && (!ppeCategoryFilter || p.category === ppeCategoryFilter)).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>
                   <td>{p.name}</td>
-                  <td><span className="tag tag-gray" style={{ fontSize:10 }}>{p.category?.replace(/_/g,' ')}</span></td>
+                  <td><span className="tag tag-gray" style={{ fontSize:10 }}>{CATEGORY_LABELS[p.category] || p.category}</span></td>
                   <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXL'}</span> : '—'}</td>
                   <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
                   <td style={{display:'flex',gap:6}}><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }} onClick={() => deletePpe(p.id, p.name)}>Delete</button></td>
