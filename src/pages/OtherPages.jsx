@@ -506,6 +506,7 @@ export function NCRPage() {
                   <td>{n.ppe_name}</td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
                   <td>{n.size_value||'—'}</td>
+                  <td style={{color:(n.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(n.quantity||1)>1?700:400}}>{n.quantity||1}</td>
                   <td style={{color:'#6b7280',fontSize:12}}>{n.comment||'—'}</td>
                   <td style={{fontSize:12}}>
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
