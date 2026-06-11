@@ -274,7 +274,7 @@ export default function AdminPage() {
                   <td>{ROLE_TAG[u.role] || <span className="tag tag-gray">{u.role}</span>}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>
                     {['ehs_officer','supervisor','scm_officer'].includes(u.role)
-                      ? (u.project_access?.length > 0 ? u.project_access.join(', ') : <span style={{color:'#e53e3e'}}>No access</span>)
+                      ? (u.project_access?.length > 0 ? (u.project_access.length === allProjects.length && allProjects.length > 0 ? <span style={{color:'#1D9E75'}}>All Projects</span> : u.project_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All projects</span>}
                   </td>
                   <td><span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
