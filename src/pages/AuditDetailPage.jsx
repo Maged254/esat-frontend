@@ -158,7 +158,7 @@ export default function AuditDetailPage() {
             <div key={category}>
               <div className="ppe-section-header">{CATEGORY_LABELS[category] || category}</div>
               <div className="ppe-col-header">
-                <div>PPE Item</div><div>Condition</div><div>Size</div><div>Comment</div>
+                <div>PPE Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div>
               </div>
               {items.map(item => (
                 <div key={item.id} className="ppe-row">
@@ -169,6 +169,7 @@ export default function AuditDetailPage() {
                     </span>
                   </div>
                   <div className="ppe-cell" style={{fontSize:13}}>{item.size_value || '—'}</div>
+                  <div className="ppe-cell" style={{fontSize:13,color:(item.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(item.quantity||1)>1?700:400}}>{item.quantity||1}</div>
                   <div className="ppe-cell" style={{fontSize:12,color:'#6b7280'}}>{item.comment || '—'}</div>
                 </div>
               ))}
