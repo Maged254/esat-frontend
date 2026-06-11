@@ -14,7 +14,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build"
+    "build": "react-scripts build",
+    "prebuild": "node -e \"const {execSync}=require('child_process');const v=execSync('git log --format=%ad-%h --date=format:%y%m%d -1').toString().trim().split('-');const ver=v[0]+'-'+v[1].slice(0,3);require('fs').writeFileSync('src/version.js','const APP_VERSION=\\\"V.'+ver+'\\\";export default APP_VERSION;\\n')\""
   },
   "proxy": "http://localhost:3001",
   "browserslist": {

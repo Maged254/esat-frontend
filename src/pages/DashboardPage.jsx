@@ -1,4 +1,5 @@
 import { useAuth } from "../utils/AuthContext";
+import APP_VERSION from '../version';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
