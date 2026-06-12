@@ -326,7 +326,7 @@ export default function AdminPage() {
                   </label>
                   {ppeForm.has_size && (
                     <select className="form-input" style={{ width:'auto' }} value={ppeForm.size_type || 'clothing'} onChange={e => setPpeForm(f=>({...f, size_type:e.target.value}))}>
-                      <option value="clothing">S–XXL</option>
+                      <option value="clothing">S–XXXL</option>
                       <option value="shoe">38–47</option>
                       <option value="harness">S–XL</option>
                     </select>
@@ -359,7 +359,7 @@ export default function AdminPage() {
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>
                   <td>{p.name}</td>
                   <td><span className="tag tag-gray" style={{ fontSize:10 }}>{CATEGORY_LABELS[p.category] || p.category}</span></td>
-                  <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXL'}</span> : '—'}</td>
+                  <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXXL'}</span> : '—'}</td>
                   <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
                   <td style={{display:'flex',gap:6}}><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }} onClick={() => deletePpe(p.id, p.name)}>Delete</button></td>
                 </tr>

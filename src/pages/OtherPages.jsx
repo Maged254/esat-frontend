@@ -647,7 +647,7 @@ export function AdminPage() {
                   <tr key={p.id}>
                     <td>{p.name}</td>
                     <td><span className="tag tag-gray" style={{fontSize:10}}>{p.category?.replace(/_/g,' ')}</span></td>
-                    <td>{p.has_size ? <span className="tag tag-teal" style={{fontSize:10}}>{p.size_type==='shoe'?'38–47':'S–XXL'}</span> : '—'}</td>
+                    <td>{p.has_size ? <span className="tag tag-teal" style={{fontSize:10}}>{p.size_type==='shoe'?'38–47':p.size_type==='harness'?'S–XL':'S–XXXL'}</span> : '—'}</td>
                     <td><input type="checkbox" defaultChecked={p.is_active} style={{accentColor:'var(--eg-green)'}} /></td>
                   </tr>
                 ))}
