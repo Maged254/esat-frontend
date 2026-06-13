@@ -41,6 +41,8 @@ export default function PPERequestTrackerPage() {
   const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '', location: '' });
   const [locations, setLocations] = useState([]);
   const [locSearch, setLocSearch] = useState('');
+  const [ppeSearch, setPpeSearch] = useState('');
+  const [showPpeDrop, setShowPpeDrop] = useState(false);
   const [showLocDrop, setShowLocDrop] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [bulkTarget, setBulkTarget] = useState(null);
@@ -213,10 +215,29 @@ export default function PPERequestTrackerPage() {
                 <option value="">All Status</option>
                 {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
               </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
-                <option value="">All PPE/Tool Items</option>
-                {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
+              <div style={{position:'relative'}}>
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
+                  value={filters.ppe ? filters.ppe : ppeSearch}
+                  onChange={e=>{ setPpeSearch(e.target.value); setFilters(p=>({...p,ppe:''})); setShowPpeDrop(true); }}
+                  onFocus={()=>setShowPpeDrop(true)}
+                  onBlur={()=>setTimeout(()=>setShowPpeDrop(false),150)}
+                  autoComplete="off"
+                />
+                {showPpeDrop && (
+                  <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:220}}>
+                    <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,ppe:''})); setPpeSearch(''); setShowPpeDrop(false); }}>All PPE/Tool Items</div>
+                    {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort()
+                      .filter(p=>!ppeSearch||p.toLowerCase().includes(ppeSearch.toLowerCase()))
+                      .map(p=>(
+                        <div key={p} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
+                          onMouseDown={()=>{ setFilters(f=>({...f,ppe:p})); setPpeSearch(''); setShowPpeDrop(false); }}
+                          onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
+                          onMouseLeave={e=>e.currentTarget.style.background='white'}
+                        >{p}</div>
+                      ))}
+                  </div>
+                )}
+              </div>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
                 <option value="">All Records</option>
                 <option value="current">Current Month</option>
@@ -226,7 +247,7 @@ export default function PPERequestTrackerPage() {
                 <option value="">All Projects</option>
                 {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); }}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
