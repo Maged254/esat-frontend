@@ -50,7 +50,8 @@ export default function PPERequestTrackerPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [distributionMethod, setDistributionMethod] = useState('');
   const [courierTracking, setCourierTracking] = useState('');
-  const [trackingModal, setTrackingModal] = useState(null); // tracking number to show
+  const [trackingModal, setTrackingModal] = useState(null);
+  const [groupPO, setGroupPO] = useState(false); // tracking number to show
 
   useEffect(() => {
     try {
@@ -177,7 +178,14 @@ export default function PPERequestTrackerPage() {
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(5,1fr)'}}>
           <div className="stat-card" style={{cursor:'pointer',outline:!filters.status?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:''}))}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='pending'?'':'pending'}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'}))}><div className="stat-label">Pending SCM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
+          <div style={{display:'flex',alignItems:'stretch',gap:0}}>
+            <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--eg-green)':'',borderRadius:groupPO?'var(--border-radius-md) 0 0 var(--border-radius-md)':'var(--border-radius-md)'}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); if(filters.status==='ehs_purchase_requested') setGroupPO(false);}}><div className="stat-label">Pending SCM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested').length}</div></div>
+            {filters.status==='ehs_purchase_requested' && (
+              <button onClick={()=>setGroupPO(p=>!p)} style={{background:groupPO?'#0f2a4a':'#e6f1fb',color:groupPO?'white':'#0f2a4a',border:'2px solid var(--eg-green)',borderLeft:'none',borderRadius:'0 var(--border-radius-md) var(--border-radius-md) 0',padding:'0 12px',fontSize:11,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>
+                {groupPO ? '✕ Ungroup' : '⊞ Group per PO'}
+              </button>
+            )}
+          </div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='scm_ordered'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'}))}><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered').length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='warehouse_available'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'}))}><div className="stat-label">Pending Projects</div><div className="stat-value warning">{requests.filter(r=>r.status==='warehouse_available').length}</div></div>
         </div>
@@ -275,7 +283,71 @@ export default function PPERequestTrackerPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(r => (
+                {groupPO && filters.status === 'ehs_purchase_requested' ? (() => {
+                  const projects = [...new Set(filtered.map(r => r.project || '—'))].sort();
+                  return projects.map(proj => {
+                    const projRows = filtered.filter(r => (r.project || '—') === proj);
+                    const itemGroups = {};
+                    projRows.forEach(r => {
+                      const key = r.ppe_name + '||' + (r.size_value || '—');
+                      if (!itemGroups[key]) itemGroups[key] = { ppe_name: r.ppe_name, size_value: r.size_value, qty: 0 };
+                      itemGroups[key].qty += (r.quantity || 1);
+                    });
+                    return [
+                      <tr key={'proj-' + proj}>
+                        <td colSpan={bulkTarget ? 12 : 11} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:13,padding:'8px 16px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td>
+                      </tr>,
+                      ...Object.entries(itemGroups).map(([key, g]) => (
+                        <tr key={'grp-' + proj + key} style={{background:'#f0f7ff'}}>
+                          <td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c'}}>{g.ppe_name}</td>
+                          <td style={{padding:'7px 12px',fontSize:12,fontWeight:500,color:'#374151',textAlign:'center'}}>{g.size_value || '—'}</td>
+                          <td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0f2a4a',textAlign:'center'}}>{g.qty}</td>
+                          <td colSpan={bulkTarget ? 8 : 7}></td>
+                        </tr>
+                      )),
+                      ...projRows.map(r => (
+                        <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
+                    <td>
+                      <div className="emp-name">{r.employee_name}</div>
+                      <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
+                    </td>
+                    <td>{r.ppe_name}</td>
+                    <td>{r.size_value || '—'}</td>
+                    <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
+                    <td style={{fontSize:12}}>{r.location_name || '—'}</td>
+                    <td style={{fontSize:12}}>{r.project || '—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
+                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>
+                      {r.date_distributed ? (
+                        <div>
+                          <div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>
+                          {r.distributed_by_name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}
+                          {r.distribution_method === 'courier' && (
+                            <span
+                              onClick={() => setTrackingModal(r.courier_tracking_number || 'No tracking number entered')}
+                              style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fff3e0',color:'#e65100',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
+                            >Courier ›</span>
+                          )}
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td><span className={'tag ' + (STATUS_COLORS[r.status]||'tag-gray')}>{STATUS_LABELS[r.status]||r.status}</span></td>
+                    {bulkTarget && (
+                      <td style={{textAlign:'center'}}>
+                        {isEligible(r) && (
+                          <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
+                            style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                      ))
+                    ];
+                  });
+                })() : filtered.map(r => (
                   <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
                     <td>
                       <div className="emp-name">{r.employee_name}</div>
