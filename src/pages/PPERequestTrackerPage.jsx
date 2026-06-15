@@ -38,7 +38,7 @@ const dateCell = (date, name) => (
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '', location: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '', client: '', location: '' });
   const [locations, setLocations] = useState([]);
   const [locSearch, setLocSearch] = useState('');
   const [ppeSearch, setPpeSearch] = useState('');
@@ -90,6 +90,7 @@ export default function PPERequestTrackerPage() {
     if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.project && r.project !== filters.project) return false;
+    if (filters.client && r.client !== filters.client) return false;
     if (filters.location && r.location_name !== filters.location) return false;
     if (filters.ppe && r.ppe_name !== filters.ppe) return false;
     if (filters.period) {
@@ -251,7 +252,11 @@ export default function PPERequestTrackerPage() {
                 <option value="">All Projects</option>
                 {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
+                <option value="">All Clients</option>
+                {[...new Set(requests.map(r=>r.client).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',client:'',location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
