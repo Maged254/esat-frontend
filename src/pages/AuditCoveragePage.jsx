@@ -42,7 +42,7 @@ export default function AuditCoveragePage() {
       </div>
       <div className="page-content">
         {/* Top stat row */}
-        <div className="stats-row">
+        <div className="stat-grid">
           <div className="stat-card">
             <div className="stat-label">Total active employees</div>
             <div className="stat-value navy">{loading ? '—' : data?.total_active}</div>
@@ -63,7 +63,7 @@ export default function AuditCoveragePage() {
 
         {/* Headline row */}
         <div className="card" style={{ marginTop: 16, padding: 20 }}>
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>Audit Rate</div>
               <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--eg-navy)', lineHeight: 1.1 }}>
