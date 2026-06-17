@@ -7,6 +7,7 @@ const ALL_PAGES = [
   { key: '/employees', label: 'Employees' },
   { key: '/audit/new', label: 'New Audit' },
   { key: '/history', label: 'Audit History' },
+  { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
   { key: '/ppe-tracker', label: 'PPE Request Tracker' },
   { key: '/graphs', label: 'Graphs' },

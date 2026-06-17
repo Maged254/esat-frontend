@@ -16,6 +16,7 @@ import AuditDetailPage from './pages/AuditDetailPage';
 import PPERequestTrackerPage from './pages/PPERequestTrackerPage';
 import SafetyCommitmentPage from './pages/SafetyCommitmentPage';
 import GraphsPage from './pages/GraphsPage';
+import AuditCoveragePage from './pages/AuditCoveragePage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="audit/new/:employeeId" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="history" element={<PageGuard pageKey="/history"><AuditHistoryPage /></PageGuard>} />
+            <Route path="audit-coverage" element={<PageGuard pageKey="/audit-coverage"><AuditCoveragePage /></PageGuard>} />
             <Route path="audits/:auditId" element={<AuditDetailPage />} />
             <Route path="ncr" element={<PageGuard pageKey="/ncr"><NCRPage /></PageGuard>} />
             <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
