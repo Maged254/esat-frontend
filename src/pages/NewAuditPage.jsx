@@ -437,7 +437,7 @@ export default function NewAuditPage() {
                                 onClick={() => setItemField(ppe.id, 'condition', cond)}
                                 disabled={!it.applicable}
                               >
-                                {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Not Present'}
+                                {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Left at Home'}
                               </button>
                             ))}
                           </div>

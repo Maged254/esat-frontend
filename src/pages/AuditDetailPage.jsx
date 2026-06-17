@@ -165,7 +165,7 @@ export default function AuditDetailPage() {
                   <div className="ppe-name">{item.ppe_name}</div>
                   <div className="ppe-cell">
                     <span className={`tag ${item.condition==='good'?'tag-green':item.condition==='not_good'?'tag-red':'tag-amber'}`}>
-                      {item.condition==='good'?'✓ Good':item.condition==='not_good'?'✗ Not Good':'— Not Present'}
+                      {item.condition==='good'?'✓ Good':item.condition==='not_good'?'✗ Not Good':'— Left at Home'}
                     </span>
                   </div>
                   <div className="ppe-cell" style={{fontSize:13}}>{item.size_value || '—'}</div>
