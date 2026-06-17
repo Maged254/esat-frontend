@@ -1,6 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
 
+
+const ALL_PAGES = [
+  { key: '/', label: 'Dashboard' },
+  { key: 'employees', label: 'Employees' },
+  { key: 'audit/new', label: 'New Audit' },
+  { key: 'history', label: 'Audit History' },
+  { key: 'ncr', label: 'NCR List' },
+  { key: 'ppe-tracker', label: 'PPE Request Tracker' },
+  { key: 'graphs', label: 'Graphs' },
+  { key: 'admin', label: 'Admin Panel' },
+];
+
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
@@ -64,7 +76,7 @@ export default function AdminPage() {
   };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] });
   const [preview, setPreview] = useState(null);
   const [allProjects, setAllProjects] = useState([]);
   const [error, setError] = useState('');
@@ -106,7 +118,7 @@ export default function AdminPage() {
       }
       setShowAddUser(false);
       setEditUser(null);
-      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] });
+      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] });
       setPreview(null);
     } catch(e) {
       setError(e.response?.data?.error || 'Failed');
@@ -120,7 +132,7 @@ export default function AdminPage() {
 
   const startEdit = (user) => {
     setEditUser(user);
-    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [] });
+    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [] });
     setPreview(user.profile_picture || null);
     setShowAddUser(true);
   };
@@ -157,7 +169,7 @@ export default function AdminPage() {
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('users')}>
             <span className="card-title">User Management</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -249,6 +261,37 @@ export default function AdminPage() {
                   </div>
                   {(form.project_access||[]).length > 0 && (
                     <div style={{fontSize:11,color:'#1D9E75',marginTop:4}}>{(form.project_access||[]).length} project(s) selected</div>
+                  )}
+                </div>
+              )}
+              {form.role !== 'admin' && (
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Page Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = all pages)</span></label>
+                  <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0 8px', fontSize:13, cursor:'pointer', borderBottom:'1px solid #e5e7eb', marginBottom:4 }}>
+                      <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                        checked={(form.page_access||[]).length === ALL_PAGES.length}
+                        onChange={e => setForm(prev => ({ ...prev, page_access: e.target.checked ? ALL_PAGES.map(p=>p.key) : [] }))}
+                      />
+                      <span style={{fontWeight:600,color:'#0f2a4a'}}>All Pages</span>
+                    </label>
+                    {ALL_PAGES.map(p => (
+                      <label key={p.key} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:13, cursor:'pointer' }}>
+                        <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                          checked={(form.page_access||[]).includes(p.key)}
+                          onChange={e => setForm(prev => ({
+                            ...prev,
+                            page_access: e.target.checked
+                              ? [...(prev.page_access||[]), p.key]
+                              : (prev.page_access||[]).filter(x => x !== p.key)
+                          }))}
+                        />
+                        {p.label}
+                      </label>
+                    ))}
+                  </div>
+                  {(form.page_access||[]).length > 0 && (
+                    <div style={{fontSize:11,color:'#1D9E75',marginTop:4}}>{(form.page_access||[]).length} page(s) selected</div>
                   )}
                 </div>
               )}
