@@ -106,6 +106,9 @@ export default function NewAuditPage() {
     if (employeePresent) {
       const uncheckedItems = ppeItems.filter(p => !items[p.id]?.applicable);
       if (uncheckedItems.length > 0) errors.push('Employee is marked Present — all PPE/Tool items must be ticked Applicable: ' + uncheckedItems.map(p=>p.name).join(', ') + '.');
+    } else {
+      const wrongCondition = applicableItems.filter(p => items[p.id]?.condition !== 'not_good');
+      if (wrongCondition.length > 0) errors.push('Employee is marked Not Present — ticked items must be set to Not Good: ' + wrongCondition.map(p=>p.name).join(', ') + '.');
     }
     const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && items[p.id]?.condition === 'not_good' && !items[p.id]?.size);
     if (missingSizes.length > 0) errors.push('Please select a size for: ' + missingSizes.map(p=>p.name).join(', ') + '.');
@@ -403,7 +406,16 @@ export default function NewAuditPage() {
                       ✓ Present
                     </button>
                     <button type="button"
-                      onClick={() => setEmployeePresent(false)}
+                      onClick={() => {
+                        setEmployeePresent(false);
+                        setItems(prev => {
+                          const next = { ...prev };
+                          Object.keys(next).forEach(id => {
+                            if (next[id]?.applicable) next[id] = { ...next[id], condition: 'not_good' };
+                          });
+                          return next;
+                        });
+                      }}
                       style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:!employeePresent?'#dc2626':'#e5e7eb',background:!employeePresent?'#fee2e2':'#f9fafb',color:!employeePresent?'#dc2626':'#6b7280',fontWeight:600,cursor:'pointer',fontSize:13}}>
                       ✗ Not Present
                     </button>
@@ -435,7 +447,7 @@ export default function NewAuditPage() {
                                 key={cond}
                                 className={`condition-btn ${it.condition === cond ? (cond === 'good' ? 'sel-good' : cond === 'not_good' ? 'sel-bad' : 'sel-missing') : ''}`}
                                 onClick={() => setItemField(ppe.id, 'condition', cond)}
-                                disabled={!it.applicable}
+                                disabled={!it.applicable || (!employeePresent && cond !== 'not_good')}
                               >
                                 {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Left at Home'}
                               </button>
@@ -480,7 +492,17 @@ export default function NewAuditPage() {
                           <input
                             type="checkbox"
                             checked={it.applicable}
-                            onChange={e => setItemField(ppe.id, 'applicable', e.target.checked)}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setItems(prev => ({
+                                ...prev,
+                                [ppe.id]: {
+                                  ...prev[ppe.id],
+                                  applicable: checked,
+                                  condition: (checked && !employeePresent) ? 'not_good' : (prev[ppe.id]?.condition || 'good'),
+                                },
+                              }));
+                            }}
                             style={{ width: 16, height: 16, accentColor: 'var(--eg-green)', cursor: 'pointer' }}
                           />
                         </div>
