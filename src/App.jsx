@@ -29,13 +29,12 @@ function PageGuard({ children, pageKey }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   const pa = Array.isArray(user.page_access) ? user.page_access : [];
-  // admin or empty page_access = full access
-  if (user.role === 'admin' || pa.length === 0) return children;
+  // admin = full access
+  if (user.role === 'admin') return children;
   if (pa.includes(pageKey)) return children;
   // blocked: go to Dashboard if allowed, else first allowed page, else profile
   if (pa.includes('/')) return <Navigate to="/" replace />;
-  const first = pa[0];
-  return <Navigate to={first || '/profile'} replace />;
+  return <Navigate to={pa[0] || '/profile'} replace />;
 }
 
 export default function App() {

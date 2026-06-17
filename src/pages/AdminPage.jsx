@@ -266,7 +266,7 @@ export default function AdminPage() {
               )}
               {form.role !== 'admin' && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label className="form-label">Page Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = all pages)</span></label>
+                  <label className="form-label">Page Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
                   <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
                     <label style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0 8px', fontSize:13, cursor:'pointer', borderBottom:'1px solid #e5e7eb', marginBottom:4 }}>
                       <input type="checkbox" style={{ accentColor:'#1D9E75' }}

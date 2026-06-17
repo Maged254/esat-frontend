@@ -47,9 +47,7 @@ export default function Layout() {
             if (
               user?.role !== 'admin' &&
               item.to !== '/profile' &&
-              Array.isArray(user?.page_access) &&
-              user.page_access.length > 0 &&
-              !user.page_access.includes(item.to)
+              !(Array.isArray(user?.page_access) && user.page_access.includes(item.to))
             ) return null;
             return (
               <NavLink
