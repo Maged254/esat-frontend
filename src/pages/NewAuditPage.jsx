@@ -391,7 +391,7 @@ export default function NewAuditPage() {
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Employee Present</label>
+                  <label className="form-label">Is the Employee Physically Present? <span style={{fontSize:11,color:'#6b7280',fontWeight:400}}>(if yes, you must audit all PPE items — not just one or two)</span></label>
                   <div style={{display:'flex',gap:8}}>
                     <button type="button"
                       onClick={() => setEmployeePresent(true)}
