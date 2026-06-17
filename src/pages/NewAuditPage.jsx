@@ -103,6 +103,10 @@ export default function NewAuditPage() {
     if (!locationId) errors.push('Please select a location.');
     const applicableItems = ppeItems.filter(p => items[p.id]?.applicable);
     if (applicableItems.length === 0) errors.push('Please mark at least one PPE/Tool Item as applicable.');
+    if (employeePresent) {
+      const uncheckedItems = ppeItems.filter(p => !items[p.id]?.applicable);
+      if (uncheckedItems.length > 0) errors.push('Employee is marked Present — all PPE/Tool items must be ticked Applicable: ' + uncheckedItems.map(p=>p.name).join(', ') + '.');
+    }
     const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && items[p.id]?.condition === 'not_good' && !items[p.id]?.size);
     if (missingSizes.length > 0) errors.push('Please select a size for: ' + missingSizes.map(p=>p.name).join(', ') + '.');
     if (errors.length > 0) { setValidationErrors(errors); return; }
