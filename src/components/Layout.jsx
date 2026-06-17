@@ -44,6 +44,13 @@ export default function Layout() {
               return <div key={i} className="nav-section">{item.section}</div>;
             }
             if (item.roles && !item.roles.includes(user?.role)) return null;
+            if (
+              user?.role !== 'admin' &&
+              item.to !== '/profile' &&
+              Array.isArray(user?.page_access) &&
+              user.page_access.length > 0 &&
+              !user.page_access.includes(item.to)
+            ) return null;
             return (
               <NavLink
                 key={item.to}

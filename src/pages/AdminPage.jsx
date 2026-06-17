@@ -4,13 +4,13 @@ import api from '../utils/api';
 
 const ALL_PAGES = [
   { key: '/', label: 'Dashboard' },
-  { key: 'employees', label: 'Employees' },
-  { key: 'audit/new', label: 'New Audit' },
-  { key: 'history', label: 'Audit History' },
-  { key: 'ncr', label: 'NCR List' },
-  { key: 'ppe-tracker', label: 'PPE Request Tracker' },
-  { key: 'graphs', label: 'Graphs' },
-  { key: 'admin', label: 'Admin Panel' },
+  { key: '/employees', label: 'Employees' },
+  { key: '/audit/new', label: 'New Audit' },
+  { key: '/history', label: 'Audit History' },
+  { key: '/ncr', label: 'NCR List' },
+  { key: '/ppe-tracker', label: 'PPE Request Tracker' },
+  { key: '/graphs', label: 'Graphs' },
+  { key: '/admin', label: 'Admin Panel' },
 ];
 
 export default function AdminPage() {
