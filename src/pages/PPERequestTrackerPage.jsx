@@ -172,7 +172,7 @@ export default function PPERequestTrackerPage() {
               {bulkTarget === 'distributed' && distributionMethod === 'courier' && (
                 <input className="form-input" style={{height:30,padding:'4px 10px',fontSize:12,width:200}} placeholder="Courier tracking number..." value={courierTracking} onChange={e=>setCourierTracking(e.target.value)} />
               )}
-              <button className="btn btn-primary" onClick={applyBulk} disabled={selected.length===0 || (bulkTarget==='distributed' && !distributionMethod)}>✓ Apply ({selected.length})</button>
+              <button className="btn btn-primary" onClick={applyBulk} disabled={selected.length===0 || (bulkTarget==='distributed' && !distributionMethod) || (bulkTarget==='distributed' && distributionMethod==='courier' && !courierTracking.trim())}>✓ Apply ({selected.length})</button>
               <button className="btn" onClick={cancelBulk}>✕ Cancel</button>
             </>
           )}
