@@ -406,7 +406,7 @@ export function NCRPage() {
   const [selectingPda, setSelectingPda] = useState(false);
   const [selectedPda, setSelectedPda] = useState([]);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: 'pending', project: '', pmaOnly: false });
+  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: 'pending', project: '', pmaOnly: false, distributedOnly: false });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -428,7 +428,12 @@ export function NCRPage() {
     }
     if (filters.search && !n.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.ppe && n.ppe_name !== filters.ppe) return false;
-    if (filters.status && n.status !== filters.status) return false;
+    if (filters.distributedOnly) {
+      const now2 = new Date();
+      const updated = new Date(n.updated_at);
+      if (!['resolved','distributed'].includes(n.status)) return false;
+      if (updated.getMonth() !== now2.getMonth() || updated.getFullYear() !== now2.getFullYear()) return false;
+    } else if (filters.status && n.status !== filters.status) return false;
     if (filters.project && n.project !== filters.project) return false;
     if (filters.pmaOnly && !n.needs_pda) return false;
     return true;
@@ -496,7 +501,7 @@ export function NCRPage() {
           <div className="stat-card"><div className="stat-label">Total Open</div><div className="stat-value danger">{filteredItems.length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:(filters.status==='pending'&&!filters.pmaOnly)?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>(p.status==='pending'&&!p.pmaOnly)?{...p,status:'',pmaOnly:false}:{...p,status:'pending',pmaOnly:false})}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{items.filter(n=>n.status==='pending').length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.pmaOnly?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>p.pmaOnly?{...p,status:'pending',pmaOnly:false}:{...p,status:'ehs_purchase_requested',pmaOnly:true})}><div className="stat-label">Pending PM</div><div className="stat-value navy">{items.filter(n=>n.status==='ehs_purchase_requested' && n.needs_pda).length}</div></div>
-          <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.distributedOnly?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>p.distributedOnly?{...p,status:'pending',distributedOnly:false}:{...p,distributedOnly:true,pmaOnly:false})}><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
