@@ -484,7 +484,7 @@ export function NCRPage() {
           {selecting && (
             <>
               <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected</span>
-              <button className="btn btn-primary" onClick={approvePurchaseRequest} disabled={selected.length===0}>✓ Approve ({selected.length})</button>
+              <button className="btn btn-primary" onClick={approvePurchaseRequest} disabled={selected.length===0}>✓ Approve (Safety)({selected.length})</button>
               <button className="btn" onClick={()=>{setSelecting(false);setSelected([]);}}>✕ Cancel</button>
             </>
           )}
