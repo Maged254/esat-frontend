@@ -437,6 +437,7 @@ export function NCRPage() {
       if (!['resolved','distributed'].includes(n.status)) return false;
       if (updated.getMonth() !== now2.getMonth() || updated.getFullYear() !== now2.getFullYear()) return false;
     } else if (filters.status === 'pda_pending') { if (n.status !== 'ehs_purchase_requested' || !n.needs_pda) return false; }
+    else if (filters.status === 'ehs_purchase_requested') { if (n.status !== 'ehs_purchase_requested' || n.needs_pda) return false; }
     else if (filters.status && n.status !== filters.status) return false;
     return true;
   });
