@@ -495,7 +495,7 @@ export function NCRPage() {
         <div className="stat-grid">
           <div className="stat-card"><div className="stat-label">Total Open</div><div className="stat-value danger">{filteredItems.length}</div></div>
           <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value warning">{filteredItems.filter(n=>n.status==='pending').length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.pmaOnly?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>p.pmaOnly?{...p,status:'pending',pmaOnly:false}:{...p,status:'ehs_purchase_requested',pmaOnly:true})}><div className="stat-label">Pending PMA</div><div className="stat-value navy">{items.filter(n=>n.status==='ehs_purchase_requested' && n.needs_pda).length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.pmaOnly?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>p.pmaOnly?{...p,status:'pending',pmaOnly:false}:{...p,status:'ehs_purchase_requested',pmaOnly:true})}><div className="stat-label">Pending PM</div><div className="stat-value navy">{items.filter(n=>n.status==='ehs_purchase_requested' && n.needs_pda).length}</div></div>
           <div className="stat-card"><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
         </div>
         <div className="card">
