@@ -462,7 +462,7 @@ export function NCRPage() {
 
   const approvePda = async () => {
     if (selectedPda.length === 0) return;
-    if (!window.confirm(`Are you sure you want to approve PDA for ${selectedPda.length} item(s)?`)) return;
+    if (!window.confirm(`Are you sure you want to approve (PM) for ${selectedPda.length} item(s)?`)) return;
     await Promise.all(selectedPda.map(id => api.put(`/ncr/${id}/status`, { status: 'pda_approved' })));
     setItems(prev => prev.map(i => selectedPda.includes(i.id) ? {...i, status: 'pda_approved'} : i));
     setSelectedPda([]);
