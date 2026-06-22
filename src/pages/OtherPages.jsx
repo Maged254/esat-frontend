@@ -455,7 +455,7 @@ export function NCRPage() {
     setItems(prev => prev.map(i => selected.includes(i.id) ? {...i, status: 'ehs_purchase_requested'} : i));
     setSelected([]);
     setSelecting(false);
-    alert(`${selected.length} item(s) approved for purchase request successfully.`);
+    alert(`${selected.length} item(s) approved (Safety) successfully.`);
   };
 
   const togglePdaSelect = (id) => setSelectedPda(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
@@ -467,7 +467,7 @@ export function NCRPage() {
     setItems(prev => prev.map(i => selectedPda.includes(i.id) ? {...i, status: 'pda_approved'} : i));
     setSelectedPda([]);
     setSelectingPda(false);
-    alert(`${selectedPda.length} item(s) approved for PDA successfully.`);
+    alert(`${selectedPda.length} item(s) approved (PM) successfully.`);
   };
   return (
     <>
