@@ -403,6 +403,8 @@ export function NCRPage() {
   const [stats, setStats] = useState({});
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
+  const [selectingPda, setSelectingPda] = useState(false);
+  const [selectedPda, setSelectedPda] = useState([]);
   const [userRole, setUserRole] = useState('');
   const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: 'pending', project: '' });
   const navigate = useNavigate();
@@ -448,20 +450,42 @@ export function NCRPage() {
     setSelecting(false);
     alert(`${selected.length} item(s) approved for purchase request successfully.`);
   };
+
+  const togglePdaSelect = (id) => setSelectedPda(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
+
+  const approvePda = async () => {
+    if (selectedPda.length === 0) return;
+    if (!window.confirm(`Are you sure you want to approve PDA for ${selectedPda.length} item(s)?`)) return;
+    await Promise.all(selectedPda.map(id => api.put(`/ncr/${id}/status`, { status: 'pda_approved' })));
+    setItems(prev => prev.map(i => selectedPda.includes(i.id) ? {...i, status: 'pda_approved'} : i));
+    setSelectedPda([]);
+    setSelectingPda(false);
+    alert(`${selectedPda.length} item(s) approved for PDA successfully.`);
+  };
   return (
     <>
       <div className="topbar">
         <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
         <div className="topbar-right">
           <button className="btn">↓ Export</button>
-          {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && (
+          {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && !selectingPda && (
             <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve Purchase Request</button>
+          )}
+          {(userRole === 'project_director' || userRole === 'admin') && !selecting && !selectingPda && (
+            <button className="btn btn-navy" onClick={()=>setSelectingPda(true)}>✅ Approve PDA</button>
           )}
           {selecting && (
             <>
               <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected</span>
               <button className="btn btn-primary" onClick={approvePurchaseRequest} disabled={selected.length===0}>✓ Approve ({selected.length})</button>
               <button className="btn" onClick={()=>{setSelecting(false);setSelected([]);}}>✕ Cancel</button>
+            </>
+          )}
+          {selectingPda && (
+            <>
+              <span style={{fontSize:12,color:'#6b7280'}}>{selectedPda.length} selected</span>
+              <button className="btn btn-primary" onClick={approvePda} disabled={selectedPda.length===0}>✓ Approve PDA ({selectedPda.length})</button>
+              <button className="btn" onClick={()=>{setSelectingPda(false);setSelectedPda([]);}}>✕ Cancel</button>
             </>
           )}
         </div>
@@ -504,7 +528,7 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{userRole === 'admin' && !selecting && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Comment</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
@@ -528,7 +552,8 @@ export function NCRPage() {
                     n.status==='resolved'?'Resolved':'Canceled'
                   }</span></td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
-                  {userRole === 'admin' && !selecting && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
+                  {selectingPda && <td style={{textAlign:'center'}}>{n.needs_pda && n.status==='ehs_purchase_requested' && <input type="checkbox" checked={selectedPda.includes(n.id)} onChange={()=>togglePdaSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
+                  {userRole === 'admin' && !selecting && !selectingPda && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}
               {!filteredItems.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
