@@ -436,7 +436,8 @@ export function NCRPage() {
       const updated = new Date(n.updated_at);
       if (!['resolved','distributed'].includes(n.status)) return false;
       if (updated.getMonth() !== now2.getMonth() || updated.getFullYear() !== now2.getFullYear()) return false;
-    } else if (filters.status && n.status !== filters.status) return false;
+    } else if (filters.status === 'pda_pending') { if (n.status !== 'ehs_purchase_requested' || !n.needs_pda) return false; }
+    else if (filters.status && n.status !== filters.status) return false;
     return true;
   });
 
@@ -520,7 +521,8 @@ export function NCRPage() {
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
                 <option value="">All Status</option>
-                <option value="pending">Pending</option>
+                <option value="pending">Flagged</option>
+                <option value="pda_pending">Pending PM</option>
                 <option value="ehs_purchase_requested">EHS Purchase Requested</option>
                 <option value="scm_ordered">SCM Ordered</option>
                 <option value="warehouse_available">Warehouse Available</option>
