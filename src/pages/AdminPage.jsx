@@ -144,6 +144,7 @@ export default function AdminPage() {
     ehs_officer: <span className="tag tag-teal">EHS Officer</span>,
     supervisor: <span className="tag tag-navy">Supervisor</span>,
     scm_officer: <span className="tag tag-gray">SCM Officer</span>,
+    project_director: <span className="tag tag-purple">Project Director</span>,
   };
 
   const Avatar = ({ user, size = 32 }) => {
@@ -183,6 +184,7 @@ export default function AdminPage() {
               <option value="ehs_officer">EHS Officer</option>
               <option value="supervisor">Supervisor</option>
               <option value="scm_officer">SCM Officer</option>
+              <option value="project_director">Project Director</option>
             </select>
             {(userSearch||userRoleFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setUserSearch('');setUserRoleFilter('');}}>✕ Clear</button>}
           </div>
@@ -229,11 +231,12 @@ export default function AdminPage() {
                     <option value="ehs_manager">EHS Manager</option>
                     <option value="supervisor">Supervisor</option>
                     <option value="scm_officer">SCM Officer</option>
+                    <option value="project_director">Project Director</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
               </div>
-              {['ehs_officer','supervisor','scm_officer'].includes(form.role) && (
+              {['ehs_officer','supervisor','scm_officer','project_director'].includes(form.role) && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Project Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
                   <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
@@ -317,7 +320,7 @@ export default function AdminPage() {
                   <td style={{ color: '#6b7280', fontSize: 12 }}>{u.email}</td>
                   <td>{ROLE_TAG[u.role] || <span className="tag tag-gray">{u.role}</span>}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>
-                    {['ehs_officer','supervisor','scm_officer'].includes(u.role)
+                    {['ehs_officer','supervisor','scm_officer','project_director'].includes(u.role)
                       ? (u.project_access?.length > 0 ? (u.project_access.length === allProjects.length && allProjects.length > 0 ? <span style={{color:'#1D9E75'}}>All Projects</span> : u.project_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All projects</span>}
                   </td>
