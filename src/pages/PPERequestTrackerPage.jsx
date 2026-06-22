@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/api';
 
 const STATUS_LABELS = {
-  pending: 'Pending',
+  pending: 'Flagged',
   ehs_purchase_requested: 'EHS Purchase Requested',
   scm_ordered: 'SCM Ordered',
   warehouse_available: 'Warehouse Available',
@@ -220,7 +220,13 @@ export default function PPERequestTrackerPage() {
               </div>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
                 <option value="">All Status</option>
-                {Object.keys(STATUS_LABELS).map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                <option value="pending">Flagged</option>
+                <option value="pda_pending">Pending PM</option>
+                <option value="ehs_purchase_requested">EHS Purchase Requested</option>
+                <option value="scm_ordered">SCM Ordered</option>
+                <option value="warehouse_available">Warehouse Available</option>
+                <option value="distributed">Distributed</option>
+                <option value="canceled">Canceled</option>
               </select>
               <div style={{position:'relative'}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
