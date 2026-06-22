@@ -180,7 +180,7 @@ export default function PPERequestTrackerPage() {
         </div>
       </div>
       <div className="content">
-        <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(5,1fr)'}}>
+        <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(6,1fr)'}}>
           <div className="stat-card" style={{cursor:'pointer',outline:!filters.status?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:''}))}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='pending'?'':'pending'}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pda_pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested' && r.needs_pda).length}</div></div>
