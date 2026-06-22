@@ -51,7 +51,7 @@ export default function AdminPage() {
   };
 
   const openEdit = (p) => { setEditingPpe(p.id); setPpeForm({ ...p }); };
-  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'body_protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true }); };
+  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'body_protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true, needs_pda:false }); };
   const cancelEdit = () => { setEditingPpe(null); setPpeForm({}); };
   const deletePpe = async (id, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -379,6 +379,10 @@ export default function AdminPage() {
                     <input type="checkbox" checked={!!ppeForm.is_active} onChange={e => setPpeForm(f=>({...f, is_active:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
                     Active
                   </label>
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer' }}>
+                    <input type="checkbox" checked={!!ppeForm.needs_pda} onChange={e => setPpeForm(f=>({...f, needs_pda:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
+                    Needs PDA
+                  </label>
                 </div>
               </div>
               <div style={{ display:'flex', gap:8 }}>
@@ -397,7 +401,7 @@ export default function AdminPage() {
             {(ppeSearch||ppeCategoryFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setPpeSearch('');setPpeCategoryFilter('');}}>✕ Clear</button>}
           </div>
           <table>
-            <thead><tr><th>PPE/Tool Item</th><th>Category</th><th>Size</th><th>Active</th><th></th></tr></thead>
+            <thead><tr><th>PPE/Tool Item</th><th>Category</th><th>Size</th><th>Active</th><th>PDA</th><th></th></tr></thead>
             <tbody>
               {ppeItems.filter(p => (!ppeSearch || p.name.toLowerCase().includes(ppeSearch.toLowerCase())) && (!ppeCategoryFilter || p.category === ppeCategoryFilter)).map(p => (
                 <tr key={p.id} style={{ opacity: p.is_active ? 1 : 0.45 }}>
@@ -405,6 +409,7 @@ export default function AdminPage() {
                   <td><span className="tag tag-gray" style={{ fontSize:10 }}>{CATEGORY_LABELS[p.category] || p.category}</span></td>
                   <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–47' : p.size_type === 'harness' ? 'S–XL' : 'S–XXXL'}</span> : '—'}</td>
                   <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
+                  <td>{p.needs_pda ? <span className="tag tag-teal" style={{ fontSize:10 }}>Required</span> : '—'}</td>
                   <td style={{display:'flex',gap:6}}><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }} onClick={() => deletePpe(p.id, p.name)}>Delete</button></td>
                 </tr>
               ))}
