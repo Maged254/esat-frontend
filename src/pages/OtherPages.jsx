@@ -553,8 +553,9 @@ export function NCRPage() {
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
                   </td>
                   <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{
-                    n.status==='pending'?'Pending':
+                    n.status==='pending'?'Flagged':
                     n.status==='ehs_purchase_requested'?'EHS Purchase Requested':
+                    n.status==='pda_approved'?'Approved (PM)':
                     n.status==='scm_ordered'?'SCM Ordered':
                     n.status==='warehouse_available'?'Warehouse Available':
                     n.status==='distributed'?'Distributed':
