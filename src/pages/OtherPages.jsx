@@ -476,10 +476,10 @@ export function NCRPage() {
         <div className="topbar-right">
           <button className="btn">↓ Export</button>
           {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && !selectingPda && (
-            <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve Purchase Request</button>
+            <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve (Safety)</button>
           )}
           {(userRole === 'project_director' || userRole === 'admin') && !selecting && !selectingPda && (
-            <button className="btn btn-navy" onClick={()=>setSelectingPda(true)}>✅ Approve PDA</button>
+            <button className="btn btn-navy" onClick={()=>setSelectingPda(true)}>✅ Approve (PM)</button>
           )}
           {selecting && (
             <>
@@ -491,7 +491,7 @@ export function NCRPage() {
           {selectingPda && (
             <>
               <span style={{fontSize:12,color:'#6b7280'}}>{selectedPda.length} selected</span>
-              <button className="btn btn-primary" onClick={approvePda} disabled={selectedPda.length===0}>✓ Approve PDA ({selectedPda.length})</button>
+              <button className="btn btn-primary" onClick={approvePda} disabled={selectedPda.length===0}>✓ Approve (PM) ({selectedPda.length})</button>
               <button className="btn" onClick={()=>{setSelectingPda(false);setSelectedPda([]);}}>✕ Cancel</button>
             </>
           )}
