@@ -278,7 +278,7 @@ export default function PPERequestTrackerPage() {
                   <th rowSpan={2}>Location</th>
                   <th rowSpan={2}>Project / Client</th>
                   <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>EHS</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Director</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>PM</th>
                   <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>SCM</th>
                   <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Projects</th>
                   <th rowSpan={2}>Status</th>
@@ -287,7 +287,7 @@ export default function PPERequestTrackerPage() {
                 <tr>
                   <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
                   <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'1px solid #e5e7eb'}}>Purchase Request</th>
-                  <th style={{width:100,minWidth:100,background:'#f3e8ff',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>PDA Approved</th>
+                  <th style={{width:100,minWidth:100,background:'#f3e8ff',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Approved</th>
                   <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'1px solid #e5e7eb'}}>Ordered</th>
                   <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'1px solid #e5e7eb'}}>Availed</th>
                   <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Distributed</th>
