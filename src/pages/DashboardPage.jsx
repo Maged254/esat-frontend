@@ -47,9 +47,6 @@ export default function DashboardPage() {
         </div>
         <div className="topbar-right">
           <span className="badge-info" style={{fontFamily:'monospace',letterSpacing:'0.05em'}}>{APP_VERSION}</span>
-          <button className="btn btn-primary" onClick={() => navigate('/audit/new')}>
-            + New Audit
-          </button>
         </div>
       </div>
 
@@ -138,12 +135,7 @@ export default function DashboardPage() {
                       <span className={`dot ${e.days_since_audit > 45 ? 'dot-red' : 'dot-amber'}`}></span>
                       {e.days_since_audit ? `${e.days_since_audit} days` : 'Never'}
                     </td>
-                    <td>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => navigate(`/audit/new/${e.employee_id}`)}
-                      >✓</button>
-                    </td>
+                    <td></td>
                   </tr>
                 ))}
                 {overdue.length === 0 && (
