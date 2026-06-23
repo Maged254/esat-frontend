@@ -142,11 +142,13 @@ export function EmployeesPage() {
         </div>
         <div className="topbar-right">
           {userRole === 'admin' && <button className="btn" onClick={exportCSV}>↓ Export CSV</button>}
-          <label className="btn" style={{cursor:'pointer'}}>
-            {importing ? 'Importing...' : '↑ Import CSV'}
-            <input type="file" accept=".csv" style={{display:'none'}} onChange={handleCSVImport} disabled={importing} />
-          </label>
-          <button className="btn btn-primary">+ Add Employee</button>
+          {userRole === 'admin' && (
+            <label className="btn" style={{cursor:'pointer'}}>
+              {importing ? 'Importing...' : '↑ Import CSV'}
+              <input type="file" accept=".csv" style={{display:'none'}} onChange={handleCSVImport} disabled={importing} />
+            </label>
+          )}
+          {userRole === 'admin' && <button className="btn btn-primary">+ Add Employee</button>}
         </div>
       </div>
       <div className="content">
