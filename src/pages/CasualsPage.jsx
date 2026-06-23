@@ -20,7 +20,7 @@ export default function CasualsPage() {
 
   const [ppeModal, setPpeModal] = useState(null);
   const [allPpeItems, setAllPpeItems] = useState([]);
-  const [checklist, setChecklist] = useState({});
+  const [assignedPpe, setAssignedPpe] = useState([]);
   const [ppeSaving, setPpeSaving] = useState(false);
 
   useEffect(() => {
@@ -102,35 +102,27 @@ export default function CasualsPage() {
     load();
   };
 
-  // ── PPE Checklist ──────────────────────────────────────────────
+  // ── PPE Assignment ──────────────────────────────────────────────
   const openPpeModal = async (c) => {
-    const { data } = await api.get('/ppe');
-    setAllPpeItems(data);
-    setChecklist({});
+    const [ppeRes, assignRes] = await Promise.all([
+      api.get('/ppe'),
+      api.get(`/casuals/${c.id}/ppe-assignments`)
+    ]);
+    setAllPpeItems(ppeRes.data);
+    setAssignedPpe(assignRes.data.map(p => p.id));
     setPpeModal(c);
   };
 
-  const toggleChecklistItem = (item) => {
-    setChecklist(prev => {
-      const next = { ...prev };
-      if (next[item.id]) delete next[item.id];
-      else next[item.id] = { ppe_item_id: item.id, size_value: '', quantity: 1 };
-      return next;
-    });
+  const toggleAssignedPpe = (itemId) => {
+    setAssignedPpe(prev => prev.includes(itemId) ? prev.filter(x => x !== itemId) : [...prev, itemId]);
   };
 
-  const updateChecklistField = (itemId, field, value) => {
-    setChecklist(prev => ({ ...prev, [itemId]: { ...prev[itemId], [field]: value } }));
-  };
-
-  const submitChecklist = async () => {
-    const items = Object.values(checklist);
-    if (items.length === 0) { alert('Select at least one item'); return; }
+  const saveAssignment = async () => {
     setPpeSaving(true);
     try {
-      await api.post('/casual-ppe-requests', { casual_id: ppeModal.id, items });
+      await api.put(`/casuals/${ppeModal.id}/ppe-assignments`, { ppe_item_ids: assignedPpe });
       setPpeModal(null);
-      alert(`PPE request created for ${items.length} item(s).`);
+      load();
     } catch (e) {
       alert('Error: ' + (e.response?.data?.error || e.message));
     }
@@ -196,7 +188,7 @@ export default function CasualsPage() {
                   <td><span className={`tag ${c.employment_status === 'active' ? 'tag-green' : 'tag-red'}`}>{c.employment_status}</span></td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {c.employment_status === 'active' && ['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Order PPE">🛡 PPE</button>}
+                      {c.employment_status === 'active' && ['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Assign PPE" style={{background:c.ppe_assigned?'#d1fae5':undefined,borderColor:c.ppe_assigned?'#1D9E75':undefined,color:c.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>}
                       {canEdit && <button className="btn btn-sm" onClick={() => openEdit(c)}>Edit</button>}
                       {canEdit && c.employment_status === 'active' && <button className="btn btn-sm" onClick={() => exitCasual(c)} style={{ color: '#e53e3e' }}>Exit</button>}
                     </div>
@@ -295,11 +287,12 @@ export default function CasualsPage() {
           <div style={{ background: '#fff', borderRadius: 12, padding: 32, width: 720, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>Order PPE/Tool Items</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>PPE Assignment</div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>{ppeModal.full_name} — {ppeModal.national_id || 'No ID'}</div>
               </div>
               <button onClick={() => setPpeModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
             </div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Tick the PPE/Tool Items this casual is allowed to use. ({allPpeItems.length} items loaded)</div>
             <div style={{ overflowY: 'auto', maxHeight: '55vh', minHeight: 200, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {Object.entries(CATEGORY_LABELS).map(([catKey, catLabel]) => {
                 const items = allPpeItems.filter(p => p.category === catKey && p.is_active);
@@ -307,35 +300,21 @@ export default function CasualsPage() {
                 return (
                   <div key={catKey}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, marginTop: 8 }}>{catLabel}</div>
-                    {items.map(p => {
-                      const selected = checklist[p.id];
-                      return (
-                        <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 6, background: selected ? '#f0fdf4' : '#f9fafb', marginBottom: 2 }}>
-                          <input type="checkbox" checked={!!selected} onChange={() => toggleChecklistItem(p)} style={{ width: 16, height: 16, accentColor: '#1D9E75' }} />
-                          <span style={{ fontSize: 14, flex: 1 }}>{p.name}</span>
-                          {selected && p.has_size && (
-                            <select className="form-input" style={{ width: 90, height: 28, fontSize: 12 }} value={selected.size_value} onChange={e => updateChecklistField(p.id, 'size_value', e.target.value)}>
-                              <option value="">Size</option>
-                              {(p.size_type === 'shoe' ? ['38','39','40','41','42','43','44','45','46','47'] :
-                                p.size_type === 'harness' ? ['S','M','L','XL'] :
-                                ['XS','S','M','L','XL','XXL','XXXL']).map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                          )}
-                          {selected && (
-                            <input type="number" min="1" className="form-input" style={{ width: 60, height: 28, fontSize: 12 }} value={selected.quantity} onChange={e => updateChecklistField(p.id, 'quantity', parseInt(e.target.value) || 1)} />
-                          )}
-                        </div>
-                      );
-                    })}
+                    {items.map(p => (
+                      <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', background: assignedPpe.includes(p.id) ? '#f0fdf4' : '#f9fafb', marginBottom: 2 }}>
+                        <input type="checkbox" checked={assignedPpe.includes(p.id)} onChange={() => toggleAssignedPpe(p.id)} style={{ width: 16, height: 16, accentColor: '#1D9E75' }} />
+                        <span style={{ fontSize: 14 }}>{p.name}</span>
+                      </label>
+                    ))}
                   </div>
                 );
               })}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
-              <span style={{ fontSize: 12, color: '#6b7280' }}>{Object.keys(checklist).length} item(s) selected</span>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>{assignedPpe.length} item{assignedPpe.length !== 1 ? 's' : ''} selected</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn" onClick={() => setPpeModal(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={submitChecklist} disabled={ppeSaving}>{ppeSaving ? 'Submitting...' : 'Submit Request'}</button>
+                <button className="btn btn-primary" onClick={saveAssignment} disabled={ppeSaving}>{ppeSaving ? 'Saving...' : 'Save Assignment'}</button>
               </div>
             </div>
           </div>
