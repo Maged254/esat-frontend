@@ -6,11 +6,12 @@ const CASUAL_EDIT_ROLES = ['admin', 'supervisor'];
 export default function CasualsPage() {
   const [casuals, setCasuals] = useState([]);
   const [employeeProjects, setEmployeeProjects] = useState([]);
+  const [employeeClients, setEmployeeClients] = useState([]);
   const [filters, setFilters] = useState({ search: '', project: '', client: '', status: 'active' });
   const [userRole, setUserRole] = useState('');
 
   const [batchModal, setBatchModal] = useState(false);
-  const [batchForm, setBatchForm] = useState({ project: '', client: '', organization: '', rows: [{ full_name: '', national_id: '' }] });
+  const [batchForm, setBatchForm] = useState({ project: '', client: '', organization: 'Egypro', rows: [{ full_name: '', national_id: '' }] });
   const [batchSaving, setBatchSaving] = useState(false);
 
   const [editModal, setEditModal] = useState(null);
@@ -38,6 +39,7 @@ export default function CasualsPage() {
   useEffect(() => {
     api.get('/employees').then(r => {
       setEmployeeProjects([...new Set(r.data.map(e => e.project).filter(Boolean))].sort());
+      setEmployeeClients([...new Set(r.data.map(e => e.client).filter(Boolean))].sort());
     }).catch(console.error);
   }, []);
 
@@ -72,7 +74,7 @@ export default function CasualsPage() {
         casuals: validRows
       });
       setBatchModal(false);
-      setBatchForm({ project: '', client: '', organization: '', rows: [{ full_name: '', national_id: '' }] });
+      setBatchForm({ project: '', client: '', organization: 'Egypro', rows: [{ full_name: '', national_id: '' }] });
       load();
     } catch (e) {
       alert('Error: ' + (e.response?.data?.error || e.message));
@@ -224,7 +226,10 @@ export default function CasualsPage() {
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Client</label>
-                <input className="form-input" value={batchForm.client} onChange={e => setBatchForm(p => ({ ...p, client: e.target.value }))} placeholder="e.g. Safaricom" />
+                <select className="form-input" value={batchForm.client} onChange={e => setBatchForm(p => ({ ...p, client: e.target.value }))}>
+                  <option value="">Select client...</option>
+                  {employeeClients.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Organization</label>
@@ -276,7 +281,10 @@ export default function CasualsPage() {
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Client</label>
-              <input className="form-input" value={editForm.client || ''} onChange={e => setEditForm(f => ({ ...f, client: e.target.value }))} />
+              <select className="form-input" value={editForm.client || ''} onChange={e => setEditForm(f => ({ ...f, client: e.target.value }))}>
+                <option value="">Select client...</option>
+                {employeeClients.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Organization</label>
