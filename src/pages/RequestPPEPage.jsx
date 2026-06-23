@@ -260,7 +260,7 @@ export default function RequestPPEPage() {
               </table>
             ) : (
               <table>
-                <thead><tr><th>Casual</th><th>Job Title</th><th>Project</th><th>Client</th><th></th></tr></thead>
+                <thead><tr><th>Casual</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {filteredCasuals.map((c, i) => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(c, 'casual')}>
@@ -274,12 +274,13 @@ export default function RequestPPEPage() {
                         </div>
                       </td>
                       <td>{c.job_title || '—'}</td>
+                      <td>Projects</td>
                       <td>{c.project || '—'}</td>
                       <td>{c.client || '—'}</td>
                       <td><button className="btn btn-primary btn-sm">Select →</button></td>
                     </tr>
                   ))}
-                  {!filteredCasuals.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
+                  {!filteredCasuals.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
                 </tbody>
               </table>
             )}
