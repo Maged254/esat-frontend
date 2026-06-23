@@ -196,7 +196,7 @@ export default function CasualsPage() {
                   <td><span className={`tag ${c.employment_status === 'active' ? 'tag-green' : 'tag-red'}`}>{c.employment_status}</span></td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {c.employment_status === 'active' && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Order PPE">🛡 PPE</button>}
+                      {c.employment_status === 'active' && ['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Order PPE">🛡 PPE</button>}
                       {canEdit && <button className="btn btn-sm" onClick={() => openEdit(c)}>Edit</button>}
                       {canEdit && c.employment_status === 'active' && <button className="btn btn-sm" onClick={() => exitCasual(c)} style={{ color: '#e53e3e' }}>Exit</button>}
                     </div>
