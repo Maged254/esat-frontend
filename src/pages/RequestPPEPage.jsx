@@ -23,7 +23,8 @@ export default function RequestPPEPage() {
   const [selectedPerson, setSelectedPerson] = useState(null);
 
   const [ppeItems, setPpeItems] = useState([]);
-  const [items, setItems] = useState({}); // { ppeId: { size, quantity, applicable } }
+  const [items, setItems] = useState({}); // { ppeId: { size, quantity, applicable, comment } }
+  const [notes, setNotes] = useState('');
 
   const [locations, setLocations] = useState([]);
   const [locationId, setLocationId] = useState('');
@@ -61,7 +62,7 @@ export default function RequestPPEPage() {
       setPpeItems(assignedItems);
       const defaults = {};
       assignedItems.forEach(p => {
-        defaults[p.id] = { size: '', quantity: 1, applicable: false };
+        defaults[p.id] = { size: '', quantity: 1, applicable: false, comment: '' };
       });
       setItems(defaults);
     } catch {
@@ -92,7 +93,7 @@ export default function RequestPPEPage() {
           ppe_item_id: p.id,
           condition: 'not_good',
           size_value: items[p.id]?.size || null,
-          comment: null,
+          comment: items[p.id]?.comment || null,
           quantity: items[p.id]?.quantity || 1,
         }));
         await api.post('/audits', {
@@ -100,7 +101,7 @@ export default function RequestPPEPage() {
           audit_date: new Date().toISOString().split('T')[0],
           employee_present: false,
           location_id: locationId,
-          notes: '',
+          notes: notes,
           items: auditItems,
         });
       } else {
@@ -108,6 +109,7 @@ export default function RequestPPEPage() {
           ppe_item_id: p.id,
           size_value: items[p.id]?.size || null,
           quantity: items[p.id]?.quantity || 1,
+          comment: items[p.id]?.comment || null,
         }));
         await api.post('/casual-ppe-requests', {
           casual_id: selectedPerson.id,
@@ -123,6 +125,7 @@ export default function RequestPPEPage() {
         setPpeItems([]);
         setLocationId('');
         setLocSearch('');
+        setNotes('');
       }, 2500);
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to submit request');
@@ -289,6 +292,10 @@ export default function RequestPPEPage() {
               )}
               <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
+                  <label className="form-label">General notes (optional)</label>
+                  <input className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Overall observations..." style={{ height: 38 }} />
+                </div>
+                <div className="form-group">
                   <label className="form-label">Requested by</label>
                   <input className="form-input" value={currentUserName} readOnly style={{ background: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280', height: 38 }} />
                 </div>
@@ -326,10 +333,10 @@ export default function RequestPPEPage() {
                 <div key={category}>
                   <div className="ppe-section-header">{CATEGORY_LABELS[category] || category}</div>
                   <div className="ppe-col-header">
-                    <div>PPE/Tool Item</div><div>Size</div><div>Qty</div><div>Needed</div>
+                    <div>PPE/Tool Item</div><div>Size</div><div>Qty</div><div>Comment</div><div>Needed</div>
                   </div>
                   {catItems.map(ppe => {
-                    const it = items[ppe.id] || { size: '', quantity: 1, applicable: false };
+                    const it = items[ppe.id] || { size: '', quantity: 1, applicable: false, comment: '' };
                     return (
                       <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.5 }}>
                         <div className="ppe-name">{ppe.name}</div>
@@ -356,6 +363,15 @@ export default function RequestPPEPage() {
                             onChange={e => setItemField(ppe.id, 'quantity', parseInt(e.target.value) || 1)}
                             disabled={!it.applicable}
                             style={{ width: 55, height: 32, padding: '4px 8px', borderRadius: 6, border: '1px solid', borderColor: (it.quantity || 1) > 1 ? '#e53e3e' : '#e5e7eb', background: (it.quantity || 1) > 1 ? '#fff5f5' : 'white', color: (it.quantity || 1) > 1 ? '#e53e3e' : '#0f2a4a', fontWeight: (it.quantity || 1) > 1 ? 700 : 400, fontSize: 13, textAlign: 'center' }}
+                          />
+                        </div>
+                        <div className="ppe-cell">
+                          <input
+                            className="ppe-comment"
+                            placeholder="Comment..."
+                            value={it.comment || ''}
+                            onChange={e => setItemField(ppe.id, 'comment', e.target.value)}
+                            disabled={!it.applicable}
                           />
                         </div>
                         <div className="ppe-cell" style={{ textAlign: 'center' }}>
