@@ -61,21 +61,40 @@ export default function CasualsPage() {
     rows: p.rows.map((r, idx) => idx === i ? { ...r, [field]: value } : r)
   }));
 
+  const isDuplicateRow = (row, index) => {
+    if (!row.national_id || !row.national_id.trim()) return false;
+    const nid = row.national_id.trim();
+    const dupInBatch = batchForm.rows.some((r, idx) => idx !== index && r.national_id.trim() === nid);
+    const dupInDb = casuals.some(c => c.national_id === nid);
+    return dupInBatch || dupInDb;
+  };
+
   const submitBatch = async () => {
     if (!batchForm.project) { alert('Project is required'); return; }
-    const validRows = batchForm.rows.filter(r => r.full_name.trim());
-    if (validRows.length === 0) { alert('At least one casual with a name is required'); return; }
+    if (!batchForm.client) { alert('Client is required'); return; }
+    const validRows = batchForm.rows.filter(r => r.full_name.trim() && r.national_id.trim());
+    if (validRows.length === 0) { alert('At least one casual with a name and National ID is required'); return; }
+    const missingRows = batchForm.rows.filter(r => r.full_name.trim() && !r.national_id.trim());
+    if (missingRows.length > 0) { alert('National ID is required for all rows with a name'); return; }
+    const hasDuplicates = batchForm.rows.some((r, i) => r.full_name.trim() && isDuplicateRow(r, i));
+    if (hasDuplicates) { alert('Please resolve duplicate National ID(s) highlighted in red before saving.'); return; }
     setBatchSaving(true);
     try {
-      await api.post('/casuals/batch', {
+      const res = await api.post('/casuals/batch', {
         project: batchForm.project,
         client: batchForm.client,
         organization: batchForm.organization,
         casuals: validRows
       });
+      const { inserted = [], reactivated = [], skipped = [] } = res.data || {};
       setBatchModal(false);
       setBatchForm({ project: '', client: '', organization: 'Egypro', rows: [{ full_name: '', national_id: '' }] });
       load();
+      let msg = '';
+      if (inserted.length) msg += `${inserted.length} casual(s) added. `;
+      if (reactivated.length) msg += `${reactivated.length} casual(s) reactivated. `;
+      if (skipped.length) msg += `${skipped.length} skipped:\n` + skipped.map(s => `- ${s.full_name}: ${s.reason}`).join('\n');
+      if (msg) alert(msg.trim());
     } catch (e) {
       alert('Error: ' + (e.response?.data?.error || e.message));
     }
@@ -226,15 +245,21 @@ export default function CasualsPage() {
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Casuals</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {batchForm.rows.map((row, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input className="form-input" style={{ flex: 1 }} placeholder="Full name" value={row.full_name} onChange={e => updateBatchRow(i, 'full_name', e.target.value)} />
-                  <input className="form-input" style={{ flex: 1 }} placeholder="National ID" value={row.national_id} onChange={e => updateBatchRow(i, 'national_id', e.target.value)} />
-                  {batchForm.rows.length > 1 && (
-                    <button onClick={() => removeBatchRow(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: 16 }}>✕</button>
-                  )}
+              {batchForm.rows.map((row, i) => {
+                const dup = isDuplicateRow(row, i);
+                return (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="form-input" style={{ flex: 1, borderColor: dup ? '#e53e3e' : undefined, background: dup ? '#fef2f2' : undefined }} placeholder="Full name" value={row.full_name} onChange={e => updateBatchRow(i, 'full_name', e.target.value)} />
+                    <input className="form-input" style={{ flex: 1, borderColor: dup ? '#e53e3e' : undefined, background: dup ? '#fef2f2' : undefined }} placeholder="National ID" value={row.national_id} onChange={e => updateBatchRow(i, 'national_id', e.target.value)} />
+                    {batchForm.rows.length > 1 && (
+                      <button onClick={() => removeBatchRow(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e53e3e', fontSize: 16 }}>✕</button>
+                    )}
+                  </div>
+                  {dup && <div style={{ fontSize: 11, color: '#e53e3e', paddingLeft: 4 }}>⚠ Duplicate National ID</div>}
                 </div>
-              ))}
+                );
+              })}
             </div>
             <button className="btn" style={{ alignSelf: 'flex-start', fontSize: 13 }} onClick={addBatchRow}>+ Add Row</button>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
