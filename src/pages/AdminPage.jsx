@@ -5,6 +5,8 @@ import api from '../utils/api';
 const ALL_PAGES = [
   { key: '/', label: 'Dashboard' },
   { key: '/employees', label: 'Employees' },
+  { key: '/casuals', label: 'Casuals' },
+  { key: '/casuals', label: 'Casuals' },
   { key: '/audit/new', label: 'New Audit' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
