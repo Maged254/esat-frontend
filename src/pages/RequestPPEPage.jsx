@@ -292,10 +292,6 @@ export default function RequestPPEPage() {
               )}
               <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
-                  <label className="form-label">General notes (optional)</label>
-                  <input className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Overall observations..." style={{ height: 38 }} />
-                </div>
-                <div className="form-group">
                   <label className="form-label">Requested by</label>
                   <input className="form-input" value={currentUserName} readOnly style={{ background: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280', height: 38 }} />
                 </div>
@@ -327,18 +323,22 @@ export default function RequestPPEPage() {
                     </div>
                   )}
                 </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">General notes (optional)</label>
+                  <input className="form-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Overall observations..." style={{ height: 38 }} />
+                </div>
               </div>
 
               {Object.entries(grouped).map(([category, catItems]) => (
                 <div key={category}>
                   <div className="ppe-section-header">{CATEGORY_LABELS[category] || category}</div>
-                  <div className="ppe-col-header">
-                    <div>PPE/Tool Item</div><div>Size</div><div>Qty</div><div>Comment</div><div>Needed</div>
+                  <div className="ppe-col-header" style={{ gridTemplateColumns: '1.5fr 140px 70px 1.5fr 90px' }}>
+                    <div>PPE/Tool Item</div><div>Size</div><div>Qty</div><div>Comment</div><div style={{ textAlign: 'center' }}>Needed</div>
                   </div>
                   {catItems.map(ppe => {
                     const it = items[ppe.id] || { size: '', quantity: 1, applicable: false, comment: '' };
                     return (
-                      <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.5 }}>
+                      <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.5, gridTemplateColumns: '1.5fr 140px 70px 1.5fr 90px' }}>
                         <div className="ppe-name">{ppe.name}</div>
                         <div className="ppe-cell">
                           {ppe.has_size ? (
