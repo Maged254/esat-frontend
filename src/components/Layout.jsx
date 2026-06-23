@@ -10,6 +10,7 @@ const NAV = [
   { to: '/employees', label: 'Employees', icon: 'ti-users', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { to: '/casuals', label: 'Casuals', icon: 'ti-user-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
+  { to: '/request-ppe', label: 'Request a PPE', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { to: '/history', label: 'Audit History', icon: 'ti-history', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { section: 'Compliance', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor'] },

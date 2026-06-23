@@ -8,6 +8,7 @@ const ALL_PAGES = [
   { key: '/casuals', label: 'Casuals' },
   { key: '/casuals', label: 'Casuals' },
   { key: '/audit/new', label: 'New Audit' },
+  { key: '/request-ppe', label: 'Request a PPE' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
