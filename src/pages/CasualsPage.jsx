@@ -216,7 +216,7 @@ export default function CasualsPage() {
               <div style={{ fontWeight: 700, fontSize: 16 }}>Add Casuals</div>
               <button onClick={() => setBatchModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Project</label>
                 <select className="form-input" value={batchForm.project} onChange={e => setBatchForm(p => ({ ...p, project: e.target.value }))}>
@@ -230,10 +230,6 @@ export default function CasualsPage() {
                   <option value="">Select client...</option>
                   {employeeClients.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Organization</label>
-                <input className="form-input" value={batchForm.organization} onChange={e => setBatchForm(p => ({ ...p, organization: e.target.value }))} placeholder="e.g. Egypro" />
               </div>
             </div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Casuals</div>
@@ -285,10 +281,6 @@ export default function CasualsPage() {
                 <option value="">Select client...</option>
                 {employeeClients.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Organization</label>
-              <input className="form-input" value={editForm.organization || ''} onChange={e => setEditForm(f => ({ ...f, organization: e.target.value }))} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button className="btn" onClick={() => setEditModal(null)}>Cancel</button>
