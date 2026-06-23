@@ -32,7 +32,7 @@ export default function RequestPPEPage() {
   const [showLocDropdown, setShowLocDropdown] = useState(false);
 
   const [personSearch, setPersonSearch] = useState('');
-  const [personFilters, setPersonFilters] = useState({ project: '', department: '' });
+  const [personFilters, setPersonFilters] = useState({ project: '', department: '', client: '' });
 
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -144,12 +144,14 @@ export default function RequestPPEPage() {
     if (personSearch && !e.full_name.toLowerCase().includes(personSearch.toLowerCase()) && !(e.national_id || '').includes(personSearch)) return false;
     if (personFilters.project && e.project !== personFilters.project) return false;
     if (personFilters.department && e.department !== personFilters.department) return false;
+    if (personFilters.client && e.client !== personFilters.client) return false;
     return true;
   });
 
   const filteredCasuals = casuals.filter(c => {
     if (personSearch && !c.full_name.toLowerCase().includes(personSearch.toLowerCase()) && !(c.national_id || '').includes(personSearch)) return false;
     if (personFilters.project && c.project !== personFilters.project) return false;
+    if (personFilters.client && c.client !== personFilters.client) return false;
     return true;
   });
 
@@ -161,7 +163,7 @@ export default function RequestPPEPage() {
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Request a PPE</span>
+          <span className="topbar-title">Request a PPE/Tool</span>
         </div>
         <div className="topbar-right">
           <button className="btn" onClick={() => navigate(-1)}>✕ Cancel</button>
@@ -210,20 +212,30 @@ export default function RequestPPEPage() {
                       <option value="">All Departments</option>
                       {[...new Set(employees.map(e => e.department).filter(Boolean))].sort().map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
+                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
+                      <option value="">All Clients</option>
+                      {[...new Set(employees.map(e => e.client).filter(Boolean))].sort().map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                    </select>
                   </>
                 )}
                 {personType === 'casual' && (
-                  <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
-                    <option value="">All Projects</option>
-                    {[...new Set(casuals.map(c => c.project).filter(Boolean))].sort().map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
+                  <>
+                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
+                      <option value="">All Projects</option>
+                      {[...new Set(casuals.map(c => c.project).filter(Boolean))].sort().map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
+                      <option value="">All Clients</option>
+                      {[...new Set(casuals.map(c => c.client).filter(Boolean))].sort().map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                    </select>
+                  </>
                 )}
                 <button className="btn" style={{ height: 38, padding: '4px 12px', fontSize: 13 }} onClick={() => { setPersonSearch(''); setPersonFilters({ project: '', department: '' }); }}>✕ Clear</button>
               </div>
             </div>
             {personType === 'employee' ? (
               <table>
-                <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th></th></tr></thead>
+                <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {filteredEmployees.map((e, i) => (
                     <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(e, 'employee')}>
@@ -236,17 +248,19 @@ export default function RequestPPEPage() {
                           </div>
                         </div>
                       </td>
+                      <td>{e.job_title || '—'}</td>
                       <td>{e.department || '—'}</td>
                       <td>{e.project || '—'}</td>
+                      <td>{e.client || '—'}</td>
                       <td><button className="btn btn-primary btn-sm">Select →</button></td>
                     </tr>
                   ))}
-                  {!filteredEmployees.length && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No employees found</td></tr>}
+                  {!filteredEmployees.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No employees found</td></tr>}
                 </tbody>
               </table>
             ) : (
               <table>
-                <thead><tr><th>Casual</th><th>Project</th><th>Client</th><th></th></tr></thead>
+                <thead><tr><th>Casual</th><th>Job Title</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {filteredCasuals.map((c, i) => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(c, 'casual')}>
@@ -259,12 +273,13 @@ export default function RequestPPEPage() {
                           </div>
                         </div>
                       </td>
+                      <td>{c.job_title || '—'}</td>
                       <td>{c.project || '—'}</td>
                       <td>{c.client || '—'}</td>
                       <td><button className="btn btn-primary btn-sm">Select →</button></td>
                     </tr>
                   ))}
-                  {!filteredCasuals.length && <tr><td colSpan={4} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
+                  {!filteredCasuals.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
                 </tbody>
               </table>
             )}
