@@ -142,7 +142,7 @@ export default function PPERequestTrackerPage() {
         </div>
         <div className="topbar-right">
           <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
-          {filters.status==='ehs_purchase_requested' && (
+          {filters.status && (
             <button className="btn" title={groupPO ? 'Ungroup' : 'Group per PO'} onClick={()=>setGroupPO(p=>!p)} style={{background:groupPO?'#0f2a4a':'',color:groupPO?'white':'',fontSize:16,padding:'0 10px'}}>⊞</button>
           )}
           {canEdit && !bulkTarget && (
@@ -182,12 +182,12 @@ export default function PPERequestTrackerPage() {
       </div>
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(6,1fr)'}}>
-          <div className="stat-card" style={{cursor:'pointer',outline:!filters.status?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:''}))}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='pending'?'':'pending'}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pda_pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested' && r.needs_pda).length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); if(filters.status==='ehs_purchase_requested') setGroupPO(false);}}><div className="stat-label">Pending SCM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested' && !(r.needs_pda && !r.pda_approved_date)).length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='scm_ordered'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'}))}><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered').length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='warehouse_available'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'}))}><div className="stat-label">Pending Projects</div><div className="stat-value warning">{requests.filter(r=>r.status==='warehouse_available').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:!filters.status?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupPO(false);}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupPO(false);}}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pda_pending'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'})); setGroupPO(false);}}><div className="stat-label">Pending PM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested' && r.needs_pda).length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); setGroupPO(false);}}><div className="stat-label">Pending SCM</div><div className="stat-value navy">{requests.filter(r=>r.status==='ehs_purchase_requested' && !(r.needs_pda && !r.pda_approved_date)).length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='scm_ordered'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'})); setGroupPO(false);}}><div className="stat-label">Pending Suppliers</div><div className="stat-value navy">{requests.filter(r=>r.status==='scm_ordered').length}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='warehouse_available'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'})); setGroupPO(false);}}><div className="stat-label">Pending Projects</div><div className="stat-value warning">{requests.filter(r=>r.status==='warehouse_available').length}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
@@ -295,7 +295,7 @@ export default function PPERequestTrackerPage() {
                 </tr>
               </thead>
               <tbody>
-                {groupPO && filters.status === 'ehs_purchase_requested' ? (() => {
+                {groupPO && filters.status ? (() => {
                   const clients = [...new Set(filtered.map(r => r.client || '—'))].sort();
                   const rows = [];
                   clients.forEach(client => {
