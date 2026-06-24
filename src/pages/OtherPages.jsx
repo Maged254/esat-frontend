@@ -334,7 +334,7 @@ export function AuditHistoryPage() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Audit History</span></div>
+        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Audit/Request History</span></div>
         <div className="topbar-right"><button className="btn" onClick={exportCSV}>↓ Export CSV</button></div>
       </div>
       <div className="content">
