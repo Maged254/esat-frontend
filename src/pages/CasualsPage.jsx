@@ -121,6 +121,16 @@ export default function CasualsPage() {
     load();
   };
 
+  const deleteCasual = async (c) => {
+    if (!window.confirm(`Delete ${c.full_name}? This will permanently delete the casual and all their audits, NCR items, and PPE requests.`)) return;
+    try {
+      await api.delete('/casuals/' + c.id);
+      load();
+    } catch (e) {
+      alert('Error: ' + (e.response?.data?.error || e.message));
+    }
+  };
+
   // ── PPE Assignment ──────────────────────────────────────────────
   const openPpeModal = async (c) => {
     const [ppeRes, assignRes] = await Promise.all([
@@ -210,6 +220,7 @@ export default function CasualsPage() {
                       {c.employment_status === 'active' && ['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Assign PPE" style={{background:c.ppe_assigned?'#d1fae5':undefined,borderColor:c.ppe_assigned?'#1D9E75':undefined,color:c.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>}
                       {canEdit && <button className="btn btn-sm" onClick={() => openEdit(c)}>Edit</button>}
                       {canEdit && c.employment_status === 'active' && <button className="btn btn-sm" onClick={() => exitCasual(c)} style={{ color: '#e53e3e' }}>Exit</button>}
+                      {userRole === 'admin' && <button onClick={() => deleteCasual(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e24b4a', fontSize: 16 }} title="Delete Casual">🗑</button>}
                     </div>
                   </td>
                 </tr>
