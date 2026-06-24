@@ -358,7 +358,7 @@ export function AuditHistoryPage() {
                 <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
-                <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
+                <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="casual">Casual</option>
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                 <option value="">All Projects</option>
@@ -381,7 +381,7 @@ export function AuditHistoryPage() {
               {audits.map((a,i)=>(
                 <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('/audits/' + a.id)}>
                   <td><div className="emp-cell"><div style={{width:4,minWidth:4,borderRadius:2,alignSelf:'stretch',background:a.overall_status==='compliant'?'#1D9E75':a.overall_status==='partial'?'#F59E0B':'#e24b4a',marginRight:8}}></div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
-                  <td>{a.national_id||'—'}</td><td>{a.department||'—'}</td><td>{a.project||'—'}</td><td>{a.organization||'—'}</td><td>{a.audited_by_name}</td>
+                  <td>{a.national_id||'—'}</td><td>{a.is_casual ? 'Projects' : (a.department||'—')}</td><td>{a.project||'—'}</td><td>{a.is_casual ? 'Casual' : (a.organization||'—')}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
                   <td><span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
