@@ -6,7 +6,6 @@ const ALL_PAGES = [
   { key: '/', label: 'Dashboard' },
   { key: '/employees', label: 'Employees' },
   { key: '/casuals', label: 'Casuals' },
-  { key: '/casuals', label: 'Casuals' },
   { key: '/audit/new', label: 'New Audit' },
   { key: '/request-ppe', label: 'Request a PPE' },
   { key: '/history', label: 'Audit History' },
