@@ -88,34 +88,21 @@ export default function RequestPPEPage() {
     setValidationErrors([]);
     setSubmitting(true);
     try {
-      if (personType === 'employee') {
-        const auditItems = applicableItems.map(p => ({
-          ppe_item_id: p.id,
-          condition: 'not_good',
-          size_value: items[p.id]?.size || null,
-          comment: items[p.id]?.comment || null,
-          quantity: items[p.id]?.quantity || 1,
-        }));
-        await api.post('/audits', {
-          employee_id: selectedPerson.id,
-          audit_date: new Date().toISOString().split('T')[0],
-          employee_present: false,
-          location_id: locationId,
-          notes: notes,
-          items: auditItems,
-        });
-      } else {
-        const reqItems = applicableItems.map(p => ({
-          ppe_item_id: p.id,
-          size_value: items[p.id]?.size || null,
-          quantity: items[p.id]?.quantity || 1,
-          comment: items[p.id]?.comment || null,
-        }));
-        await api.post('/casual-ppe-requests', {
-          casual_id: selectedPerson.id,
-          items: reqItems,
-        });
-      }
+      const auditItems = applicableItems.map(p => ({
+        ppe_item_id: p.id,
+        condition: 'not_good',
+        size_value: items[p.id]?.size || null,
+        comment: items[p.id]?.comment || null,
+        quantity: items[p.id]?.quantity || 1,
+      }));
+      await api.post('/audits', {
+        ...(personType === 'employee' ? { employee_id: selectedPerson.id } : { casual_id: selectedPerson.id }),
+        audit_date: new Date().toISOString().split('T')[0],
+        employee_present: false,
+        location_id: locationId,
+        notes: notes,
+        items: auditItems,
+      });
       setSuccessMsg(`PPE request for ${selectedPerson.full_name} submitted successfully!`);
       setTimeout(() => {
         setSuccessMsg('');
