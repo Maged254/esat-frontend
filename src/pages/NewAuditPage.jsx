@@ -27,6 +27,7 @@ export default function NewAuditPage() {
   const [notes, setNotes] = useState('');
   const [users, setUsers] = useState([]);
   const [auditedBy, setAuditedBy] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
   const [employeePresent, setEmployeePresent] = useState(true);
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -51,10 +52,17 @@ export default function NewAuditPage() {
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
   useEffect(() => {
-    api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
+    api.get('/employees?status=active&san=yes').then(r => setEmployees(r.data)).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
     api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com','eats-sync@egypro.app'].includes(u.email) && u.role !== 'scm_officer')); }).catch(console.error);
     api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
+    try {
+      const user = JSON.parse(localStorage.getItem('esat_user'));
+      if (user) {
+        setCurrentUserName(user.full_name || user.name || '');
+        setAuditedBy(user.id);
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -188,7 +196,6 @@ export default function NewAuditPage() {
       setDocs({ JHA: null, Toolbox_Talk_Sheet: null, PPE_Inspection_Checklist: null, Emergency_Response_Plan: null, Vehicle_Safety_Checklist: null });
       setUploadProgress({});
       setNotes('');
-      setAuditedBy('');
     }, 3000);
   };
 
@@ -341,33 +348,9 @@ export default function NewAuditPage() {
                   <label className="form-label">Audit date</label>
                   <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
                 </div>
-                <div className="form-group" style={{position:'relative'}}>
+                <div className="form-group">
                   <label className="form-label">Audited by</label>
-                  <input
-                    className="form-input"
-                    style={{height:38, borderColor: !auditedBy && validationErrors.length ? '#e24b4a' : ''}}
-                    placeholder="Search auditor..."
-                    value={auditorSearch}
-                    onChange={e => { setAuditorSearch(e.target.value); setAuditedBy(''); setShowAuditorDrop(true); }}
-                    onFocus={() => setShowAuditorDrop(true)}
-                    onBlur={() => setTimeout(() => setShowAuditorDrop(false), 150)}
-                    autoComplete="off"
-                  />
-                  {showAuditorDrop && (
-                    <div style={{position:'absolute',top:'100%',left:0,right:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:100,boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
-                      {users.filter(u => !auditorSearch || u.full_name.toLowerCase().includes(auditorSearch.toLowerCase())).map(u => (
-                        <div key={u.id}
-                          style={{padding:'8px 12px',cursor:'pointer',fontSize:13}}
-                          onMouseDown={() => { setAuditedBy(u.id); setAuditorSearch(u.full_name); setShowAuditorDrop(false); }}
-                          onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'}
-                          onMouseLeave={e => e.currentTarget.style.background='white'}
-                        >{u.full_name}</div>
-                      ))}
-                      {users.filter(u => !auditorSearch || u.full_name.toLowerCase().includes(auditorSearch.toLowerCase())).length === 0 && (
-                        <div style={{padding:'8px 12px',fontSize:13,color:'#9ca3af'}}>No auditors found</div>
-                      )}
-                    </div>
-                  )}
+                  <input className="form-input" value={currentUserName} readOnly style={{ background: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280', height: 38 }} />
                 </div>
                 <div className="form-group" style={{ position:'relative' }}>
                   <label className="form-label">Location <span style={{color:'#e24b4a'}}>*</span></label>
@@ -398,25 +381,16 @@ export default function NewAuditPage() {
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Is the Employee Physically Present? <span style={{fontSize:11,color:'#6b7280',fontWeight:400}}>(if yes, you must audit all PPE items — not just one or two)</span></label>
+                  <label className="form-label">Is the Employee Physically Present?</label>
                   <div style={{display:'flex',gap:8}}>
                     <button type="button"
-                      onClick={() => setEmployeePresent(true)}
-                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:employeePresent?'#16a34a':'#e5e7eb',background:employeePresent?'#dcfce7':'#f9fafb',color:employeePresent?'#15803d':'#6b7280',fontWeight:600,cursor:'pointer',fontSize:13}}>
+                      disabled
+                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:'#16a34a',background:'#dcfce7',color:'#15803d',fontWeight:600,cursor:'not-allowed',fontSize:13}}>
                       ✓ Present
                     </button>
                     <button type="button"
-                      onClick={() => {
-                        setEmployeePresent(false);
-                        setItems(prev => {
-                          const next = { ...prev };
-                          Object.keys(next).forEach(id => {
-                            if (next[id]?.applicable) next[id] = { ...next[id], condition: 'not_good' };
-                          });
-                          return next;
-                        });
-                      }}
-                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:!employeePresent?'#dc2626':'#e5e7eb',background:!employeePresent?'#fee2e2':'#f9fafb',color:!employeePresent?'#dc2626':'#6b7280',fontWeight:600,cursor:'pointer',fontSize:13}}>
+                      disabled
+                      style={{flex:1,padding:'8px',borderRadius:8,border:'2px solid',borderColor:'#e5e7eb',background:'#f9fafb',color:'#9ca3af',fontWeight:600,cursor:'not-allowed',fontSize:13,opacity:0.5}}>
                       ✗ Not Present
                     </button>
                   </div>
