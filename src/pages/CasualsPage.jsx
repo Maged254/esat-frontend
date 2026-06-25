@@ -205,7 +205,7 @@ export default function CasualsPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th>Name</th><th>National ID</th><th>Job Title</th><th>Project</th><th>Client</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Name</th><th>National ID</th><th>Job Title</th><th>Project</th><th>Client</th><th>Status</th><th>Last Edited</th><th></th></tr></thead>
             <tbody>
               {filtered.map(c => (
                 <tr key={c.id}>
@@ -215,6 +215,14 @@ export default function CasualsPage() {
                   <td>{c.project || '—'}</td>
                   <td>{c.client || '—'}</td>
                   <td><span className={`tag ${c.employment_status === 'active' ? 'tag-green' : 'tag-red'}`}>{c.employment_status}</span></td>
+                  <td style={{ fontSize: 12 }}>
+                    {c.last_edited_by_name ? (
+                      <div>
+                        <div>{c.last_edited_by_name}</div>
+                        <div style={{ color: '#6b7280' }}>{new Date(c.updated_at).toLocaleDateString('en-GB')}</div>
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {c.employment_status === 'active' && ['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={() => openPpeModal(c)} title="Assign PPE" style={{background:c.ppe_assigned?'#d1fae5':undefined,borderColor:c.ppe_assigned?'#1D9E75':undefined,color:c.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>}
@@ -225,7 +233,7 @@ export default function CasualsPage() {
                   </td>
                 </tr>
               ))}
-              {!filtered.length && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
+              {!filtered.length && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No casuals found</td></tr>}
             </tbody>
           </table>
         </div>
