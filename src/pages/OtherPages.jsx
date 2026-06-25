@@ -9,7 +9,7 @@ export function EmployeesPage() {
   const [allPpeItems, setAllPpeItems] = useState([]);
   const [assignedPpe, setAssignedPpe] = useState([]); // array of ppe_item ids
   const [ppeAssignSaving, setPpeAssignSaving] = useState(false);
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: 'yes', job_title: '', audit_age: '' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: '', job_title: '', audit_age: '' });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -194,7 +194,7 @@ export function EmployeesPage() {
                 <option value="2months">1 - 2 Months</option>
                 <option value="over2months">More than 2 Months</option>
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'yes',job_title:'',audit_age:''})}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:''})}>✕ Clear</button>
             </div>
           </div>
           <table>
