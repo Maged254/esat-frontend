@@ -329,12 +329,20 @@ export default function CasualsPage() {
       {ppeModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#fff', borderRadius: 12, padding: 32, width: 720, maxHeight: '80vh', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>PPE Assignment</div>
                 <div style={{ fontSize: 13, color: '#6b7280' }}>{ppeModal.full_name} — {ppeModal.national_id || 'No ID'}</div>
               </div>
-              <button onClick={() => setPpeModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {ppeModal.ppe_last_edited_by_name && (
+                  <div style={{ fontSize: 11, color: '#9ca3af', textAlign: 'right' }}>
+                    <div>Last Edited</div>
+                    <div>{ppeModal.ppe_last_edited_by_name} · {new Date(ppeModal.ppe_last_edited_at).toLocaleDateString('en-GB')}</div>
+                  </div>
+                )}
+                <button onClick={() => setPpeModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
+              </div>
             </div>
             <div style={{ fontSize: 12, color: '#6b7280' }}>Tick the PPE/Tool Items this casual is allowed to use. ({allPpeItems.length} items loaded)</div>
             <div style={{ overflowY: 'auto', maxHeight: '55vh', minHeight: 200, display: 'flex', flexDirection: 'column', gap: 8 }}>
