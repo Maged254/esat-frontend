@@ -214,7 +214,7 @@ export default function CasualsPage() {
                   <td>{c.job_title}</td>
                   <td>{c.project || '—'}</td>
                   <td>{c.client || '—'}</td>
-                  <td><span className={`tag ${c.employment_status === 'active' ? 'tag-green' : 'tag-red'}`}>{c.employment_status}</span></td>
+                  <td><span className={`tag ${c.employment_status === 'active' ? 'tag-green' : 'tag-red'}`}>{c.employment_status === 'active' ? 'Active' : 'Exit'}</span></td>
                   <td style={{ fontSize: 12 }}>
                     {c.last_edited_by_name ? (
                       <div>
