@@ -143,10 +143,10 @@ export default function PPERequestTrackerPage() {
         <div className="topbar-right">
           <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
           {filters.status && (
-            <button className="btn" title={groupMode==='po' ? 'Ungroup' : 'Group per PO'} onClick={()=>setGroupMode(m=>m==='po'?'none':'po')} style={{background:groupMode==='po'?'#0f2a4a':'',color:groupMode==='po'?'white':'',fontSize:16,padding:'0 10px'}}>⊞</button>
+            <button className="btn" title={groupMode==='po' ? 'Ungroup' : 'Group per Project'} onClick={()=>setGroupMode(m=>m==='po'?'none':'po')} style={{background:groupMode==='po'?'#0f2a4a':'',color:groupMode==='po'?'white':'',display:'inline-flex',alignItems:'center',gap:6,fontSize:13,padding:'0 12px'}}><i className="ti ti-stack-2" style={{fontSize:16}}></i>Group per Project</button>
           )}
           {filters.status && (
-            <button className="btn" title={groupMode==='employee' ? 'Ungroup' : 'Group by Client/Project/Employee'} onClick={()=>setGroupMode(m=>m==='employee'?'none':'employee')} style={{background:groupMode==='employee'?'#0f2a4a':'',color:groupMode==='employee'?'white':'',fontSize:16,padding:'0 10px'}}>👤</button>
+            <button className="btn" title={groupMode==='employee' ? 'Ungroup' : 'Group by Employee'} onClick={()=>setGroupMode(m=>m==='employee'?'none':'employee')} style={{background:groupMode==='employee'?'#0f2a4a':'',color:groupMode==='employee'?'white':'',display:'inline-flex',alignItems:'center',gap:6,fontSize:13,padding:'0 12px'}}><i className="ti ti-users" style={{fontSize:16}}></i>Group by Employee</button>
           )}
           {canEdit && !bulkTarget && (
             <div style={{position:'relative',display:'inline-block'}}>

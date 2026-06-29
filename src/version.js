@@ -1,1 +1,1 @@
-const APP_VERSION="V.260626-a98";export default APP_VERSION;
+const APP_VERSION="V.260629-e8a";export default APP_VERSION;
