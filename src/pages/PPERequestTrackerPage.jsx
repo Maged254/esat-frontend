@@ -144,7 +144,7 @@ export default function PPERequestTrackerPage() {
           <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
           <span style={{fontSize:13,color:'#6b7280',marginLeft:4}}>Group by:</span>
           <div style={{display:'flex',border:'1px solid #d1d5db',borderRadius:6,overflow:'hidden'}}>
-            <button title="Project" onClick={()=>setGroupMode(m=>m==='po'?'none':'po')} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:13,padding:'6px 12px',border:'none',borderRight:'1px solid #d1d5db',borderRadius:0,background:groupMode==='po'?'#0f2a4a':'transparent',color:groupMode==='po'?'white':'inherit',cursor:'pointer'}}><i className="ti ti-stack-2" style={{fontSize:16}}></i>Project</button>
+            <button title="Project" onClick={()=>setGroupMode(m=>m==='po'?'none':'po')} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:13,padding:'6px 12px',border:'none',borderRight:'1px solid #d1d5db',borderRadius:0,background:groupMode==='po'?'#0f2a4a':'transparent',color:groupMode==='po'?'white':'inherit',cursor:'pointer'}}><i className="ti ti-stack-2" style={{fontSize:16}}></i>PPE/Tool</button>
             <button title="Employee" onClick={()=>setGroupMode(m=>m==='employee'?'none':'employee')} style={{display:'inline-flex',alignItems:'center',gap:6,fontSize:13,padding:'6px 12px',border:'none',borderRadius:0,background:groupMode==='employee'?'#0f2a4a':'transparent',color:groupMode==='employee'?'white':'inherit',cursor:'pointer'}}><i className="ti ti-users" style={{fontSize:16}}></i>Employee</button>
           </div>
           {canEdit && !bulkTarget && (
