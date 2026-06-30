@@ -299,7 +299,7 @@ export function AuditHistoryPage() {
 
   const deleteAudit = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this audit? All linked NCR items and PPE requests will also be deleted.')) return;
+    if (!window.confirm('Delete this audit? It will be soft-deleted and hidden from NCR/PPE tracker but remain visible in history.')) return;
     await api.delete('/audits/' + id);
     setAudits(prev => prev.filter(a => a.id !== id));
   };
@@ -387,14 +387,14 @@ export function AuditHistoryPage() {
             <thead><tr><th>Employee</th><th>National ID</th><th>Department</th><th>Project</th><th>Organization</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Result</th></tr></thead>
             <tbody>
               {audits.map((a,i)=>(
-                <tr key={a.id} style={{cursor:'pointer'}} onClick={()=>navigate('/audits/' + a.id)}>
-                  <td><div className="emp-cell"><div style={{width:4,minWidth:4,borderRadius:2,alignSelf:'stretch',background:a.overall_status==='compliant'?'#1D9E75':a.overall_status==='partial'?'#F59E0B':'#e24b4a',marginRight:8}}></div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
-                  <td>{a.national_id||'—'}</td><td>{a.is_casual ? 'Projects' : (a.department||'—')}</td><td>{a.project||'—'}</td><td>{a.is_casual ? 'Casual' : (a.organization||'—')}</td><td>{a.audited_by_name}</td>
+                <tr key={a.id} style={{cursor:'pointer',opacity:a.is_deleted?0.5:1,background:a.is_deleted?'#f9fafb':'',textDecoration:a.is_deleted?'line-through':''}} onClick={()=>navigate('/audits/' + a.id)}>
+                  <td><div className="emp-cell"><div style={{width:4,minWidth:4,borderRadius:2,alignSelf:'stretch',background:a.is_deleted?'#9ca3af':a.overall_status==='compliant'?'#1D9E75':a.overall_status==='partial'?'#F59E0B':'#e24b4a',marginRight:8}}></div><div><div className="emp-name">{a.employee_name}</div><div className="emp-id">{a.national_id||a.employee_number}</div></div></div></td>
+                  <td style={{textDecoration:'none'}}>{a.national_id||'—'}</td><td>{a.is_casual ? 'Projects' : (a.department||'—')}</td><td>{a.project||'—'}</td><td>{a.is_casual ? 'Casual' : (a.organization||'—')}</td><td>{a.audited_by_name}</td>
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
-                  <td><span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span></td>
-                  <td>{a.employee_present === false ? <span className="tag" style={{background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0'}}>Not Present</span> : STATUS[a.overall_status]}</td>
-                  {userRole==='admin' && <td><button onClick={e=>deleteAudit(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
+                  <td>{a.is_deleted ? '—' : <span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span>}</td>
+                  <td style={{textDecoration:'none'}}>{a.is_deleted ? <span className="tag" style={{background:'#fee2e2',color:'#991b1b',border:'1px solid #fecaca',whiteSpace:'nowrap'}}>🗑 Deleted by {a.deleted_by_name||'Unknown'}</span> : a.employee_present === false ? <span className="tag" style={{background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0'}}>Not Present</span> : STATUS[a.overall_status]}</td>
+                  {userRole==='admin' && <td>{!a.is_deleted && <button onClick={e=>deleteAudit(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button>}</td>}
                 </tr>
               ))}
               {!audits.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}

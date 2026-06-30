@@ -107,6 +107,16 @@ export default function AuditDetailPage() {
     setSaving(false);
   };
 
+  const deleteAudit = async () => {
+    if (!window.confirm('Delete this request? It will remain visible in history but be removed from NCR and PPE tracker.')) return;
+    try {
+      await api.delete('/audits/' + auditId);
+      navigate('/history');
+    } catch(e) {
+      alert(e.response?.data?.error || 'Delete failed.');
+    }
+  };
+
   const updateItem = (ppe_item_id, field, value) => {
     setEditData(d => ({
       ...d,
@@ -184,8 +194,11 @@ export default function AuditDetailPage() {
           ) : (
             <>
               <button className="btn" onClick={()=>navigate('/history')}>← Back</button>
-              {canEdit && (
+              {canEdit && !audit.is_deleted && (
                 <button className="btn" onClick={startEdit} style={{borderColor:'#1a2e4a',color:'#1a2e4a'}}>✎ Edit</button>
+              )}
+              {canEdit && !audit.is_deleted && (
+                <button className="btn" onClick={deleteAudit} style={{borderColor:'#e24b4a',color:'#e24b4a'}}>🗑 Delete</button>
               )}
               <button className="btn btn-primary" onClick={exportPDF} disabled={exporting}>{exporting ? 'Exporting...' : '↓ Export PDF'}</button>
             </>
