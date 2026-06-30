@@ -38,7 +38,8 @@ const dateCell = (date, name) => (
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', project: '', client: '', location: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', projects: [], client: '', location: '' });
+  const [projDropOpen, setProjDropOpen] = useState(false);
   const [locations, setLocations] = useState([]);
   const [locSearch, setLocSearch] = useState('');
   const [ppeSearch, setPpeSearch] = useState('');
@@ -91,7 +92,7 @@ export default function PPERequestTrackerPage() {
     else if (filters.status === 'ehs_purchase_requested') { if (r.status !== 'ehs_purchase_requested' || (r.needs_pda && !r.pda_approved_date)) return false; }
     else if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.project && r.project !== filters.project) return false;
+    if (filters.projects.length > 0 && !filters.projects.includes(r.project)) return false;
     if (filters.client && r.client !== filters.client) return false;
     if (filters.location && r.location_name !== filters.location) return false;
     if (filters.ppe && r.ppe_name !== filters.ppe) return false;
@@ -253,15 +254,27 @@ export default function PPERequestTrackerPage() {
                 <option value="current">Current Month</option>
                 <option value="previous">Previous Month</option>
               </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
-                <option value="">All Projects</option>
-                {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
+              <div style={{position:'relative'}}>
+                <button onClick={()=>setProjDropOpen(o=>!o)} style={{height:30,padding:'4px 10px',fontSize:12,border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer',minWidth:140,textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:110}}>{filters.projects.length===0?'All Projects':filters.projects.length===1?filters.projects[0]:`${filters.projects.length} Projects`}</span>
+                  <span style={{fontSize:10}}>▾</span>
+                </button>
+                {projDropOpen && (
+                  <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:180,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
+                    {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=>(
+                      <label key={p} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
+                        <input type="checkbox" checked={filters.projects.includes(p)} onChange={()=>setFilters(f=>({...f,projects:f.projects.includes(p)?f.projects.filter(x=>x!==p):[...f.projects,p]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
+                        {p}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
                 <option value="">All Clients</option>
                 {[...new Set(requests.map(r=>r.client).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
               </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',project:'',client:'',location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],client:'',location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
