@@ -148,7 +148,7 @@ export function EmployeesPage() {
               <input type="file" accept=".csv" style={{display:'none'}} onChange={handleCSVImport} disabled={importing} />
             </label>
           )}
-          {userRole === 'admin' && <button className="btn btn-primary">+ Add Employee</button>}
+          
         </div>
       </div>
       <div className="content">
