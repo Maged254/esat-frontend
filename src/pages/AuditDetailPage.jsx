@@ -194,12 +194,17 @@ export default function AuditDetailPage() {
       </div>
 
       <div className="content" ref={reportRef}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,padding:'12px 18px',background:'#fff',borderRadius:10,border:'1px solid #e5e7eb'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,padding:'12px 18px',background:'#fff',borderRadius:10,border:'1px solid #e5e7eb',position:'relative'}}>
           <img src="/esat-login-logo.png" alt="ESAT" style={{height:48,objectFit:'contain'}} />
           <div style={{textAlign:'center'}}>
             <div style={{fontWeight:700,fontSize:18,color:'#1a2e4a',letterSpacing:'0.02em'}}>Egypro Safety Audit Report</div>
           </div>
           <img src="/egypro-watermark.png" alt="Egypro" style={{height:48,objectFit:'contain'}} />
+          {audit.last_edited_at && (
+            <div style={{position:'absolute',bottom:6,right:12,fontSize:10,color:'#9ca3af',textAlign:'right',lineHeight:1.4}}>
+              <span style={{fontStyle:'italic'}}>Edited by {audit.last_edited_by_name} · {new Date(audit.last_edited_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+            </div>
+          )}
         </div>
 
         <div className="card" style={{marginBottom:16}}>
