@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -15,7 +14,14 @@ const CATEGORY_LABELS = {
   foot_protection: 'Foot Protection',
   fall_protection: 'Fall Protection',
   wah_equipment: 'Working at Height Equipment',
+  documentation_safety_signage: 'Documentation & Safety Signage',
+  general_safety: 'General Safety',
+  maintenance_tools: 'Maintenance Tools',
+  testing_measuring: 'Testing & Measuring',
 };
+
+const CLOTHING_SIZES = ['XS','S','M','L','XL','XXL','XXXL'];
+const SHOE_SIZES = Array.from({length:12},(_,i)=>(36+i).toString());
 
 export default function AuditDetailPage() {
   const { auditId } = useParams();
@@ -25,13 +31,94 @@ export default function AuditDetailPage() {
   const [exporting, setExporting] = useState(false);
   const [docs, setDocs] = useState([]);
   const [preview, setPreview] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const reportRef = useRef(null);
+
+  const currentUser = JSON.parse(localStorage.getItem('esat_user') || '{}');
+  const isAdmin = currentUser.role === 'admin';
+
+  const canEdit = audit && (
+    isAdmin ||
+    (audit.audited_by === currentUser.id &&
+      (Date.now() - new Date(audit.created_at).getTime()) < 24 * 60 * 60 * 1000)
+  );
+
+  const loadAudit = () => {
+    api.get('/audits/' + auditId)
+      .then(r => { setAudit(r.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    api.get('/audit-documents/' + auditId).then(r => setDocs(r.data || [])).catch(() => {});
+    api.get('/locations').then(r => setLocations(r.data || [])).catch(() => {});
+    loadAudit();
+  }, [auditId]);
+
+  const startEdit = () => {
+    setEditData({
+      notes: audit.notes || '',
+      location_id: audit.location_id ? String(audit.location_id) : '',
+      employee_present: audit.employee_present,
+      items: audit.items.map(i => ({
+        ppe_item_id: i.ppe_item_id,
+        ppe_name: i.ppe_name,
+        category: i.category,
+        has_size: i.has_size,
+        size_type: i.size_type,
+        condition: i.condition,
+        size_value: i.size_value || '',
+        comment: i.comment || '',
+        quantity: i.quantity || 1,
+      }))
+    });
+    setSaveError('');
+    setEditing(true);
+  };
+
+  const cancelEdit = () => { setEditing(false); setEditData(null); setSaveError(''); };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    setSaveError('');
+    try {
+      await api.put('/audits/' + auditId, {
+        notes: editData.notes,
+        location_id: editData.location_id ? Number(editData.location_id) : null,
+        employee_present: editData.employee_present,
+        items: editData.items.map(i => ({
+          ppe_item_id: i.ppe_item_id,
+          condition: i.condition,
+          size_value: i.size_value || null,
+          comment: i.comment || null,
+          quantity: i.quantity || 1,
+        }))
+      });
+      setEditing(false);
+      setEditData(null);
+      loadAudit();
+    } catch(e) {
+      setSaveError(e.response?.data?.error || 'Save failed.');
+    }
+    setSaving(false);
+  };
+
+  const updateItem = (ppe_item_id, field, value) => {
+    setEditData(d => ({
+      ...d,
+      items: d.items.map(i => i.ppe_item_id === ppe_item_id ? {...i, [field]: value} : i)
+    }));
+  };
 
   const downloadDoc = async (e, doc) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     const token = localStorage.getItem('esat_token');
-    const res = await fetch(`https://esat-backend-drwm.onrender.com/api/audit-documents/${doc.id}/download`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const res = await fetch('https://esat-backend-drwm.onrender.com/api/audit-documents/' + doc.id + '/download', {
+      headers: { Authorization: 'Bearer ' + token }
     });
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
@@ -41,7 +128,6 @@ export default function AuditDetailPage() {
     a.click();
     window.URL.revokeObjectURL(url);
   };
-  const reportRef = useRef(null);
 
   const exportPDF = async () => {
     setExporting(true);
@@ -53,29 +139,22 @@ export default function AuditDetailPage() {
     const pageHeight = pdf.internal.pageSize.getHeight();
     const imgWidth = pageWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let y = 0;
-    let remaining = imgHeight;
+    let y = 0, remaining = imgHeight;
     while (remaining > 0) {
       pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight);
       remaining -= pageHeight;
       y += pageHeight;
       if (remaining > 0) pdf.addPage();
     }
-    pdf.save(`Audit_Report_${audit.employee_name?.replace(/ /g,'_')}_${audit.audit_date?.slice(0,10)}.pdf`);
+    pdf.save('Audit_Report_' + (audit.employee_name||'').replace(/ /g,'_') + '_' + (audit.audit_date||'').slice(0,10) + '.pdf');
     setExporting(false);
   };
-
-  useEffect(() => {
-    api.get(`/audit-documents/${auditId}`).then(r => setDocs(r.data || [])).catch(() => {});
-    api.get(`/audits/${auditId}`)
-      .then(r => { setAudit(r.data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [auditId]);
 
   if (loading) return <div className="content" style={{padding:40,textAlign:'center',color:'#6b7280'}}>Loading...</div>;
   if (!audit) return <div className="content" style={{padding:40,textAlign:'center',color:'#6b7280'}}>Audit not found.</div>;
 
-  const grouped = audit.items.reduce((acc, item) => {
+  const displayItems = editing ? editData.items : audit.items;
+  const grouped = displayItems.reduce((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
@@ -83,6 +162,7 @@ export default function AuditDetailPage() {
 
   const STATUS = { compliant: 'tag-green', partial: 'tag-amber', non_compliant: 'tag-red' };
   const STATUS_LABEL = { compliant: 'Compliant', partial: 'Partial', non_compliant: 'Non-compliant' };
+  const notPresent = editing ? !editData.employee_present : audit.employee_present === false;
 
   return (
     <>
@@ -92,11 +172,24 @@ export default function AuditDetailPage() {
           <span className="topbar-sep">›</span>
           <span className="topbar-breadcrumb" style={{cursor:'pointer'}} onClick={()=>navigate('/history')}>Audit History</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Audit Report</span>
+          <span className="topbar-title">{editing ? 'Edit Request' : 'Audit Report'}</span>
         </div>
         <div className="topbar-right">
-          <button className="btn" onClick={()=>navigate('/audits')}>← Back</button>
-          <button className="btn btn-primary" onClick={exportPDF} disabled={exporting}>{exporting ? 'Exporting...' : '↓ Export PDF'}</button>
+          {editing ? (
+            <>
+              {saveError && <span style={{color:'#e53e3e',fontSize:13,marginRight:8}}>{saveError}</span>}
+              <button className="btn" onClick={cancelEdit} disabled={saving}>✕ Cancel</button>
+              <button className="btn btn-primary" onClick={saveEdit} disabled={saving}>{saving ? 'Saving...' : '✓ Save Changes'}</button>
+            </>
+          ) : (
+            <>
+              <button className="btn" onClick={()=>navigate('/history')}>← Back</button>
+              {canEdit && (
+                <button className="btn" onClick={startEdit} style={{borderColor:'#1a2e4a',color:'#1a2e4a'}}>✎ Edit</button>
+              )}
+              <button className="btn btn-primary" onClick={exportPDF} disabled={exporting}>{exporting ? 'Exporting...' : '↓ Export PDF'}</button>
+            </>
+          )}
         </div>
       </div>
 
@@ -108,8 +201,9 @@ export default function AuditDetailPage() {
           </div>
           <img src="/egypro-watermark.png" alt="Egypro" style={{height:48,objectFit:'contain'}} />
         </div>
+
         <div className="card" style={{marginBottom:16}}>
-          {audit.employee_present === false && (
+          {notPresent && (
             <div style={{background:'#fff3cd',borderBottom:'0.5px solid #ffc107',padding:'10px 18px',display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontSize:20}}>⚠️</span>
               <div>
@@ -120,7 +214,17 @@ export default function AuditDetailPage() {
           )}
           <div className="card-header">
             <span className="card-title">Audit Summary</span>
-            <span className={`tag ${STATUS[audit.overall_status]}`}>{STATUS_LABEL[audit.overall_status]}</span>
+            {editing ? (
+              <button
+                onClick={() => setEditData(d => ({...d, employee_present: !d.employee_present}))}
+                className={'btn ' + (editData.employee_present ? 'btn-primary' : '')}
+                style={{fontSize:12,padding:'4px 12px'}}
+              >
+                {editData.employee_present ? '✓ Employee Present' : '✗ Not Present'}
+              </button>
+            ) : (
+              <span className={'tag ' + STATUS[audit.overall_status]}>{STATUS_LABEL[audit.overall_status]}</span>
+            )}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,padding:'16px 18px'}}>
             {[
@@ -135,21 +239,43 @@ export default function AuditDetailPage() {
               ['Resource Type', audit.is_casual ? 'Casual' : (audit.resource_type ? audit.resource_type.charAt(0).toUpperCase() + audit.resource_type.slice(1) : '—')],
               ['Audit Date', new Date(audit.audit_date).toLocaleDateString('en-GB')],
               ['Audited By', audit.audited_by_name],
-              ['Location', audit.location_name || '—'],
-              ['Total Items', audit.items.length],
-              ['Issues Found', audit.items.filter(i=>i.condition!=='good').length],
             ].map(([label, value]) => (
               <div key={label}>
                 <div style={{fontSize:11,color:'#6b7280',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.05em'}}>{label}</div>
                 <div style={{fontWeight:500,fontSize:14}}>{value}</div>
               </div>
             ))}
-          </div>
-          {audit.notes && (
-            <div style={{padding:'12px 18px',borderTop:'0.5px solid #e5e7eb',fontSize:13,color:'#374151'}}>
-              <span style={{fontWeight:500}}>Notes: </span>{audit.notes}
+            <div>
+              <div style={{fontSize:11,color:'#6b7280',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.05em'}}>Location</div>
+              {editing ? (
+                <select value={editData.location_id} onChange={e=>setEditData(d=>({...d,location_id:e.target.value}))}
+                  style={{fontSize:13,padding:'4px 8px',border:'1px solid #d1d5db',borderRadius:6,width:'100%'}}>
+                  <option value="">— Select —</option>
+                  {locations.filter(l=>l.is_active!==false).map(l=><option key={l.id} value={String(l.id)}>{l.name}</option>)}
+                </select>
+              ) : (
+                <div style={{fontWeight:500,fontSize:14}}>{audit.location_name || '—'}</div>
+              )}
             </div>
-          )}
+            <div>
+              <div style={{fontSize:11,color:'#6b7280',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.05em'}}>Total Items</div>
+              <div style={{fontWeight:500,fontSize:14}}>{audit.items.length}</div>
+            </div>
+            <div>
+              <div style={{fontSize:11,color:'#6b7280',marginBottom:2,textTransform:'uppercase',letterSpacing:'0.05em'}}>Issues Found</div>
+              <div style={{fontWeight:500,fontSize:14}}>{displayItems.filter(i=>i.condition!=='good').length}</div>
+            </div>
+          </div>
+          <div style={{padding:'12px 18px',borderTop:'0.5px solid #e5e7eb'}}>
+            <div style={{fontSize:11,color:'#6b7280',marginBottom:4,textTransform:'uppercase',letterSpacing:'0.05em'}}>Notes</div>
+            {editing ? (
+              <textarea value={editData.notes} onChange={e=>setEditData(d=>({...d,notes:e.target.value}))}
+                style={{width:'100%',fontSize:13,padding:'8px',border:'1px solid #d1d5db',borderRadius:6,resize:'vertical',minHeight:60,boxSizing:'border-box'}}
+                placeholder="General notes..." />
+            ) : (
+              <div style={{fontSize:13,color:'#374151'}}>{audit.notes || '—'}</div>
+            )}
+          </div>
         </div>
 
         <div className="card">
@@ -161,16 +287,50 @@ export default function AuditDetailPage() {
                 <div>PPE/Tool Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div>
               </div>
               {items.map(item => (
-                <div key={item.id} className="ppe-row">
+                <div key={item.ppe_item_id || item.id} className="ppe-row">
                   <div className="ppe-name">{item.ppe_name}</div>
                   <div className="ppe-cell">
-                    <span className={`tag ${item.condition==='good'?'tag-green':item.condition==='not_good'?'tag-red':'tag-amber'}`}>
-                      {item.condition==='good'?'✓ Good':item.condition==='not_good'?'✗ Not Good':'— Left at Home'}
-                    </span>
+                    {editing ? (
+                      <select value={item.condition} onChange={e=>updateItem(item.ppe_item_id,'condition',e.target.value)}
+                        style={{fontSize:12,padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:6}}>
+                        <option value="good">✓ Good</option>
+                        <option value="not_good">✗ Not Good</option>
+                        <option value="not_present">— Not Present</option>
+                      </select>
+                    ) : (
+                      <span className={'tag ' + (item.condition==='good'?'tag-green':item.condition==='not_good'?'tag-red':'tag-amber')}>
+                        {item.condition==='good'?'✓ Good':item.condition==='not_good'?'✗ Not Good':'— Left at Home'}
+                      </span>
+                    )}
                   </div>
-                  <div className="ppe-cell" style={{fontSize:13}}>{item.size_value || '—'}</div>
-                  <div className="ppe-cell" style={{fontSize:13,color:(item.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(item.quantity||1)>1?700:400}}>{item.quantity||1}</div>
-                  <div className="ppe-cell" style={{fontSize:12,color:'#6b7280'}}>{item.comment || '—'}</div>
+                  <div className="ppe-cell" style={{fontSize:13}}>
+                    {editing && item.has_size ? (
+                      <select value={item.size_value} onChange={e=>updateItem(item.ppe_item_id,'size_value',e.target.value)}
+                        style={{fontSize:12,padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:6}}>
+                        <option value="">—</option>
+                        {(item.size_type==='shoe' ? SHOE_SIZES : CLOTHING_SIZES).map(s=><option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : (item.size_value || '—')}
+                  </div>
+                  <div className="ppe-cell">
+                    {editing ? (
+                      <input type="number" min="1" value={item.quantity}
+                        onChange={e=>updateItem(item.ppe_item_id,'quantity',parseInt(e.target.value)||1)}
+                        style={{width:50,fontSize:12,padding:'3px 6px',border:'1px solid #d1d5db',borderRadius:6,textAlign:'center'}} />
+                    ) : (
+                      <span style={{fontSize:13,color:(item.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(item.quantity||1)>1?700:400}}>{item.quantity||1}</span>
+                    )}
+                  </div>
+                  <div className="ppe-cell">
+                    {editing ? (
+                      <input type="text" value={item.comment}
+                        onChange={e=>updateItem(item.ppe_item_id,'comment',e.target.value)}
+                        placeholder="Comment..."
+                        style={{fontSize:12,padding:'3px 8px',border:'1px solid #d1d5db',borderRadius:6,width:'100%'}} />
+                    ) : (
+                      <span style={{fontSize:12,color:'#6b7280'}}>{item.comment || '—'}</span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -196,6 +356,7 @@ export default function AuditDetailPage() {
           </div>
         )}
       </div>
+
       {preview && (
         <div onClick={() => setPreview(null)} style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div onClick={e => e.stopPropagation()} style={{background:'white',borderRadius:16,padding:24,maxWidth:'80vw',maxHeight:'85vh',overflow:'auto',position:'relative',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
