@@ -110,17 +110,11 @@ export default function PPERequestTrackerPage() {
   const canEdit = userRole === 'scm_officer' || userRole === 'admin';
 
   const exportCSV = () => {
-    const headers = ['employee_name','employee_number','employee_national_id','ppe_name','size_value','status','date_flagged','flagged_by_name','date_purchase_requested','purchase_requested_by_name','date_ordered','ordered_by_name','date_available','available_by_name','date_distributed','distributed_by_name'];
-    const labels = ['Employee','Employee No','National ID','PPE/Tool Item','Size','Status','Date Flagged','Flagged By','Date Purchase Request','Purchase Requested By','Date Ordered','Ordered By','Date Availed','Availed By','Date Distributed','Distributed By'];
-    const fmt = d => d ? new Date(d).toLocaleDateString('en-GB') : '';
+    const labels = ['Employee','National ID','PPE/Tool Item','Size','Status','Client','Project'];
     const rows = filtered.map(r => [
-      r.employee_name, r.employee_number, r.employee_national_id, r.ppe_name, r.size_value||'',
+      r.employee_name, r.employee_national_id, r.ppe_name, r.size_value||'',
       STATUS_LABELS[r.status]||r.status,
-      fmt(r.date_flagged), r.flagged_by_name||'',
-      fmt(r.date_purchase_requested), r.purchase_requested_by_name||'',
-      fmt(r.date_ordered), r.ordered_by_name||'',
-      fmt(r.date_available), r.available_by_name||'',
-      fmt(r.date_distributed), r.distributed_by_name||'',
+      r.client||'', r.project||'',
     ].map(v => String(v).includes(',') ? '"'+v+'"' : v).join(','));
     const csv = [labels.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
