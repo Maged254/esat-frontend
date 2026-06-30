@@ -89,7 +89,7 @@ export default function AuditDetailPage() {
       await api.put('/audits/' + auditId, {
         notes: editData.notes,
         location_id: editData.location_id ? Number(editData.location_id) : null,
-        employee_present: editData.employee_present,
+        employee_present: audit.employee_present,
         items: editData.items.map(i => ({
           ppe_item_id: i.ppe_item_id,
           condition: i.condition,
@@ -214,17 +214,7 @@ export default function AuditDetailPage() {
           )}
           <div className="card-header">
             <span className="card-title">Audit Summary</span>
-            {editing ? (
-              <button
-                onClick={() => setEditData(d => ({...d, employee_present: !d.employee_present}))}
-                className={'btn ' + (editData.employee_present ? 'btn-primary' : '')}
-                style={{fontSize:12,padding:'4px 12px'}}
-              >
-                {editData.employee_present ? '✓ Employee Present' : '✗ Not Present'}
-              </button>
-            ) : (
               <span className={'tag ' + STATUS[audit.overall_status]}>{STATUS_LABEL[audit.overall_status]}</span>
-            )}
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,padding:'16px 18px'}}>
             {[
