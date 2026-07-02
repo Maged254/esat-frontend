@@ -377,6 +377,7 @@ export default function PPERequestTrackerPage() {
                     <td>
                       <div className="emp-name">{r.employee_name}</div>
                       <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
+                      {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
                     </td>
                     <td>{r.ppe_name}</td>
                     <td>{r.size_value || '—'}</td>
