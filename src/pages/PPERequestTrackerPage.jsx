@@ -306,9 +306,9 @@ export default function PPERequestTrackerPage() {
             </div>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)'}}>
-            <table style={{borderCollapse:'separate',borderSpacing:0}}>
+            <table style={{borderCollapse:'separate',borderSpacing:0,borderTop:0}}>
               <thead>
-                <tr style={{position:'sticky',top:0,zIndex:4,borderBottom:'none'}}>
+                <tr style={{position:'sticky',top:0,zIndex:4,borderBottom:'none',borderTop:'none'}}>
                   <th colSpan={6} style={{background:'white',border:'none',borderBottom:'none',padding:'4px 0'}}></th>
                   <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
                   <th colSpan={1} style={{textAlign:'center',background:'#d8b4fe',color:'#5b21b6',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
