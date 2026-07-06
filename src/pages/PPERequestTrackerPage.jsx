@@ -306,7 +306,7 @@ export default function PPERequestTrackerPage() {
             </div>
           </div>
           <div style={{overflowX:'auto'}}>
-            <table>
+            <table style={{borderCollapse:'separate',borderSpacing:0}}>
               <thead>
                 <tr>
                   <th rowSpan={2} style={{position:'sticky',top:0,left:0,zIndex:5,background:'#f9fafb',minWidth:160,maxWidth:160,verticalAlign:'bottom'}}>Employee</th>
