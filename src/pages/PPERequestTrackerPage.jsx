@@ -309,6 +309,15 @@ export default function PPERequestTrackerPage() {
             <table>
               <thead>
                 <tr style={{position:'sticky',top:0,zIndex:4}}>
+                  <th colSpan={6} style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#bfdbfe',color:'#1e40af',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#e9d5ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#a7f3d0',color:'#065f46',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#fed7aa',color:'#9a3412',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>Projects</th>
+                  <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
+                  {bulkTarget && <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>}
+                </tr>
+                <tr style={{position:'sticky',top:'29px',zIndex:4}}>
                   <th>Employee</th>
                   <th>PPE/Tool Item</th>
                   <th>Size</th>
