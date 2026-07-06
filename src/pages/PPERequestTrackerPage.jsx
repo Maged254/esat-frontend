@@ -305,7 +305,7 @@ export default function PPERequestTrackerPage() {
               <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
-          <div style={{overflowX:'auto'}}>
+          <div style={{overflow:'auto',maxHeight:'calc(100vh - 280px)'}}>
             <table style={{borderCollapse:'separate',borderSpacing:0}}>
               <thead>
                 <tr>
