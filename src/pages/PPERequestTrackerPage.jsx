@@ -315,10 +315,10 @@ export default function PPERequestTrackerPage() {
                   <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb',verticalAlign:'middle'}}>Qty</th>
                   <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb',verticalAlign:'middle'}}>Location</th>
                   <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb',verticalAlign:'middle'}}>Project / Client</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>EHS</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>PM</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>SCM</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>Projects</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderTop:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>EHS</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderTop:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>PM</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderTop:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderTop:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>Projects</th>
                   <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb',verticalAlign:'middle'}}>Status</th>
                   {bulkTarget && <th rowSpan={2}></th>}
                 </tr>
