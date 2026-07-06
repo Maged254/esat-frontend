@@ -305,30 +305,30 @@ export default function PPERequestTrackerPage() {
               <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
-          <div style={{overflowX:'auto'}}>
+          <div style={{overflowX:'auto',overflowY:'auto',maxHeight:'70vh',position:'relative'}}>
             <table>
               <thead>
                 <tr>
-                  <th rowSpan={2}>Employee</th>
-                  <th rowSpan={2}>PPE/Tool Item</th>
-                  <th rowSpan={2}>Size</th>
-                  <th rowSpan={2}>Qty</th>
-                  <th rowSpan={2}>Location</th>
-                  <th rowSpan={2}>Project / Client</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>EHS</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>PM</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>SCM</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Projects</th>
-                  <th rowSpan={2}>Status</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,left:0,zIndex:5,background:'#f9fafb',minWidth:160,maxWidth:160}}>Employee</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,left:160,zIndex:5,background:'#f9fafb',minWidth:220,maxWidth:220,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>PPE/Tool Item</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb'}}>Size</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb'}}>Qty</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb'}}>Location</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb'}}>Project / Client</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e6f1fb',color:'#0c447c',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>EHS</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#f3e8ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>PM</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'#e8f5e9',color:'#1d9e75',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'#fff3e0',color:'#e65100',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:0,zIndex:3}}>Projects</th>
+                  <th rowSpan={2} style={{position:'sticky',top:0,zIndex:3,background:'#f9fafb'}}>Status</th>
                   {bulkTarget && <th rowSpan={2}></th>}
                 </tr>
                 <tr>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
-                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'1px solid #e5e7eb'}}>Purchase Request</th>
-                  <th style={{width:100,minWidth:100,background:'#f3e8ff',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Approved</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'1px solid #e5e7eb'}}>Ordered</th>
-                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'1px solid #e5e7eb'}}>Availed</th>
-                  <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Distributed</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderLeft:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Flagged</th>
+                  <th style={{width:100,minWidth:100,background:'#f0f7ff',borderRight:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Purchase Request</th>
+                  <th style={{width:100,minWidth:100,background:'#f3e8ff',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Approved</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderLeft:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Ordered</th>
+                  <th style={{width:100,minWidth:100,background:'#f0fff4',borderRight:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Availed</th>
+                  <th style={{width:100,minWidth:100,background:'#fff8f0',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',position:'sticky',top:'2.2em',zIndex:3}}>Distributed</th>
                 </tr>
               </thead>
               <tbody>
