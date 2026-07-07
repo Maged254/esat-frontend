@@ -318,12 +318,12 @@ export default function PPERequestTrackerPage() {
                   {bulkTarget && <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>}
                 </tr>
                 <tr style={{position:'sticky',top:'29px',zIndex:4}}>
-                  <th>Employee</th>
-                  <th>PPE/Tool Item</th>
-                  <th>Size</th>
-                  <th>Qty</th>
-                  <th>Location</th>
-                  <th>Project / Client</th>
+                  <th style={{minWidth:150}}>Employee</th>
+                  <th style={{minWidth:200}}>PPE/Tool Item</th>
+                  <th style={{minWidth:60}}>Size</th>
+                  <th style={{minWidth:50}}>Qty</th>
+                  <th style={{minWidth:100}}>Location</th>
+                  <th style={{minWidth:120}}>Project / Client</th>
                   <th style={{width:100,minWidth:100,background:'#eff6ff',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
                   <th style={{width:100,minWidth:100,background:'#eff6ff',borderRight:'1px solid #e5e7eb'}}>Purchase Request</th>
                   <th style={{width:100,minWidth:100,background:'#f5f3ff',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Approved</th>
