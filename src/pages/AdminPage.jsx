@@ -79,9 +79,10 @@ export default function AdminPage() {
   };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] });
   const [preview, setPreview] = useState(null);
   const [allProjects, setAllProjects] = useState([]);
+  const [allClients, setAllClients] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileRef = useRef();
@@ -91,6 +92,8 @@ export default function AdminPage() {
     api.get('/employees?status=active').then(r => {
       const projects = [...new Set(r.data.map(e => e.project).filter(Boolean))].sort();
       setAllProjects(projects);
+      const clients = [...new Set(r.data.map(e => e.client).filter(Boolean))].sort();
+      setAllClients(clients);
     }).catch(console.error);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
     api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
@@ -121,7 +124,7 @@ export default function AdminPage() {
       }
       setShowAddUser(false);
       setEditUser(null);
-      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] });
+      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] });
       setPreview(null);
     } catch(e) {
       setError(e.response?.data?.error || 'Failed');
@@ -135,7 +138,7 @@ export default function AdminPage() {
 
   const startEdit = (user) => {
     setEditUser(user);
-    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [] });
+    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [], client_access: user.client_access || [] });
     setPreview(user.profile_picture || null);
     setShowAddUser(true);
   };
@@ -173,7 +176,7 @@ export default function AdminPage() {
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('users')}>
             <span className="card-title">User Management</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -267,6 +270,37 @@ export default function AdminPage() {
                   </div>
                   {(form.project_access||[]).length > 0 && (
                     <div style={{fontSize:11,color:'#1D9E75',marginTop:4}}>{(form.project_access||[]).length} project(s) selected</div>
+                  )}
+                </div>
+                {['ehs_officer','supervisor','scm_officer','project_director'].includes(form.role) && (
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Client Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
+                  <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0 8px', fontSize:13, cursor:'pointer', borderBottom:'1px solid #e5e7eb', marginBottom:4 }}>
+                      <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                        checked={(form.client_access||[]).length === allClients.length && allClients.length > 0}
+                        onChange={e => setForm(prev => ({ ...prev, client_access: e.target.checked ? [...allClients] : [] }))}
+                      />
+                      <span style={{fontWeight:600,color:'#0f2a4a'}}>All Clients</span>
+                    </label>
+                    {allClients.map(c => (
+                      <label key={c} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 0', fontSize:13, cursor:'pointer' }}>
+                        <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                          checked={(form.client_access||[]).includes(c)}
+                          onChange={e => setForm(prev => ({
+                            ...prev,
+                            client_access: e.target.checked
+                              ? [...(prev.client_access||[]), c]
+                              : (prev.client_access||[]).filter(x => x !== c)
+                          }))}
+                        />
+                        {c}
+                      </label>
+                    ))}
+                    {allClients.length === 0 && <div style={{fontSize:12,color:'#9ca3af'}}>No clients found</div>}
+                  </div>
+                  {(form.client_access||[]).length > 0 && (
+                    <div style={{fontSize:11,color:'#1D9E75',marginTop:4}}>{(form.client_access||[]).length} client(s) selected</div>
                   )}
                 </div>
               )}
