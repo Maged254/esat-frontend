@@ -136,6 +136,11 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.id === user.id ? {...u, is_active: res.data.is_active} : u));
   };
 
+  const unlockUser = async (user) => {
+    const res = await api.put(`/users/${user.id}/unlock`);
+    setUsers(prev => prev.map(u => u.id === user.id ? {...u, failed_login_attempts: res.data.failed_login_attempts, locked_until: res.data.locked_until} : u));
+  };
+
   const forcePasswordResetAll = async () => {
     if (!window.confirm('Require all other users to change their password the next time they log in?')) return;
     try {
@@ -391,11 +396,13 @@ export default function AdminPage() {
                   <td>
                     <span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span>
                     {u.must_reset_password && <span className="tag tag-amber" style={{ marginLeft: 4 }}>Reset Pending</span>}
+                    {u.locked_until && new Date(u.locked_until) > new Date() && <span className="tag tag-red" style={{ marginLeft: 4 }}>Locked</span>}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn btn-sm" onClick={() => startEdit(u)}>Edit</button>
                       <button className="btn btn-sm" onClick={() => toggleActive(u)}>{u.is_active ? 'Deactivate' : 'Activate'}</button>
+                      {u.locked_until && new Date(u.locked_until) > new Date() && <button className="btn btn-sm" onClick={() => unlockUser(u)}>Unlock</button>}
                     </div>
                   </td>
                 </tr>
