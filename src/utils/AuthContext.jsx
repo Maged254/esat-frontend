@@ -1,7 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from './api';
 
 const AuthContext = createContext(null);
+const IDLE_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes of inactivity auto-logs out
+const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
+const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -34,11 +37,11 @@ export function AuthProvider({ children }) {
     return res.data.user;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('esat_token');
     localStorage.removeItem('esat_user');
     setUser(null);
-  };
+  }, []);
 
   const refreshUser = async () => {
     const res = await api.get('/auth/me');
@@ -47,6 +50,26 @@ export function AuthProvider({ children }) {
     localStorage.setItem('esat_user', JSON.stringify(userData));
     return userData;
   };
+
+  // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity.
+  useEffect(() => {
+    if (!user) return;
+    let lastActivity = Date.now();
+    const markActive = () => { lastActivity = Date.now(); };
+    ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, markActive, { passive: true }));
+
+    const interval = setInterval(() => {
+      if (Date.now() - lastActivity >= IDLE_TIMEOUT_MS) {
+        sessionStorage.setItem('esat_idle_logout', '1');
+        logout();
+      }
+    }, IDLE_CHECK_INTERVAL_MS);
+
+    return () => {
+      ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, markActive));
+      clearInterval(interval);
+    };
+  }, [user, logout]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>

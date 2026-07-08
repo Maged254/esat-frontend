@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 
@@ -9,6 +9,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (sessionStorage.getItem('esat_idle_logout')) {
+      sessionStorage.removeItem('esat_idle_logout');
+      setError('You were logged out due to inactivity. Please sign in again.');
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
