@@ -65,6 +65,7 @@ export default function PPERequestTrackerPage() {
   const [poNumber, setPoNumber] = useState('');
   const [trackingModal, setTrackingModal] = useState(null);
   const [groupMode, setGroupMode] = useState('none'); // 'none' | 'po' | 'employee'
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     try {
@@ -101,6 +102,8 @@ export default function PPERequestTrackerPage() {
       return;
     }
     reload();
+    setSuccessMsg(selected.length + ' item(s) updated to "' + STATUS_LABELS[bulkTarget] + '"!');
+    setTimeout(() => setSuccessMsg(''), 3000);
     cancelBulk();
   };
 
@@ -204,6 +207,7 @@ export default function PPERequestTrackerPage() {
         </div>
       </div>
       <div className="content">
+        {successMsg && <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{successMsg}</div>}
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(6,1fr)'}}>
           <div className="stat-card" style={{cursor:'pointer',outline:!filters.status?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupMode('none');}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
           <div className="stat-card" style={{cursor:'pointer',outline:filters.status==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupMode('none');}}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{requests.filter(r=>r.status==='pending').length}</div></div>
