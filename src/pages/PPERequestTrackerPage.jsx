@@ -88,17 +88,27 @@ export default function PPERequestTrackerPage() {
   const applyBulk = async () => {
     if (selected.length === 0) return;
     if (!window.confirm('Change ' + selected.length + ' item(s) to "' + STATUS_LABELS[bulkTarget] + '"?')) return;
-    await Promise.all(selected.map(id => api.put('/ppe-requests/' + id + '/status', {
-      status: bulkTarget,
-      po_number: bulkTarget === 'scm_ordered' ? poNumber : undefined,
-      distribution_method: bulkTarget === 'distributed' ? distributionMethod : undefined,
-      courier_tracking_number: bulkTarget === 'distributed' && distributionMethod === 'courier' ? courierTracking : undefined,
-    })));
+    try {
+      await Promise.all(selected.map(id => api.put('/ppe-requests/' + id + '/status', {
+        status: bulkTarget,
+        po_number: bulkTarget === 'scm_ordered' ? poNumber : undefined,
+        distribution_method: bulkTarget === 'distributed' ? distributionMethod : undefined,
+        courier_tracking_number: bulkTarget === 'distributed' && distributionMethod === 'courier' ? courierTracking : undefined,
+      })));
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to update status');
+      reload();
+      return;
+    }
     reload();
     cancelBulk();
   };
 
-  const isEligible = (r) => bulkTarget && ELIGIBLE_STATUSES[bulkTarget]?.includes(r.status);
+  const isEligible = (r) => {
+    if (!bulkTarget || !ELIGIBLE_STATUSES[bulkTarget]?.includes(r.status)) return false;
+    if (r.status === 'ehs_purchase_requested' && r.needs_pda && !r.pda_approved_date) return false;
+    return true;
+  };
 
   const filtered = requests.filter(r => {
     if (filters.status === 'pda_pending') { if (r.status !== 'ehs_purchase_requested' || !r.needs_pda) return false; }
