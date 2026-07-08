@@ -241,7 +241,7 @@ export default function AdminPage() {
                   </select>
                 </div>
               </div>
-              {['ehs_officer','supervisor','scm_officer','project_director'].includes(form.role) && (
+              {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(form.role) && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Project Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
                   <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
@@ -273,7 +273,7 @@ export default function AdminPage() {
                   )}
                 </div>
               )}
-                {['ehs_officer','supervisor','scm_officer','project_director'].includes(form.role) && (
+                {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(form.role) && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Client Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
                   <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
@@ -357,12 +357,12 @@ export default function AdminPage() {
                   <td style={{ color: '#6b7280', fontSize: 12 }}>{u.email}</td>
                   <td>{ROLE_TAG[u.role] || <span className="tag tag-gray">{u.role}</span>}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>
-                    {['ehs_officer','supervisor','scm_officer','project_director'].includes(u.role)
+                    {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(u.role)
                       ? (u.project_access?.length > 0 ? (u.project_access.length === allProjects.length && allProjects.length > 0 ? <span style={{color:'#1D9E75'}}>All Projects</span> : u.project_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All projects</span>}
                   </td>
                   <td style={{fontSize:12,color:'#6b7280'}}>
-                    {['ehs_officer','supervisor','scm_officer','project_director'].includes(u.role)
+                    {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(u.role)
                       ? (u.client_access?.length > 0 ? (u.client_access.length === allClients.length && allClients.length > 0 ? <span style={{color:'#1D9E75'}}>All Clients</span> : u.client_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All clients</span>}
                   </td>
