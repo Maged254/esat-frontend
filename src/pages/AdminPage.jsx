@@ -28,7 +28,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Locations
@@ -38,6 +38,25 @@ export default function AdminPage() {
   const [locForm, setLocForm] = useState({ name: '' });
   const [locSaving, setLocSaving] = useState(false);
   const [locError, setLocError] = useState('');
+
+  // System Logs (admin only)
+  const [logs, setLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsErrorsOnly, setLogsErrorsOnly] = useState(false);
+  const [logsSearch, setLogsSearch] = useState('');
+  const [expandedLog, setExpandedLog] = useState(null);
+
+  const loadLogs = () => {
+    setLogsLoading(true);
+    api.get('/admin/logs', { params: { errorsOnly: logsErrorsOnly, search: logsSearch || undefined } })
+      .then(r => setLogs(r.data))
+      .catch(console.error)
+      .finally(() => setLogsLoading(false));
+  };
+
+  useEffect(() => {
+    if (openSections.logs) loadLogs();
+  }, [openSections.logs, logsErrorsOnly]); // eslint-disable-line
 
   const CATEGORIES = [
     'body_protection','documentation_safety_signage','fall_protection',
@@ -576,6 +595,62 @@ export default function AdminPage() {
           </>}
         </div>
 
+        {/* System Logs */}
+        <div className="card">
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('logs')}>
+            <span className="card-title">System Logs</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.logs && <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={e => { e.stopPropagation(); loadLogs(); }}>{logsLoading ? 'Loading...' : 'Refresh'}</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.logs ? '▲' : '▼'}</span>
+            </div>
+          </div>
+          {openSections.logs && <>
+            <div style={{ display:'flex', gap:8, marginBottom:12, alignItems:'center' }}>
+              <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:260 }}
+                placeholder="Search endpoint, IP, or user email..." value={logsSearch}
+                onChange={e=>setLogsSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') loadLogs(); }}
+              />
+              <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={loadLogs}>Search</button>
+              <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer' }}>
+                <input type="checkbox" style={{ accentColor:'#1D9E75' }} checked={logsErrorsOnly} onChange={e => setLogsErrorsOnly(e.target.checked)} />
+                Errors only
+              </label>
+              <span style={{ fontSize:12, color:'#6b7280' }}>{logs.length} log(s) &middot; last 30 days retained</span>
+            </div>
+            <table>
+              <thead><tr><th>Time</th><th>User</th><th>Endpoint</th><th>IP</th><th>Status</th><th>Duration</th></tr></thead>
+              <tbody>
+                {logs.map(l => (
+                  <React.Fragment key={l.id}>
+                    <tr
+                      style={{ cursor: l.error_detail ? 'pointer' : 'default' }}
+                      onClick={() => l.error_detail && setExpandedLog(expandedLog === l.id ? null : l.id)}
+                    >
+                      <td style={{fontSize:12,color:'#6b7280',whiteSpace:'nowrap'}}>{new Date(l.created_at).toLocaleString('en-GB')}</td>
+                      <td style={{fontSize:12}}>{l.user_name || <span style={{color:'#9ca3af'}}>—</span>}{l.user_email && <div style={{fontSize:10,color:'#6b7280'}}>{l.user_email}</div>}</td>
+                      <td style={{fontSize:12,fontFamily:'monospace'}}>{l.endpoint}</td>
+                      <td style={{fontSize:12,color:'#6b7280'}}>{l.ip}</td>
+                      <td>
+                        <span className={`tag ${l.status_code >= 500 ? 'tag-red' : l.status_code >= 400 ? 'tag-amber' : 'tag-green'}`} style={{fontSize:10}}>{l.status_code}</span>
+                        {l.error_detail && <span style={{fontSize:10,color:'#e53e3e',marginLeft:6}}>▸ error</span>}
+                      </td>
+                      <td style={{fontSize:12,color:'#6b7280'}}>{l.duration_ms}ms</td>
+                    </tr>
+                    {expandedLog === l.id && l.error_detail && (
+                      <tr>
+                        <td colSpan={6} style={{ background:'#f9fafb', fontFamily:'monospace', fontSize:11, whiteSpace:'pre-wrap', padding:'8px 12px', color:'#A32D2D' }}>
+                          {l.error_detail}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+                {logs.length === 0 && !logsLoading && <tr><td colSpan={6} style={{fontSize:12,color:'#9ca3af',textAlign:'center',padding:16}}>No logs found</td></tr>}
+              </tbody>
+            </table>
+          </>}
+        </div>
 
       </div>
     </>
