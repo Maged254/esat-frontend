@@ -9,12 +9,21 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validatePassword = (pw) => {
+    if (pw.length < 12) return 'Password must be at least 12 characters';
+    if (!/[A-Z]/.test(pw)) return 'Password must include an uppercase letter';
+    if (!/[a-z]/.test(pw)) return 'Password must include a lowercase letter';
+    if (!/[0-9]/.test(pw)) return 'Password must include a number';
+    if (!/[^A-Za-z0-9]/.test(pw)) return 'Password must include a special character';
+    return null;
+  };
+
   const handleSubmit = async () => {
     setError(''); setSuccess('');
     if (form.newPassword !== form.confirmPassword)
       return setError('New passwords do not match');
-    if (form.newPassword.length < 8)
-      return setError('Password must be at least 8 characters');
+    const pwError = validatePassword(form.newPassword);
+    if (pwError) return setError(pwError);
     setLoading(true);
     try {
       await api.post('/auth/change-password', {
@@ -71,6 +80,7 @@ export default function ProfilePage() {
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label className="form-label">New Password</label>
               <input className="form-input" type="password" value={form.newPassword} onChange={e => setForm(p => ({...p, newPassword: e.target.value}))} placeholder="••••••••" />
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>At least 12 characters, with uppercase, lowercase, a number, and a special character.</div>
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label className="form-label">Confirm New Password</label>
