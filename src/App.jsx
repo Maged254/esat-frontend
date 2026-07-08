@@ -19,11 +19,13 @@ import GraphsPage from './pages/GraphsPage';
 import AuditCoveragePage from './pages/AuditCoveragePage';
 import CasualsPage from './pages/CasualsPage';
 import RequestPPEPage from './pages/RequestPPEPage';
+import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="loading-screen">Loading ESAT...</div>;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.must_reset_password) return <ForcedPasswordResetPage />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;
 }

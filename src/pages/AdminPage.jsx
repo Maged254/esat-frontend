@@ -79,7 +79,7 @@ export default function AdminPage() {
   };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false });
   const [preview, setPreview] = useState(null);
   const [allProjects, setAllProjects] = useState([]);
   const [allClients, setAllClients] = useState([]);
@@ -124,7 +124,7 @@ export default function AdminPage() {
       }
       setShowAddUser(false);
       setEditUser(null);
-      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] });
+      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false });
       setPreview(null);
     } catch(e) {
       setError(e.response?.data?.error || 'Failed');
@@ -136,9 +136,20 @@ export default function AdminPage() {
     setUsers(prev => prev.map(u => u.id === user.id ? {...u, is_active: res.data.is_active} : u));
   };
 
+  const forcePasswordResetAll = async () => {
+    if (!window.confirm('Require all other users to change their password the next time they log in?')) return;
+    try {
+      const res = await api.post('/admin/force-password-reset');
+      alert(`${res.data.count} user(s) will be required to set a new password on next login.`);
+      api.get('/users').then(r => setUsers(r.data)).catch(console.error);
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to force password reset');
+    }
+  };
+
   const startEdit = (user) => {
     setEditUser(user);
-    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [], client_access: user.client_access || [] });
+    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [], client_access: user.client_access || [], must_reset_password: user.must_reset_password || false });
     setPreview(user.profile_picture || null);
     setShowAddUser(true);
   };
@@ -176,7 +187,8 @@ export default function AdminPage() {
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('users')}>
             <span className="card-title">User Management</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [] }); setPreview(null); setError(''); }}>+ Add User</button>}
+              {openSections.users && <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={e => { e.stopPropagation(); forcePasswordResetAll(); }}>Force Password Reset (All)</button>}
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false }); setPreview(null); setError(''); }}>+ Add User</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -337,6 +349,15 @@ export default function AdminPage() {
                   )}
                 </div>
               )}
+              {editUser && (
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer', marginBottom:16 }}>
+                  <input type="checkbox" style={{ accentColor:'#1D9E75' }}
+                    checked={!!form.must_reset_password}
+                    onChange={e => setForm(prev => ({ ...prev, must_reset_password: e.target.checked }))}
+                  />
+                  Require password reset on next login
+                </label>
+              )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-primary" onClick={handleSubmit}>{editUser ? 'Save Changes' : 'Create User'}</button>
                 <button className="btn" onClick={() => { setShowAddUser(false); setEditUser(null); setError(''); setPreview(null); }}>Cancel</button>
@@ -367,7 +388,10 @@ export default function AdminPage() {
                       ? (u.client_access?.length > 0 ? (u.client_access.length === allClients.length && allClients.length > 0 ? <span style={{color:'#1D9E75'}}>All Clients</span> : u.client_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All clients</span>}
                   </td>
-                  <td><span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span>
+                    {u.must_reset_password && <span className="tag tag-amber" style={{ marginLeft: 4 }}>Reset Pending</span>}
+                  </td>
                   <td>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button className="btn btn-sm" onClick={() => startEdit(u)}>Edit</button>
