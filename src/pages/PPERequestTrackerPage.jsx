@@ -25,17 +25,6 @@ const ELIGIBLE_STATUSES = {
   distributed: ['ehs_purchase_requested', 'scm_ordered', 'warehouse_available'],
 };
 
-const dateCell = (date, name) => (
-  <td style={{fontSize:12}}>
-    {date ? (
-      <div>
-        <div>{new Date(date).toLocaleDateString('en-GB')}</div>
-        {name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{name}</div>}
-      </div>
-    ) : '—'}
-  </td>
-);
-
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
   const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', projects: [], clients: [], location: '' });
@@ -112,6 +101,51 @@ export default function PPERequestTrackerPage() {
     if (r.status === 'ehs_purchase_requested' && r.needs_pda && !r.pda_approved_date) return false;
     return true;
   };
+
+  // Shared row renderer — used by the PO-grouped, employee-grouped, and
+  // ungrouped table views so the ~14 columns only need to be defined once.
+  const renderRow = (r) => (
+    <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
+      <td>
+        <div className="emp-name">{r.employee_name}</div>
+        <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
+        {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
+      </td>
+      <td>{r.ppe_name}</td>
+      <td>{r.size_value || '—'}</td>
+      <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
+      <td style={{fontSize:12}}>{r.location_name || '—'}</td>
+      <td style={{fontSize:12}}><div>{r.project || '—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td>
+      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
+      <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
+      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.pda_approved_date?<div><div>{new Date(r.pda_approved_date).toLocaleDateString('en-GB')}</div>{r.pda_approved_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.pda_approved_by_name}</div>}</div>:(r.needs_pda?'—':'N/A')}</td>
+      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}{r.po_number&&<div style={{fontSize:10,fontWeight:700,color:'#0f2a4a',marginTop:2}}>{r.po_number}</div>}</div>:'—'}</td>
+      <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
+      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>
+        {r.date_distributed ? (
+          <div>
+            <div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>
+            {r.distributed_by_name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}
+            {r.distribution_method === 'courier' && (
+              <span
+                onClick={() => setTrackingModal(r.courier_tracking_number || 'No tracking number entered')}
+                style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fed7aa',color:'#9a3412',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
+              >Courier ›</span>
+            )}
+          </div>
+        ) : '—'}
+      </td>
+      <td><span className={'tag ' + ((r.status==='ehs_purchase_requested'&&r.needs_pda)?'tag-purple':(STATUS_COLORS[r.status]||'tag-gray'))}>{(r.status==='ehs_purchase_requested'&&r.needs_pda)?'Pending PM':(STATUS_LABELS[r.status]||r.status)}</span></td>
+      {bulkTarget && (
+        <td style={{textAlign:'center'}}>
+          {isEligible(r) && (
+            <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
+              style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
+          )}
+        </td>
+      )}
+    </tr>
+  );
 
   const filtered = requests.filter(r => {
     if (filters.status === 'pda_pending') { if (r.status !== 'ehs_purchase_requested' || !r.needs_pda) return false; }
@@ -370,7 +404,7 @@ export default function PPERequestTrackerPage() {
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
                       rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:12,fontWeight:500,color:'#185fa5',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.size_value||'—'}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}</td><td colSpan={bulkTarget?9:8} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
-                      g.rows.forEach(r => rows.push(<tr key={r.id} style={{background:bulkTarget&&isEligible(r)?'rgba(29,158,117,0.05)':''}}><td><div className="emp-name">{r.employee_name}</div><div className="emp-id">{r.employee_national_id||r.employee_number}</div>{r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}</td><td>{r.ppe_name}</td><td>{r.size_value||'—'}</td><td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td><td style={{fontSize:12}}>{r.location_name||'—'}</td><td style={{fontSize:12}}><div>{r.project||'—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.pda_approved_date?<div><div>{new Date(r.pda_approved_date).toLocaleDateString('en-GB')}</div>{r.pda_approved_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.pda_approved_by_name}</div>}</div>:(r.needs_pda?'—':'N/A')}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}{r.po_number&&<div style={{fontSize:10,fontWeight:700,color:'#0f2a4a',marginTop:2}}>{r.po_number}</div>}</div>:'—'}</td><td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.date_distributed?<div><div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>{r.distributed_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}{r.distribution_method==='courier'&&<span onClick={()=>setTrackingModal(r.courier_tracking_number||'No tracking number entered')} style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fed7aa',color:'#9a3412',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}>Courier ›</span>}</div>:'—'}</td><td><span className={'tag '+((r.status==='ehs_purchase_requested'&&r.needs_pda)?'tag-purple':(STATUS_COLORS[r.status]||'tag-gray'))}>{(r.status==='ehs_purchase_requested'&&r.needs_pda)?'Pending PM':(STATUS_LABELS[r.status]||r.status)}</span></td>{bulkTarget&&<td style={{textAlign:'center'}}>{isEligible(r)&&<input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}</tr>));
+                      g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
                   });
@@ -389,53 +423,12 @@ export default function PPERequestTrackerPage() {
                       employees.forEach(emp => {
                         const empRows = projRows.filter(r => (r.employee_name || '—') === emp);
                         rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?13:12} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
-                        empRows.forEach(r => rows.push(<tr key={r.id} style={{background:bulkTarget&&isEligible(r)?'rgba(29,158,117,0.05)':''}}><td><div className="emp-name">{r.employee_name}</div><div className="emp-id">{r.employee_national_id||r.employee_number}</div>{r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}</td><td>{r.ppe_name}</td><td>{r.size_value||'—'}</td><td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td><td style={{fontSize:12}}>{r.location_name||'—'}</td><td style={{fontSize:12}}><div>{r.project||'—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.pda_approved_date?<div><div>{new Date(r.pda_approved_date).toLocaleDateString('en-GB')}</div>{r.pda_approved_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.pda_approved_by_name}</div>}</div>:(r.needs_pda?'—':'N/A')}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}{r.po_number&&<div style={{fontSize:10,fontWeight:700,color:'#0f2a4a',marginTop:2}}>{r.po_number}</div>}</div>:'—'}</td><td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td><td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.date_distributed?<div><div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>{r.distributed_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}{r.distribution_method==='courier'&&<span onClick={()=>setTrackingModal(r.courier_tracking_number||'No tracking number entered')} style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fed7aa',color:'#9a3412',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}>Courier ›</span>}</div>:'—'}</td><td><span className={'tag '+((r.status==='ehs_purchase_requested'&&r.needs_pda)?'tag-purple':(STATUS_COLORS[r.status]||'tag-gray'))}>{(r.status==='ehs_purchase_requested'&&r.needs_pda)?'Pending PM':(STATUS_LABELS[r.status]||r.status)}</span></td>{bulkTarget&&<td style={{textAlign:'center'}}>{isEligible(r)&&<input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}</tr>));
+                        empRows.forEach(r => rows.push(renderRow(r)));
                       });
                     });
                   });
                   return rows;
-                })() : filtered.map(r => (
-                  <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
-                    <td>
-                      <div className="emp-name">{r.employee_name}</div>
-                      <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
-                      {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
-                    </td>
-                    <td>{r.ppe_name}</td>
-                    <td>{r.size_value || '—'}</td>
-                    <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
-                    <td style={{fontSize:12}}>{r.location_name || '—'}</td>
-                    <td style={{fontSize:12}}><div>{r.project || '—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td>
-                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
-                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
-                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.pda_approved_date?<div><div>{new Date(r.pda_approved_date).toLocaleDateString('en-GB')}</div>{r.pda_approved_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.pda_approved_by_name}</div>}</div>:(r.needs_pda?'—':'N/A')}</td>
-                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}{r.po_number&&<div style={{fontSize:10,fontWeight:700,color:'#0f2a4a',marginTop:2}}>{r.po_number}</div>}</div>:'—'}</td>
-                    <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
-                    <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>
-                      {r.date_distributed ? (
-                        <div>
-                          <div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>
-                          {r.distributed_by_name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}
-                          {r.distribution_method === 'courier' && (
-                            <span
-                              onClick={() => setTrackingModal(r.courier_tracking_number || 'No tracking number entered')}
-                              style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fed7aa',color:'#9a3412',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
-                            >Courier ›</span>
-                          )}
-                        </div>
-                      ) : '—'}
-                    </td>
-                    <td><span className={'tag ' + ((r.status==='ehs_purchase_requested'&&r.needs_pda)?'tag-purple':(STATUS_COLORS[r.status]||'tag-gray'))}>{(r.status==='ehs_purchase_requested'&&r.needs_pda)?'Pending PM':(STATUS_LABELS[r.status]||r.status)}</span></td>
-                    {bulkTarget && (
-                      <td style={{textAlign:'center'}}>
-                        {isEligible(r) && (
-                          <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
-                            style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
+                })() : filtered.map(r => renderRow(r))}
                 {!filtered.length && <tr><td colSpan={bulkTarget?11:10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
               </tbody>
             </table>
