@@ -596,7 +596,7 @@ export default function AdminPage() {
         </div>
 
         {/* System Logs */}
-        <div className="card">
+        <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('logs')}>
             <span className="card-title">System Logs</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
