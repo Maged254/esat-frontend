@@ -390,7 +390,7 @@ export default function AdminPage() {
           )}
 
           <table>
-            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Project Access</th><th>Client Access</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Project Access</th><th>Client Access</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {users.filter(u => (!userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) && (!userRoleFilter || u.role === userRoleFilter)).map(u => (
                 <tr key={u.id}>
@@ -411,6 +411,9 @@ export default function AdminPage() {
                     {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(u.role)
                       ? (u.client_access?.length > 0 ? (u.client_access.length === allClients.length && allClients.length > 0 ? <span style={{color:'#1D9E75'}}>All Clients</span> : u.client_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)
                       : <span style={{color:'#9ca3af'}}>All clients</span>}
+                  </td>
+                  <td style={{fontSize:12,color:'#6b7280',whiteSpace:'nowrap'}}>
+                    {u.last_login ? new Date(u.last_login).toLocaleString('en-GB') : <span style={{color:'#9ca3af'}}>Never</span>}
                   </td>
                   <td>
                     <span className={`tag ${u.is_active ? 'tag-green' : 'tag-red'}`}>{u.is_active ? 'Active' : 'Inactive'}</span>
