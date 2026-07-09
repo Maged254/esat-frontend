@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
+  const [userSort, setUserSort] = useState({ key: null, dir: 'asc' });
   const [ppeItems, setPpeItems] = useState([]);
   const [editingPpe, setEditingPpe] = useState(null);
   const [ppeSearch, setPpeSearch] = useState('');
@@ -194,6 +195,40 @@ export default function AdminPage() {
     }
     return <div className="avatar av-teal" style={{ width: size, height: size, fontSize: size * 0.35 }}>{initials}</div>;
   };
+
+  const toggleUserSort = (key) => {
+    setUserSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
+  };
+
+  const getUserSortValue = (u, key) => {
+    switch (key) {
+      case 'full_name': return (u.full_name || '').toLowerCase();
+      case 'email': return (u.email || '').toLowerCase();
+      case 'role': return (u.role || '').toLowerCase();
+      case 'project_access': return u.project_access?.length || 0;
+      case 'client_access': return u.client_access?.length || 0;
+      case 'last_login': return u.last_login ? new Date(u.last_login).getTime() : -1;
+      case 'status': return u.is_active ? 1 : 0;
+      default: return 0;
+    }
+  };
+
+  const compareUsers = (a, b) => {
+    if (!userSort.key) return 0;
+    const av = getUserSortValue(a, userSort.key);
+    const bv = getUserSortValue(b, userSort.key);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return userSort.dir === 'asc' ? cmp : -cmp;
+  };
+
+  const SortTh = ({ label, sortKey, style }) => (
+    <th style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', ...style }} onClick={() => toggleUserSort(sortKey)}>
+      {label}
+      <span style={{ marginLeft: 4, fontSize: 10, color: userSort.key === sortKey ? '#1D9E75' : '#c0c5cc' }}>
+        {userSort.key === sortKey ? (userSort.dir === 'asc' ? '▲' : '▼') : '⇅'}
+      </span>
+    </th>
+  );
 
   return (
     <>
@@ -390,9 +425,18 @@ export default function AdminPage() {
           )}
 
           <table>
-            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Project Access</th><th>Client Access</th><th>Last Login</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr>
+              <SortTh label="User" sortKey="full_name" />
+              <SortTh label="Email" sortKey="email" />
+              <SortTh label="Role" sortKey="role" />
+              <SortTh label="Project Access" sortKey="project_access" />
+              <SortTh label="Client Access" sortKey="client_access" />
+              <SortTh label="Last Login" sortKey="last_login" />
+              <SortTh label="Status" sortKey="status" />
+              <th>Actions</th>
+            </tr></thead>
             <tbody>
-              {users.filter(u => (!userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) && (!userRoleFilter || u.role === userRoleFilter)).map(u => (
+              {users.filter(u => (!userSearch || u.full_name?.toLowerCase().includes(userSearch.toLowerCase())) && (!userRoleFilter || u.role === userRoleFilter)).sort(compareUsers).map(u => (
                 <tr key={u.id}>
                   <td>
                     <div className="emp-cell">
