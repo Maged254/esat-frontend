@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const CASUAL_EDIT_ROLES = ['admin', 'supervisor'];
 
@@ -31,7 +31,7 @@ export default function CasualsPage() {
   }, []);
 
   const load = () => {
-    api.get('/casuals').then(r => setCasuals(r.data)).catch(console.error);
+    api.get('/casuals').then(r => setCasuals(r.data)).catch(logError);
   };
 
   useEffect(() => { load(); }, []);
@@ -40,7 +40,7 @@ export default function CasualsPage() {
     api.get('/employees').then(r => {
       setEmployeeProjects([...new Set(r.data.map(e => e.project).filter(Boolean))].sort());
       setEmployeeClients([...new Set(r.data.map(e => e.client).filter(Boolean))].sort());
-    }).catch(console.error);
+    }).catch(logError);
   }, []);
 
   const filtered = casuals.filter(c => {

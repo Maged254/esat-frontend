@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 
 const ALL_PAGES = [
@@ -50,7 +50,7 @@ export default function AdminPage() {
     setLogsLoading(true);
     api.get('/admin/logs', { params: { errorsOnly: logsErrorsOnly, search: logsSearch || undefined } })
       .then(r => setLogs(r.data))
-      .catch(console.error)
+      .catch(logError)
       .finally(() => setLogsLoading(false));
   };
 
@@ -107,15 +107,15 @@ export default function AdminPage() {
   const fileRef = useRef();
 
   useEffect(() => {
-    api.get('/users').then(r => setUsers(r.data)).catch(console.error);
+    api.get('/users').then(r => setUsers(r.data)).catch(logError);
     api.get('/employees?status=active').then(r => {
       const projects = [...new Set(r.data.map(e => e.project).filter(Boolean))].sort();
       setAllProjects(projects);
       const clients = [...new Set(r.data.map(e => e.client).filter(Boolean))].sort();
       setAllClients(clients);
-    }).catch(console.error);
-    api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
-    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
+    }).catch(logError);
+    api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
+    api.get('/locations').then(r => setLocations(r.data)).catch(logError);
   }, []);
 
   const handleImageChange = (e) => {
@@ -165,7 +165,7 @@ export default function AdminPage() {
     try {
       const res = await api.post('/admin/force-password-reset');
       alert(`${res.data.count} user(s) will be required to set a new password on next login.`);
-      api.get('/users').then(r => setUsers(r.data)).catch(console.error);
+      api.get('/users').then(r => setUsers(r.data)).catch(logError);
     } catch (e) {
       alert(e.response?.data?.error || 'Failed to force password reset');
     }

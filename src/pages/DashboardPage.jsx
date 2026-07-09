@@ -2,7 +2,7 @@ import { useAuth } from "../utils/AuthContext";
 import APP_VERSION from '../version';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const STATUS_TAG = {
   compliant:     <span className="tag tag-green">Compliant</span>,
@@ -19,10 +19,10 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/dashboard').then(r => setData(r.data)).catch(console.error);
-    api.get('/employees/overdue').then(r => setOverdue(r.data)).catch(console.error);
-    api.get('/audits/leaderboard').then(r => setLeaderboard(r.data)).catch(console.error);
-    api.get('/sync-log/latest').then(r => setSyncLog(r.data)).catch(console.error);
+    api.get('/dashboard').then(r => setData(r.data)).catch(logError);
+    api.get('/employees/overdue').then(r => setOverdue(r.data)).catch(logError);
+    api.get('/audits/leaderboard').then(r => setLeaderboard(r.data)).catch(logError);
+    api.get('/sync-log/latest').then(r => setSyncLog(r.data)).catch(logError);
   }, []);
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';

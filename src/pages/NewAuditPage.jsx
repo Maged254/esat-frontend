@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const SHOE_SIZES = ['36','37','38','39','40','41','42','43','44','45','46','47'];
@@ -52,10 +52,10 @@ export default function NewAuditPage() {
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
   useEffect(() => {
-    api.get('/employees?status=active&san=yes').then(r => setEmployees(r.data)).catch(console.error);
-    api.get('/ppe').then(r => setPpeItems(r.data)).catch(console.error);
-    api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com','eats-sync@egypro.app'].includes(u.email) && u.role !== 'scm_officer')); }).catch(console.error);
-    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
+    api.get('/employees?status=active&san=yes').then(r => setEmployees(r.data)).catch(logError);
+    api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
+    api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com','eats-sync@egypro.app'].includes(u.email) && u.role !== 'scm_officer')); }).catch(logError);
+    api.get('/locations').then(r => setLocations(r.data)).catch(logError);
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
       if (user) {

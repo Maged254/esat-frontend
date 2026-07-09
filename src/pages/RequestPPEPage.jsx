@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const SHOE_SIZES = ['36','37','38','39','40','41','42','43','44','45','46','47'];
@@ -41,9 +41,9 @@ export default function RequestPPEPage() {
   const [currentUserName, setCurrentUserName] = useState('');
 
   useEffect(() => {
-    api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(console.error);
-    api.get('/casuals').then(r => setCasuals(r.data.filter(c => c.employment_status === 'active'))).catch(console.error);
-    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
+    api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(logError);
+    api.get('/casuals').then(r => setCasuals(r.data.filter(c => c.employment_status === 'active'))).catch(logError);
+    api.get('/locations').then(r => setLocations(r.data)).catch(logError);
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
       if (user) setCurrentUserName(user.full_name || user.name || '');

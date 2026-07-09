@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/graphs').then(r => { setData(r.data); setLoading(false); }).catch(console.error);
+    api.get('/graphs').then(r => { setData(r.data); setLoading(false); }).catch(logError);
   }, []);
 
   if (loading) return <div className="content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;

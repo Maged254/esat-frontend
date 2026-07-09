@@ -1,7 +1,7 @@
 // ── EmployeesPage ────────────────────────────────────────────
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
@@ -35,7 +35,7 @@ export function EmployeesPage() {
   const load = () => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'audit_age') params.append(k, v); });
-    api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(console.error);
+    api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(logError);
   }
 
   async function openPpeAssign(emp) {
@@ -307,12 +307,12 @@ export function AuditHistoryPage() {
   const load = () => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    api.get('/audits?' + params).then(r=>setAudits(r.data)).catch(console.error);
+    api.get('/audits?' + params).then(r=>setAudits(r.data)).catch(logError);
   };
 
   useEffect(() => { load(); }, [filters]);
 
-  useEffect(() => { api.get('/users').then(r=>setUsers(r.data.filter(u=>!['sync@egypro.com','admin@egypro.com','eats-sync@egypro.app'].includes(u.email)))).catch(console.error); }, []);
+  useEffect(() => { api.get('/users').then(r=>setUsers(r.data.filter(u=>!['sync@egypro.com','admin@egypro.com','eats-sync@egypro.app'].includes(u.email)))).catch(logError); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
   const exportCSV = () => {
@@ -423,8 +423,8 @@ export function NCRPage() {
   }, []);
 
   useEffect(() => {
-    api.get('/ncr').then(r=>setItems(r.data)).catch(console.error);
-    api.get('/ncr/stats').then(r=>setStats(r.data)).catch(console.error);
+    api.get('/ncr').then(r=>setItems(r.data)).catch(logError);
+    api.get('/ncr/stats').then(r=>setStats(r.data)).catch(logError);
   }, []);
 
   const filteredItems = items.filter(n => {
@@ -588,7 +588,7 @@ export function NCRPage() {
 // ── PurchaseRequestsPage ─────────────────────────────────────
 export function PurchaseRequestsPage() {
   const [prs, setPrs] = useState([]);
-  useEffect(() => { api.get('/ncr/purchase-requests').then(r=>setPrs(r.data)).catch(console.error); }, []);
+  useEffect(() => { api.get('/ncr/purchase-requests').then(r=>setPrs(r.data)).catch(logError); }, []);
   const sendPR = async (id) => {
     await api.put(`/ncr/purchase-requests/${id}/send`);
     setPrs(prev=>prev.map(p=>p.id===id?{...p,status:'sent'}:p));
@@ -633,7 +633,7 @@ export function AdminPage() {
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    api.get('/ppe').then(r=>setPpeItems(r.data)).catch(console.error);
+    api.get('/ppe').then(r=>setPpeItems(r.data)).catch(logError);
     // Sync logs would come from a /admin/sync-logs endpoint
   }, []);
 

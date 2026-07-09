@@ -20,3 +20,7 @@ api.interceptors.response.use(
   }
 );
 export default api;
+
+// Logs just the error message/response, never the full axios error object —
+// that object includes config.headers.Authorization (the raw JWT).
+export const logError = (e) => console.error(e?.response?.data?.error || e?.message || e);

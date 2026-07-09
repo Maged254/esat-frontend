@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const BUCKETS = [
   { key: 'bucket_0_30', label: '0–30 days', color: '#1D9E75' },
@@ -16,7 +16,7 @@ export default function AuditCoveragePage() {
   const [filters, setFilters] = useState({ project: '', client: '' });
 
   useEffect(() => {
-    api.get('/employees').then(r => setEmployees(r.data)).catch(console.error);
+    api.get('/employees').then(r => setEmployees(r.data)).catch(logError);
   }, []);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function AuditCoveragePage() {
     const params = new URLSearchParams();
     if (filters.project) params.append('project', filters.project);
     if (filters.client) params.append('client', filters.client);
-    api.get('/audit-coverage?' + params).then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+    api.get('/audit-coverage?' + params).then(r => setData(r.data)).catch(logError).finally(() => setLoading(false));
   }, [filters]);
 
   const projects = [...new Set(employees.map(e => e.project).filter(Boolean))].sort();

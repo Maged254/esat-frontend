@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../utils/api';
+import api, { logError } from '../utils/api';
 
 const STATUS_LABELS = {
   pending: 'Flagged',
@@ -75,11 +75,11 @@ export default function PPERequestTrackerPage() {
   }, []);
 
   useEffect(() => {
-    api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
-    api.get('/locations').then(r => setLocations(r.data)).catch(console.error);
+    api.get('/ppe-requests').then(r => setRequests(r.data)).catch(logError);
+    api.get('/locations').then(r => setLocations(r.data)).catch(logError);
   }, []);
 
-  const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(console.error);
+  const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(logError);
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
