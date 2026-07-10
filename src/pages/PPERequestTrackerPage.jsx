@@ -19,6 +19,16 @@ const STATUS_COLORS = {
   canceled: 'tag-red',
 };
 
+// Status tag accents matching the EHS/PM/SCM/Projects group header colors
+// used elsewhere on this page (table header, stat cards).
+const STATUS_ACCENT = {
+  pending: { background: '#bfdbfe', color: '#1e40af' },              // EHS
+  pda_pending: { background: '#e9d5ff', color: '#6d28d9' },          // PM
+  ehs_purchase_requested: { background: '#a7f3d0', color: '#065f46' }, // SCM
+  scm_ordered: { background: '#a7f3d0', color: '#065f46' },          // SCM
+  warehouse_available: { background: '#fed7aa', color: '#9a3412' },  // Projects
+};
+
 const ELIGIBLE_STATUSES = {
   scm_ordered: ['ehs_purchase_requested'],
   warehouse_available: ['ehs_purchase_requested', 'scm_ordered'],
@@ -138,7 +148,15 @@ export default function PPERequestTrackerPage() {
           </div>
         ) : '—'}
       </td>
-      <td><span className={'tag ' + ((r.status==='ehs_purchase_requested'&&r.needs_pda)?'tag-purple':(STATUS_COLORS[r.status]||'tag-gray'))}>{(r.status==='ehs_purchase_requested'&&r.needs_pda)?'Pending PM':(STATUS_LABELS[r.status]||r.status)}</span></td>
+      <td>{(() => {
+        const isPdaPending = r.status === 'ehs_purchase_requested' && r.needs_pda;
+        const key = isPdaPending ? 'pda_pending' : r.status;
+        const accent = STATUS_ACCENT[key];
+        const label = isPdaPending ? 'Pending PM' : (STATUS_LABELS[r.status] || r.status);
+        return accent
+          ? <span className="tag" style={{background:accent.background,color:accent.color}}>{label}</span>
+          : <span className={'tag ' + (STATUS_COLORS[r.status] || 'tag-gray')}>{label}</span>;
+      })()}</td>
       {bulkTarget && (
         <td style={{textAlign:'center'}}>
           {isEligible(r) && (
