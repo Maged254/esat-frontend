@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from './api';
 
 const AuthContext = createContext(null);
-const IDLE_TIMEOUT_MS = 20 * 60 * 1000; // 20 minutes of inactivity auto-logs out
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity auto-logs out
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 
