@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 
 const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
-const SHOE_SIZES = ['36','37','38','39','40','41','42','43','44','45','46','47'];
+const SHOE_SIZES = ['38','39','40','41','42','43','44','45','46'];
 
 const CATEGORY_LABELS = {
   body_protection: 'Body Protection',

@@ -21,7 +21,7 @@ const CATEGORY_LABELS = {
 };
 
 const CLOTHING_SIZES = ['XS','S','M','L','XL','XXL','XXXL'];
-const SHOE_SIZES = Array.from({length:12},(_,i)=>(36+i).toString());
+const SHOE_SIZES = Array.from({length:9},(_,i)=>(38+i).toString());
 
 export default function AuditDetailPage() {
   const { auditId } = useParams();
