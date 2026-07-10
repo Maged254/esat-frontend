@@ -22,11 +22,11 @@ const STATUS_COLORS = {
 // Status tag accents matching the EHS/PM/SCM/Projects group header colors
 // used elsewhere on this page (table header, stat cards).
 const STATUS_ACCENT = {
-  pending: { background: '#bfdbfe', color: '#1e40af' },              // EHS
-  pda_pending: { background: '#e9d5ff', color: '#6d28d9' },          // PM
-  ehs_purchase_requested: { background: '#a7f3d0', color: '#065f46' }, // SCM
-  scm_ordered: { background: '#a7f3d0', color: '#065f46' },          // SCM
-  warehouse_available: { background: '#fed7aa', color: '#9a3412' },  // Projects
+  pending: { background: 'var(--wf-ehs-light)', color: 'var(--wf-ehs)' },              // EHS
+  pda_pending: { background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' },            // PM
+  ehs_purchase_requested: { background: 'var(--wf-scm-light)', color: 'var(--wf-scm)' }, // SCM
+  scm_ordered: { background: 'var(--wf-scm-light)', color: 'var(--wf-scm)' },          // SCM
+  warehouse_available: { background: 'var(--wf-projects-light)', color: 'var(--wf-projects)' }, // Projects
 };
 
 const ELIGIBLE_STATUSES = {
