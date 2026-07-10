@@ -26,24 +26,25 @@
      header + stat cards). Reuse these for any future component
      that needs the same four-stage color language. */
   --wf-ehs:            #2563EB;
-  --wf-pm:             #7C3AED;
-  --wf-scm:            #047857;
-  --wf-projects:       #B45309;
+  --wf-pm:             #BE185D;
+  --wf-scm:            #048660;
+  --wf-projects:       #BB5A08;
 
   --wf-ehs-light:      #EFF6FF;
-  --wf-pm-light:       #F5F3FF;
+  --wf-pm-light:       #FDF2F8;
   --wf-scm-light:      #ECFDF5;
   --wf-projects-light: #FFF7ED;
 
   /* Header gradients: subtle darker-to-base (not lighter-to-base) so
      white header text stays >=4.5:1 (WCAG AA) across the whole gradient -
      a modest lighten pushed all four below 4.5:1 in testing, darkening
-     never does. All four base colors above independently clear 4.5:1
-     with white text at this component's 11px bold size. */
+     never does. SCM/Projects are tuned to the brightest shade that
+     still clears 4.5:1 (~4.58:1 / ~4.59:1) rather than the much darker
+     values that first guaranteed AA (#047857 / #B45309, ~5.5:1 / ~5:1). */
   --wf-ehs-gradient:      linear-gradient(180deg, #2159D4 0%, #2563EB 100%);
-  --wf-pm-gradient:       linear-gradient(180deg, #7034D5 0%, #7C3AED 100%);
-  --wf-scm-gradient:      linear-gradient(180deg, #046C4E 0%, #047857 100%);
-  --wf-projects-gradient: linear-gradient(180deg, #A24B08 0%, #B45309 100%);
+  --wf-pm-gradient:       linear-gradient(180deg, #AB1654 0%, #BE185D 100%);
+  --wf-scm-gradient:      linear-gradient(180deg, #047956 0%, #048660 100%);
+  --wf-projects-gradient: linear-gradient(180deg, #A85107 0%, #BB5A08 100%);
 
   --wf-text-primary:   #374151;
   --wf-text-secondary: #6B7280;
