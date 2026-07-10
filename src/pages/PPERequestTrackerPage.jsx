@@ -104,14 +104,17 @@ export default function PPERequestTrackerPage() {
 
   // Shared row renderer — used by the PO-grouped, employee-grouped, and
   // ungrouped table views so the ~14 columns only need to be defined once.
-  const renderRow = (r) => (
-    <tr key={r.id} style={{background: bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : ''}}>
-      <td>
+  const renderRow = (r) => {
+    const highlight = bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : '';
+    const stickyBg = highlight || '#fff';
+    return (
+    <tr key={r.id} style={{background: highlight}}>
+      <td style={{position:'sticky',left:0,zIndex:2,background:stickyBg,width:150,minWidth:150}}>
         <div className="emp-name">{r.employee_name}</div>
         <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
         {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
       </td>
-      <td>{r.ppe_name}</td>
+      <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>{r.ppe_name}</td>
       <td>{r.size_value || '—'}</td>
       <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
       <td style={{fontSize:12}}>{r.location_name || '—'}</td>
@@ -145,7 +148,8 @@ export default function PPERequestTrackerPage() {
         </td>
       )}
     </tr>
-  );
+    );
+  };
 
   const filtered = requests.filter(r => {
     if (filters.status === 'pda_pending') { if (r.status !== 'ehs_purchase_requested' || !r.needs_pda) return false; }
@@ -354,10 +358,27 @@ export default function PPERequestTrackerPage() {
             </div>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)',marginTop:0,borderTop:'1px solid transparent'}}>
-            <table>
+            <table style={{tableLayout:'fixed'}}>
+              <colgroup>
+                <col style={{width:150}} />
+                <col style={{width:200}} />
+                <col style={{width:60}} />
+                <col style={{width:50}} />
+                <col style={{width:100}} />
+                <col style={{width:130}} />
+                <col style={{width:100}} />
+                <col style={{width:100}} />
+                <col style={{width:100}} />
+                <col style={{width:100}} />
+                <col style={{width:100}} />
+                <col style={{width:100}} />
+                <col style={{width:140}} />
+                {bulkTarget && <col style={{width:50}} />}
+              </colgroup>
               <thead>
                 <tr style={{position:'sticky',top:0,zIndex:4}}>
-                  <th colSpan={6} style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
+                  <th colSpan={2} style={{background:'#f9fafb',border:'none',padding:'4px 0',position:'sticky',left:0,zIndex:6}}></th>
+                  <th colSpan={4} style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
                   <th colSpan={2} style={{textAlign:'center',background:'#bfdbfe',color:'#1e40af',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
                   <th colSpan={1} style={{textAlign:'center',background:'#e9d5ff',color:'#6d28d9',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
                   <th colSpan={2} style={{textAlign:'center',background:'#a7f3d0',color:'#065f46',fontWeight:700,fontSize:11,letterSpacing:1,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>SCM</th>
@@ -366,8 +387,8 @@ export default function PPERequestTrackerPage() {
                   {bulkTarget && <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>}
                 </tr>
                 <tr style={{position:'sticky',top:'29px',zIndex:4}}>
-                  <th style={{minWidth:150}}>Employee</th>
-                  <th style={{minWidth:200}}>PPE/Tool Item</th>
+                  <th style={{minWidth:150,width:150,position:'sticky',left:0,zIndex:6}}>Employee</th>
+                  <th style={{minWidth:200,width:200,position:'sticky',left:150,zIndex:6,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>PPE/Tool Item</th>
                   <th style={{minWidth:60}}>Size</th>
                   <th style={{minWidth:50}}>Qty</th>
                   <th style={{minWidth:100}}>Location</th>
@@ -403,7 +424,7 @@ export default function PPERequestTrackerPage() {
                     rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?13:12} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
-                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:12,fontWeight:500,color:'#185fa5',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.size_value||'—'}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}</td><td colSpan={bulkTarget?9:8} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
+                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',position:'sticky',left:0,zIndex:2,background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:12,fontWeight:500,color:'#185fa5',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.size_value||'—'}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}</td><td colSpan={bulkTarget?9:8} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
                       g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
