@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
+import PasswordInput from '../components/PasswordInput';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -75,16 +76,16 @@ export default function ProfilePage() {
             {success && <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{success}</div>}
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label className="form-label">Current Password</label>
-              <input className="form-input" type="password" value={form.currentPassword} onChange={e => setForm(p => ({...p, currentPassword: e.target.value}))} placeholder="••••••••" />
+              <PasswordInput value={form.currentPassword} onChange={e => setForm(p => ({...p, currentPassword: e.target.value}))} placeholder="••••••••" />
             </div>
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label className="form-label">New Password</label>
-              <input className="form-input" type="password" value={form.newPassword} onChange={e => setForm(p => ({...p, newPassword: e.target.value}))} placeholder="••••••••" />
+              <PasswordInput value={form.newPassword} onChange={e => setForm(p => ({...p, newPassword: e.target.value}))} placeholder="••••••••" />
               <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>At least 12 characters, with uppercase, lowercase, a number, and a special character.</div>
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label className="form-label">Confirm New Password</label>
-              <input className="form-input" type="password" value={form.confirmPassword} onChange={e => setForm(p => ({...p, confirmPassword: e.target.value}))} placeholder="••••••••" />
+              <PasswordInput value={form.confirmPassword} onChange={e => setForm(p => ({...p, confirmPassword: e.target.value}))} placeholder="••••••••" />
             </div>
             <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
               {loading ? 'Saving...' : 'Change Password'}

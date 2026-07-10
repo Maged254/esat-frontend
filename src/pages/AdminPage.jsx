@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
+import PasswordInput from '../components/PasswordInput';
 
 
 const ALL_PAGES = [
@@ -298,7 +299,7 @@ export default function AdminPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">{editUser ? 'New Password (leave blank to keep)' : 'Password'}</label>
-                  <input className="form-input" type="password" value={form.password} onChange={e => setForm(p => ({...p, password: e.target.value}))} placeholder="••••••••" />
+                  <PasswordInput value={form.password} onChange={e => setForm(p => ({...p, password: e.target.value}))} placeholder="••••••••" />
                   <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>At least 12 characters, with uppercase, lowercase, a number, and a special character.</div>
                 </div>
                 <div className="form-group">

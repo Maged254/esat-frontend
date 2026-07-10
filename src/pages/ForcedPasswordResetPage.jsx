@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../utils/AuthContext';
 import api from '../utils/api';
+import PasswordInput from '../components/PasswordInput';
 
 export default function ForcedPasswordResetPage() {
   const { logout, refreshUser } = useAuth();
@@ -54,9 +55,7 @@ export default function ForcedPasswordResetPage() {
         <form onSubmit={handleSubmit}>
           <div className="form-group mb-4">
             <label className="form-label">Current Password</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               value={form.currentPassword}
               onChange={e => setForm(p => ({...p, currentPassword: e.target.value}))}
               placeholder="••••••••"
@@ -66,9 +65,7 @@ export default function ForcedPasswordResetPage() {
           </div>
           <div className="form-group mb-4">
             <label className="form-label">New Password</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               value={form.newPassword}
               onChange={e => setForm(p => ({...p, newPassword: e.target.value}))}
               placeholder="••••••••"
@@ -78,9 +75,7 @@ export default function ForcedPasswordResetPage() {
           </div>
           <div className="form-group mb-4">
             <label className="form-label">Confirm New Password</label>
-            <input
-              className="form-input"
-              type="password"
+            <PasswordInput
               value={form.confirmPassword}
               onChange={e => setForm(p => ({...p, confirmPassword: e.target.value}))}
               placeholder="••••••••"
