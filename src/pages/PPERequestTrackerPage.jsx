@@ -398,10 +398,10 @@ export default function PPERequestTrackerPage() {
                 <tr style={{position:'sticky',top:0,zIndex:4}}>
                   <th colSpan={2} style={{background:'#f9fafb',border:'none',padding:'4px 0',position:'sticky',left:0,zIndex:6}}></th>
                   <th colSpan={4} style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
-                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-ehs-light)',color:'var(--wf-ehs)',fontWeight:700,fontSize:11,letterSpacing:1,borderTop:'3px solid var(--wf-ehs)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-pm-light)',color:'var(--wf-pm)',fontWeight:700,fontSize:11,letterSpacing:1,borderTop:'3px solid var(--wf-pm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-scm-light)',color:'var(--wf-scm)',fontWeight:700,fontSize:11,letterSpacing:1,borderTop:'3px solid var(--wf-scm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>SCM</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-projects-light)',color:'var(--wf-projects)',fontWeight:700,fontSize:11,letterSpacing:1,borderTop:'3px solid var(--wf-projects)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>Projects</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-ehs-light)',color:'var(--wf-ehs)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-ehs)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-pm-light)',color:'var(--wf-pm)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-pm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
+                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-scm-light)',color:'var(--wf-scm)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-scm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>SCM</th>
+                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-projects-light)',color:'var(--wf-projects)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-projects)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>Projects</th>
                   <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
                   {bulkTarget && <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>}
                 </tr>
