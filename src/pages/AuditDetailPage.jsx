@@ -124,6 +124,11 @@ export default function AuditDetailPage() {
     }));
   };
 
+  const removeItem = (ppe_item_id, ppe_name) => {
+    if (!window.confirm(`Remove "${ppe_name}" from this audit? This deletes the line everywhere — NCR, PPE tracker, and dashboards — once you save.`)) return;
+    setEditData(d => ({ ...d, items: d.items.filter(i => i.ppe_item_id !== ppe_item_id) }));
+  };
+
   const downloadDoc = async (e, doc) => {
     e.preventDefault(); e.stopPropagation();
     const token = localStorage.getItem('esat_token');
@@ -292,7 +297,7 @@ export default function AuditDetailPage() {
             <div key={category}>
               <div className="ppe-section-header">{CATEGORY_LABELS[category] || category}</div>
               <div className="ppe-col-header">
-                <div>PPE/Tool Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div>
+                <div>PPE/Tool Item</div><div>Condition</div><div>Size</div><div>Qty</div><div>Comment</div><div>{editing && isAdmin ? 'Remove' : ''}</div>
               </div>
               {items.map(item => (
                 <div key={item.ppe_item_id || item.id} className="ppe-row">
@@ -337,6 +342,12 @@ export default function AuditDetailPage() {
                         style={{fontSize:12,padding:'3px 8px',border:'1px solid #d1d5db',borderRadius:6,width:'100%'}} />
                     ) : (
                       <span style={{fontSize:12,color:'#6b7280'}}>{item.comment || '—'}</span>
+                    )}
+                  </div>
+                  <div className="ppe-cell" style={{textAlign:'center'}}>
+                    {editing && isAdmin && (
+                      <button onClick={()=>removeItem(item.ppe_item_id, item.ppe_name)} title="Remove this line item"
+                        style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}}>🗑</button>
                     )}
                   </div>
                 </div>
