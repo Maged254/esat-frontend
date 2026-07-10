@@ -55,6 +55,8 @@ export default function PPERequestTrackerPage() {
   const [trackingModal, setTrackingModal] = useState(null);
   const [groupMode, setGroupMode] = useState('none'); // 'none' | 'po' | 'employee'
   const [successMsg, setSuccessMsg] = useState('');
+  const [editingSizeId, setEditingSizeId] = useState(null);
+  const [sizeDraft, setSizeDraft] = useState('');
 
   useEffect(() => {
     try {
@@ -69,6 +71,20 @@ export default function PPERequestTrackerPage() {
   }, []);
 
   const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(logError);
+
+  const startEditSize = (r) => { setEditingSizeId(r.id); setSizeDraft(r.size_value || ''); };
+  const cancelEditSize = () => { setEditingSizeId(null); setSizeDraft(''); };
+  const saveSize = async (id) => {
+    const trimmed = sizeDraft.trim();
+    if (!trimmed) return cancelEditSize();
+    try {
+      await api.put('/ppe-requests/' + id + '/size', { size_value: trimmed });
+      reload();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to update size');
+    }
+    cancelEditSize();
+  };
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
@@ -115,7 +131,24 @@ export default function PPERequestTrackerPage() {
         {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
       </td>
       <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>{r.ppe_name}</td>
-      <td>{r.size_value || '—'}</td>
+      <td>
+        {userRole === 'admin' && editingSizeId === r.id ? (
+          <input
+            autoFocus
+            value={sizeDraft}
+            onChange={e => setSizeDraft(e.target.value)}
+            onBlur={() => saveSize(r.id)}
+            onKeyDown={e => { if (e.key === 'Enter') saveSize(r.id); if (e.key === 'Escape') cancelEditSize(); }}
+            style={{ width: 44, fontSize: 12, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 4 }}
+          />
+        ) : (
+          <span
+            onClick={() => userRole === 'admin' && startEditSize(r)}
+            title={userRole === 'admin' ? 'Click to edit size' : undefined}
+            style={userRole === 'admin' ? { cursor: 'pointer', borderBottom: '1px dashed #9ca3af' } : undefined}
+          >{r.size_value || '—'}</span>
+        )}
+      </td>
       <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
       <td style={{fontSize:12}}>{r.location_name || '—'}</td>
       <td style={{fontSize:12}}><div>{r.project || '—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td>
