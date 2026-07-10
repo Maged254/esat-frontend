@@ -156,6 +156,7 @@ export default function PPERequestTrackerPage() {
     else if (filters.status === 'ehs_purchase_requested') { if (r.status !== 'ehs_purchase_requested' || (r.needs_pda && !r.pda_approved_date)) return false; }
     else if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.national_id && !r.employee_national_id?.toLowerCase().includes(filters.national_id.toLowerCase())) return false;
     if (filters.projects.length > 0 && !filters.projects.includes(r.project)) return false;
     if (filters.clients.length > 0 && !filters.clients.includes(r.client)) return false;
     if (filters.location && r.location_name !== filters.location) return false;
