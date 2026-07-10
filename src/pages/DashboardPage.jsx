@@ -182,7 +182,7 @@ export default function DashboardPage() {
               <span className="card-title">Auditor Leaderboard</span>
             </div>
             <table>
-              <thead><tr><th>#</th><th>Auditor</th><th>Total Audits</th><th>This Month</th></tr></thead>
+              <thead><tr><th>#</th><th>Auditor</th><th>Total Audits</th><th>This Month</th><th>Last Month</th></tr></thead>
               <tbody>
                 {leaderboard.map((u, i) => (
                   <tr key={u.id}>
@@ -190,9 +190,10 @@ export default function DashboardPage() {
                     <td><div className="emp-cell">{u.profile_picture ? <img src={u.profile_picture} alt={u.full_name} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0}} /> : <div className={'avatar ' + avatarClass(i)}>{u.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>}<div className="emp-name">{u.full_name}</div></div></td>
                     <td style={{fontWeight:600}}>{u.total_audits}</td>
                     <td style={{fontSize:12,color:'#6b7280'}}>{u.this_month} this month</td>
+                    <td style={{fontSize:12,color:'#6b7280'}}>{u.last_month} last month</td>
                   </tr>
                 ))}
-                {!leaderboard.length && <tr><td colSpan={4} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
+                {!leaderboard.length && <tr><td colSpan={5} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
               </tbody>
             </table>
           </div>
