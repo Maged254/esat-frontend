@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
 import api, { logError } from '../utils/api';
 
+const DELAY_SERIES = [
+  { key: 'ehs', name: 'EHS processing', color: '#2563EB' },
+  { key: 'pm', name: 'PM approval', color: '#BE185D' },
+  { key: 'scm', name: 'SCM ordering', color: '#048660' },
+  { key: 'supplier', name: 'Supplier delivery', color: '#BB5A08' },
+  { key: 'project', name: 'Project distribution', color: '#0C447C' },
+];
+
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +33,31 @@ export default function GraphsPage() {
     return null;
   };
 
+  const StageDelayTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const monthData = payload[0]?.payload || {};
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 210 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
+        {DELAY_SERIES.map(series => monthData[series.key] !== null && monthData[series.key] !== undefined ? (
+          <div key={series.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: series.color }} />
+              {series.name}
+            </span>
+            <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {monthData[series.key]} days
+              <span style={{ color: '#9ca3af', fontWeight: 400 }}> · {monthData[series.key + '_count']} items</span>
+            </span>
+          </div>
+        ) : null)}
+      </div>
+    );
+  };
+
+  const stageDelayData = data.ppe_stage_delays_by_month || [];
+  const hasStageDelayData = stageDelayData.some(row => DELAY_SERIES.some(series => row[series.key] !== null));
+
   return (
     <>
       <div className="topbar">
@@ -35,6 +68,43 @@ export default function GraphsPage() {
         </div>
       </div>
       <div className="content">
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
+            <div>
+              <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Average PPE Workflow Delay by Month</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Average calendar days spent in each completed workflow stage</div>
+            </div>
+            <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 6 months</span>
+          </div>
+          <div className="card-body" style={{ paddingTop: 20 }}>
+            {!hasStageDelayData ? (
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed PPE workflow stages in this period</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={stageDelayData} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
+                  <YAxis width={46} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} unit=" d" allowDecimals={false} />
+                  <Tooltip content={<StageDelayTooltip />} />
+                  <Legend verticalAlign="top" align="right" height={42} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: '#4b5563' }} />
+                  {DELAY_SERIES.map(series => (
+                    <Line
+                      key={series.key}
+                      type="monotone"
+                      dataKey={series.key}
+                      name={series.name}
+                      stroke={series.color}
+                      strokeWidth={2.5}
+                      connectNulls={false}
+                      dot={{ r: 3, fill: '#fff', strokeWidth: 2 }}
+                      activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
             <span className="card-title">Open PPE Requests by Employee</span>
