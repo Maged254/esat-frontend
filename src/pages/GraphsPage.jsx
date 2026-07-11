@@ -13,12 +13,20 @@ const DELAY_SERIES = [
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ project: '', client: '' });
 
   useEffect(() => {
-    api.get('/graphs').then(r => { setData(r.data); setLoading(false); }).catch(logError);
-  }, []);
+    setLoading(true);
+    setError('');
+    api.get('/graphs', { params: filters })
+      .then(r => setData(r.data))
+      .catch(e => { logError(e); setError(e.response?.data?.error || 'Unable to load graph data'); })
+      .finally(() => setLoading(false));
+  }, [filters]);
 
-  if (loading) return <div className="content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
+  if (loading && !data) return <div className="content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
+  if (error && !data) return <div className="content"><div style={{color:'#A32D2D',padding:40,textAlign:'center'}}>{error}</div></div>;
 
   const CustomTooltipPPE = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -66,8 +74,40 @@ export default function GraphsPage() {
           <span className="topbar-sep">›</span>
           <span className="topbar-title">Graphs</span>
         </div>
+        <div className="topbar-right" style={{ flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>Project</span>
+            <select
+              className="form-select"
+              style={{ height: 32, minWidth: 170, padding: '4px 28px 4px 9px', fontSize: 12 }}
+              value={filters.project}
+              disabled={loading}
+              onChange={e => setFilters(current => ({ ...current, project: e.target.value }))}
+            >
+              <option value="">All permitted projects</option>
+              {(data.filter_options?.projects || []).map(project => <option key={project} value={project}>{project}</option>)}
+            </select>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>Client</span>
+            <select
+              className="form-select"
+              style={{ height: 32, minWidth: 160, padding: '4px 28px 4px 9px', fontSize: 12 }}
+              value={filters.client}
+              disabled={loading}
+              onChange={e => setFilters(current => ({ ...current, client: e.target.value }))}
+            >
+              <option value="">All permitted clients</option>
+              {(data.filter_options?.clients || []).map(client => <option key={client} value={client}>{client}</option>)}
+            </select>
+          </label>
+          {(filters.project || filters.client) && (
+            <button className="btn btn-sm" onClick={() => setFilters({ project: '', client: '' })}>Clear filters</button>
+          )}
+        </div>
       </div>
       <div className="content">
+        {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
