@@ -45,7 +45,7 @@ export default function GraphsPage() {
     if (!active || !payload?.length) return null;
     const monthData = payload[0]?.payload || {};
     return (
-      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 210 }}>
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 310 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
         {DELAY_SERIES.map(series => monthData[series.key] !== null && monthData[series.key] !== undefined ? (
           <div key={series.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
@@ -54,7 +54,8 @@ export default function GraphsPage() {
               {series.name}
             </span>
             <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              {monthData[series.key]} days
+              Avg {monthData[series.key]} d
+              <span style={{ color: '#6b7280', fontWeight: 400 }}> · Max {monthData[series.key + '_max']} d</span>
               <span style={{ color: '#9ca3af', fontWeight: 400 }}> · {monthData[series.key + '_count']} items</span>
             </span>
           </div>
