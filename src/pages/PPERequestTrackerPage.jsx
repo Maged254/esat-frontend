@@ -126,7 +126,7 @@ export default function PPERequestTrackerPage() {
       </td>
       <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
         <div>{r.ppe_name}</div>
-        {r.comment && <div className="emp-id">{r.comment}</div>}
+        {r.comment && <div><span className="tag ppe-item-comment">{r.comment}</span></div>}
       </td>
       <td>{r.size_value || '—'}</td>
       <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>

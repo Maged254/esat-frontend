@@ -202,6 +202,7 @@ tr:hover td { background: #f9fafb; }
 .emp-cell { display: flex; align-items: center; gap: 10px; }
 .emp-name { font-weight: 500; font-size: 13px; }
 .emp-id { font-size: 11px; color: var(--text-secondary); }
+.ppe-item-comment { margin-top: 4px; background: var(--wf-ehs-light); color: var(--wf-ehs); }
 
 /* ── Status dots ─────────────────────────────────────────── */
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }

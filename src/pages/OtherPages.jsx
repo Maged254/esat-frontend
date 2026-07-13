@@ -555,7 +555,7 @@ export function NCRPage() {
                   <td><div><div className="emp-name">{n.employee_name}</div><div className="emp-id">{n.employee_national_id||'—'}</div></div></td>
                   <td>
                     <div>{n.ppe_name}</div>
-                    {n.comment && <div className="emp-id">{n.comment}</div>}
+                    {n.comment && <div><span className="tag ppe-item-comment">{n.comment}</span></div>}
                   </td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
                   <td>{n.size_value||'—'}</td>
