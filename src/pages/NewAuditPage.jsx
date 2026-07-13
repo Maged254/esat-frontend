@@ -106,6 +106,23 @@ export default function NewAuditPage() {
     setItems(prev => ({ ...prev, [ppeId]: { ...prev[ppeId], [field]: value } }));
   };
 
+  const setItemCondition = (ppe, condition) => {
+    setItems(prev => {
+      const current = prev[ppe.id] || {};
+      const shouldDefaultReplacement = ppe.name === FIRE_EXTINGUISHER_ITEM
+        && condition === 'not_good'
+        && !FIRE_EXTINGUISHER_COMMENT_OPTIONS.includes(current.comment);
+      return {
+        ...prev,
+        [ppe.id]: {
+          ...current,
+          condition,
+          ...(shouldDefaultReplacement ? { comment: 'Replacement' } : {}),
+        },
+      };
+    });
+  };
+
   const handleSubmit = async () => {
     if (!selectedEmp) return;
     const errors = [];
@@ -429,7 +446,7 @@ export default function NewAuditPage() {
                               <button
                                 key={cond}
                                 className={`condition-btn ${it.condition === cond ? (cond === 'good' ? 'sel-good' : cond === 'not_good' ? 'sel-bad' : 'sel-missing') : ''}`}
-                                onClick={() => setItemField(ppe.id, 'condition', cond)}
+                                onClick={() => setItemCondition(ppe, cond)}
                                 disabled={!it.applicable || (!employeePresent && cond !== 'not_good')}
                               >
                                 {cond === 'good' ? '✓ Good' : cond === 'not_good' ? '✗ Not Good' : '— Left at Home'}
@@ -498,6 +515,14 @@ export default function NewAuditPage() {
                                   ...prev[ppe.id],
                                   applicable: checked,
                                   condition: (checked && !employeePresent) ? 'not_good' : (prev[ppe.id]?.condition || 'good'),
+                                  ...(
+                                    checked
+                                    && !employeePresent
+                                    && ppe.name === FIRE_EXTINGUISHER_ITEM
+                                    && !FIRE_EXTINGUISHER_COMMENT_OPTIONS.includes(prev[ppe.id]?.comment)
+                                      ? { comment: 'Replacement' }
+                                      : {}
+                                  ),
                                 },
                               }));
                             }}
