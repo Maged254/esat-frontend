@@ -89,22 +89,22 @@ export default function DashboardPage() {
           <div className="stat-card">
             <div className="stat-label">EHS Delay</div>
             <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
-            <div className="stat-sub">Longest Pending → EHS Approval</div>
+            <div className="stat-sub">Oldest request awaiting EHS approval</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">SCM Delay</div>
             <div className="stat-value warning">{data?.delays?.scm ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
-            <div className="stat-sub">Longest EHS Approved → SCM Ordered</div>
+            <div className="stat-sub">Oldest request awaiting SCM ordering</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Suppliers Delay</div>
             <div className="stat-value warning">{data?.delays?.suppliers ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
-            <div className="stat-sub">Longest SCM Ordered → Warehouse</div>
+            <div className="stat-sub">Oldest order awaiting warehouse delivery</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Projects Delay</div>
             <div className="stat-value warning">{data?.delays?.projects ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
-            <div className="stat-sub">Longest Warehouse → Distributed</div>
+            <div className="stat-sub">Oldest item awaiting project distribution</div>
           </div>
         </div>
 

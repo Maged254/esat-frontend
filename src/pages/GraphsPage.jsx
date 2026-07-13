@@ -56,7 +56,10 @@ export default function GraphsPage() {
             <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
               Avg {monthData[series.key]} d
               <span style={{ color: '#6b7280', fontWeight: 400 }}> · Max {monthData[series.key + '_max']} d</span>
-              <span style={{ color: '#9ca3af', fontWeight: 400 }}> · {monthData[series.key + '_count']} items</span>
+              <span style={{ color: '#9ca3af', fontWeight: 400 }}>
+                {' · '}{monthData[series.key + '_count']} items
+                {monthData[series.key + '_open_count'] > 0 ? ` (${monthData[series.key + '_open_count']} open)` : ''}
+              </span>
             </span>
           </div>
         ) : null)}
@@ -113,13 +116,13 @@ export default function GraphsPage() {
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
               <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Average PPE Workflow Delay by Month</div>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>Average calendar days spent in each completed workflow stage</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Average calendar days in completed and currently open workflow stages</div>
             </div>
             <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 6 months</span>
           </div>
           <div className="card-body" style={{ paddingTop: 20 }}>
             {!hasStageDelayData ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed PPE workflow stages in this period</div>
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed or open PPE workflow stages in this period</div>
             ) : (
               <ResponsiveContainer width="100%" height={340}>
                 <LineChart data={stageDelayData} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
