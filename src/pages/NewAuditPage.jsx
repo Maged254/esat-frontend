@@ -4,6 +4,8 @@ import api, { logError } from '../utils/api';
 
 const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const SHOE_SIZES = ['38','39','40','41','42','43','44','45','46'];
+const FIRE_EXTINGUISHER_ITEM = 'Fire Extinguisher - 6KG - Dry Powder With Inspection Sticker';
+const FIRE_EXTINGUISHER_COMMENT_OPTIONS = ['New Issuance', 'Replacement'];
 
 const CATEGORY_LABELS = {
   body_protection: 'Body Protection',
@@ -120,6 +122,12 @@ export default function NewAuditPage() {
     }
     const missingSizes = applicableItems.filter(p => p.has_size && items[p.id]?.applicable && items[p.id]?.condition === 'not_good' && !items[p.id]?.size);
     if (missingSizes.length > 0) errors.push('Please select a size for: ' + missingSizes.map(p=>p.name).join(', ') + '.');
+    const fireExtinguisher = applicableItems.find(p =>
+      p.name === FIRE_EXTINGUISHER_ITEM && items[p.id]?.condition === 'not_good'
+    );
+    if (fireExtinguisher && !FIRE_EXTINGUISHER_COMMENT_OPTIONS.includes(items[fireExtinguisher.id]?.comment)) {
+      errors.push(`Please select New Issuance or Replacement for: ${FIRE_EXTINGUISHER_ITEM}.`);
+    }
     if (errors.length > 0) { setValidationErrors(errors); return; }
     setValidationErrors([]);
     setSubmitting(true);
@@ -411,6 +419,7 @@ export default function NewAuditPage() {
                   </div>
                   {catItems.map(ppe => {
                     const it = items[ppe.id] || { condition: 'good', size: '', comment: '', applicable: true };
+                    const requiresIssuanceType = ppe.name === FIRE_EXTINGUISHER_ITEM && it.condition === 'not_good';
                     return (
                       <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.4 }}>
                         <div className="ppe-name">{ppe.name}</div>
@@ -454,13 +463,28 @@ export default function NewAuditPage() {
                           />
                         </div>
                         <div className="ppe-cell">
-                          <input
-                            className="ppe-comment"
-                            placeholder="Comment..."
-                            value={it.comment}
-                            onChange={e => setItemField(ppe.id, 'comment', e.target.value)}
-                            disabled={!it.applicable}
-                          />
+                          {requiresIssuanceType ? (
+                            <select
+                              className="ppe-comment"
+                              value={it.comment}
+                              onChange={e => setItemField(ppe.id, 'comment', e.target.value)}
+                              disabled={!it.applicable}
+                              aria-label={`${ppe.name} issuance type`}
+                            >
+                              <option value="">Select issuance type *</option>
+                              {FIRE_EXTINGUISHER_COMMENT_OPTIONS.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              className="ppe-comment"
+                              placeholder="Comment..."
+                              value={it.comment}
+                              onChange={e => setItemField(ppe.id, 'comment', e.target.value)}
+                              disabled={!it.applicable}
+                            />
+                          )}
                         </div>
                         <div className="ppe-cell" style={{ textAlign: 'center' }}>
                           <input
