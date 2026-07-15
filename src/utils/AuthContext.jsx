@@ -5,6 +5,7 @@ const AuthContext = createContext(null);
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity auto-logs out
 const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+const LAST_ACTIVITY_KEY = 'esat_last_activity';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -40,6 +41,7 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     localStorage.removeItem('esat_token');
     localStorage.removeItem('esat_user');
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
     setUser(null);
   }, []);
 
@@ -52,14 +54,26 @@ export function AuthProvider({ children }) {
   };
 
   // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity.
+  // Last-activity is persisted to localStorage (not just a JS variable) so idle
+  // time survives a tab reload/discard (laptop sleep, mobile backgrounding,
+  // Chrome memory-saver) instead of resetting to "now" on remount.
   useEffect(() => {
     if (!user) return;
-    let lastActivity = Date.now();
-    const markActive = () => { lastActivity = Date.now(); };
+
+    const stored = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY), 10);
+    if (stored && Date.now() - stored >= IDLE_TIMEOUT_MS) {
+      sessionStorage.setItem('esat_idle_logout', '1');
+      logout();
+      return;
+    }
+
+    const markActive = () => localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    markActive();
     ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, markActive, { passive: true }));
 
     const interval = setInterval(() => {
-      if (Date.now() - lastActivity >= IDLE_TIMEOUT_MS) {
+      const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY), 10) || Date.now();
+      if (Date.now() - last >= IDLE_TIMEOUT_MS) {
         sessionStorage.setItem('esat_idle_logout', '1');
         logout();
       }
