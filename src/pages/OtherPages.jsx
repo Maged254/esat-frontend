@@ -295,18 +295,40 @@ export function AuditHistoryPage() {
   const [audits, setAudits] = useState([]);
   const [users, setUsers] = useState([]);
   const [userRole, setUserRole] = useState('');
+  const [currentUserName, setCurrentUserName] = useState('');
   const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: 'active', audited_by: '' });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    try { const user = JSON.parse(localStorage.getItem('esat_user')); if (user) setUserRole(user.role); } catch {}
+    try {
+      const user = JSON.parse(localStorage.getItem('esat_user'));
+      if (user) { setUserRole(user.role); setCurrentUserName(user.full_name || user.name || ''); }
+    } catch {}
   }, []);
 
-  const deleteAudit = async (id, e) => {
+  const promptDelete = (id, e) => {
     e.stopPropagation();
-    if (!window.confirm('Delete this audit? It will be soft-deleted and hidden from NCR/PPE tracker but remain visible in history.')) return;
-    await api.delete('/audits/' + id);
-    setAudits(prev => prev.filter(a => a.id !== id));
+    setDeleteTarget(id); setDeleteReason(''); setDeleteError('');
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteReason.trim()) return setDeleteError('A reason is required.');
+    setDeleting(true); setDeleteError('');
+    try {
+      await api.delete('/audits/' + deleteTarget, { data: { delete_reason: deleteReason.trim() } });
+      setAudits(prev => prev.map(a => a.id === deleteTarget
+        ? { ...a, is_deleted: true, deleted_by_name: currentUserName, delete_reason: deleteReason.trim() }
+        : a));
+      setDeleteTarget(null);
+    } catch(e) {
+      setDeleteError(e.response?.data?.error || 'Delete failed.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const load = () => {
@@ -398,8 +420,8 @@ export function AuditHistoryPage() {
                   <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
                   <td>{a.total_items}</td>
                   <td>{a.is_deleted ? '—' : <span className={'tag ' + (a.issues_count>0?'tag-red':'tag-green')}>{a.issues_count} {a.issues_count===1?'issue':'issues'}</span>}</td>
-                  <td style={{textDecoration:'none'}}>{a.is_deleted ? <span className="tag" style={{background:'#fee2e2',color:'#991b1b',border:'1px solid #fecaca',whiteSpace:'nowrap'}}>🗑 Deleted by {a.deleted_by_name||'Unknown'}</span> : a.employee_present === false ? <span className="tag" style={{background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0'}}>Not Present</span> : STATUS[a.overall_status]}</td>
-                  {userRole==='admin' && <td>{!a.is_deleted && <button onClick={e=>deleteAudit(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button>}</td>}
+                  <td style={{textDecoration:'none'}}>{a.is_deleted ? <span className="tag" title={a.delete_reason ? `Reason: ${a.delete_reason}` : ''} style={{background:'#fee2e2',color:'#991b1b',border:'1px solid #fecaca',whiteSpace:'nowrap'}}>🗑 Deleted by {a.deleted_by_name||'Unknown'}</span> : a.employee_present === false ? <span className="tag" style={{background:'#f1f5f9',color:'#64748b',border:'1px solid #e2e8f0'}}>Not Present</span> : STATUS[a.overall_status]}</td>
+                  {userRole==='admin' && <td>{!a.is_deleted && <button onClick={e=>promptDelete(a.id,e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button>}</td>}
                 </tr>
               ))}
               {!audits.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No audits found</td></tr>}
@@ -407,6 +429,27 @@ export function AuditHistoryPage() {
           </table>
         </div>
       </div>
+
+      {deleteTarget && (
+        <div onClick={() => !deleting && setDeleteTarget(null)} style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'white',borderRadius:16,padding:24,width:420,maxWidth:'90vw',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{fontWeight:700,fontSize:16,color:'#1a2e4a',marginBottom:6}}>Delete this audit?</div>
+            <div style={{fontSize:13,color:'#6b7280',marginBottom:14}}>It will remain visible in history but be removed from NCR and PPE tracker. A reason is required.</div>
+            {deleteError && <div style={{color:'#c0392b',fontSize:13,marginBottom:10}}>{deleteError}</div>}
+            <textarea
+              className="form-input" rows={3} autoFocus
+              placeholder="Reason for deleting this audit..."
+              value={deleteReason}
+              onChange={e => setDeleteReason(e.target.value)}
+              style={{width:'100%',resize:'vertical'}}
+            />
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+              <button className="btn" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</button>
+              <button className="btn" onClick={confirmDelete} disabled={deleting} style={{borderColor:'#e24b4a',color:'#e24b4a'}}>{deleting ? 'Deleting...' : '🗑 Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

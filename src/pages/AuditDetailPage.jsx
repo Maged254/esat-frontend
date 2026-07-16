@@ -107,13 +107,21 @@ export default function AuditDetailPage() {
     setSaving(false);
   };
 
-  const deleteAudit = async () => {
-    if (!window.confirm('Delete this request? It will remain visible in history but be removed from NCR and PPE tracker.')) return;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!deleteReason.trim()) return setDeleteError('A reason is required.');
+    setDeleting(true); setDeleteError('');
     try {
-      await api.delete('/audits/' + auditId);
+      await api.delete('/audits/' + auditId, { data: { delete_reason: deleteReason.trim() } });
       navigate('/history');
     } catch(e) {
-      alert(e.response?.data?.error || 'Delete failed.');
+      setDeleteError(e.response?.data?.error || 'Delete failed.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -203,7 +211,7 @@ export default function AuditDetailPage() {
                 <button className="btn" onClick={startEdit} style={{borderColor:'#1a2e4a',color:'#1a2e4a'}}>✎ Edit</button>
               )}
               {canEdit && !audit.is_deleted && (
-                <button className="btn" onClick={deleteAudit} style={{borderColor:'#e24b4a',color:'#e24b4a'}}>🗑 Delete</button>
+                <button className="btn" onClick={()=>{setDeleteReason('');setDeleteError('');setShowDeleteModal(true);}} style={{borderColor:'#e24b4a',color:'#e24b4a'}}>🗑 Delete</button>
               )}
               <button className="btn btn-primary" onClick={exportPDF} disabled={exporting}>{exporting ? 'Exporting...' : '↓ Export PDF'}</button>
             </>
@@ -226,6 +234,17 @@ export default function AuditDetailPage() {
         </div>
 
         <div className="card" style={{marginBottom:16}}>
+          {audit.is_deleted && (
+            <div style={{background:'#fcebeb',borderBottom:'0.5px solid #e24b4a',padding:'10px 18px',display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:20}}>🗑</span>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:'#c0392b'}}>
+                  Deleted by {audit.deleted_by_name || 'Unknown'} on {audit.deleted_at ? new Date(audit.deleted_at).toLocaleDateString('en-GB') : '—'}
+                </div>
+                <div style={{fontSize:12,color:'#c0392b',opacity:0.85}}>Reason: {audit.delete_reason || '—'}</div>
+              </div>
+            </div>
+          )}
           {notPresent && (
             <div style={{background:'#fff3cd',borderBottom:'0.5px solid #ffc107',padding:'10px 18px',display:'flex',alignItems:'center',gap:10}}>
               <span style={{fontSize:20}}>⚠️</span>
@@ -390,6 +409,27 @@ export default function AuditDetailPage() {
               src={`${api.defaults.baseURL}/audit-documents/${preview.id}/download?preview=1&token=${encodeURIComponent(localStorage.getItem('esat_token'))}`}
               alt={preview.field_name} style={{maxWidth:'100%',borderRadius:8,display:'block'}}
             />
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div onClick={() => !deleting && setShowDeleteModal(false)} style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.7)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div onClick={e => e.stopPropagation()} style={{background:'white',borderRadius:16,padding:24,width:420,maxWidth:'90vw',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{fontWeight:700,fontSize:16,color:'#1a2e4a',marginBottom:6}}>Delete this audit?</div>
+            <div style={{fontSize:13,color:'#6b7280',marginBottom:14}}>It will remain visible in history but be removed from NCR and PPE tracker. A reason is required.</div>
+            {deleteError && <div style={{color:'#c0392b',fontSize:13,marginBottom:10}}>{deleteError}</div>}
+            <textarea
+              className="form-input" rows={3} autoFocus
+              placeholder="Reason for deleting this audit..."
+              value={deleteReason}
+              onChange={e => setDeleteReason(e.target.value)}
+              style={{width:'100%',resize:'vertical'}}
+            />
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+              <button className="btn" onClick={() => setShowDeleteModal(false)} disabled={deleting}>Cancel</button>
+              <button className="btn" onClick={confirmDelete} disabled={deleting} style={{borderColor:'#e24b4a',color:'#e24b4a'}}>{deleting ? 'Deleting...' : '🗑 Delete'}</button>
+            </div>
           </div>
         </div>
       )}
