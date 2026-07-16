@@ -349,7 +349,14 @@ export default function RequestPPEPage() {
                     const requiresIssuanceType = ppe.name === FIRE_EXTINGUISHER_ITEM && it.applicable;
                     return (
                       <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.5, gridTemplateColumns: '1.5fr 140px 70px 1.5fr 90px' }}>
-                        <div className="ppe-name">{ppe.name}</div>
+                        <div className="ppe-name">
+                          {ppe.name}
+                          <div style={{fontSize:11,fontWeight:400,color:'#9ca3af',marginTop:2}}>
+                            {ppe.last_distributed
+                              ? `Last distributed: ${new Date(ppe.last_distributed).toLocaleDateString('en-GB')}`
+                              : 'Never distributed'}
+                          </div>
+                        </div>
                         <div className="ppe-cell">
                           {ppe.has_size ? (
                             <select

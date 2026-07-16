@@ -439,7 +439,14 @@ export default function NewAuditPage() {
                     const requiresIssuanceType = ppe.name === FIRE_EXTINGUISHER_ITEM && it.condition === 'not_good';
                     return (
                       <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.4 }}>
-                        <div className="ppe-name">{ppe.name}</div>
+                        <div className="ppe-name">
+                          {ppe.name}
+                          <div style={{fontSize:11,fontWeight:400,color:'#9ca3af',marginTop:2}}>
+                            {ppe.last_distributed
+                              ? `Last distributed: ${new Date(ppe.last_distributed).toLocaleDateString('en-GB')}`
+                              : 'Never distributed'}
+                          </div>
+                        </div>
                         <div className="ppe-cell">
                           <div className="condition-group">
                             {['good','not_good','not_present'].map(cond => (
