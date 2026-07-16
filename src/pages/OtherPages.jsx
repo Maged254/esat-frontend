@@ -96,10 +96,15 @@ export function EmployeesPage() {
     setAssignedPpe(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   }
 
-  // Auto-refresh employees every 60 seconds
+  // Live-refresh: the backend pushes a message whenever an employee record
+  // changes (Power Automate sync, or another user's edit) instead of us
+  // polling the full list on a timer.
   useEffect(() => {
-    const interval = setInterval(() => { load(); }, 60000);
-    return () => clearInterval(interval);
+    const token = localStorage.getItem('esat_token');
+    if (!token) return;
+    const source = new EventSource(`${api.defaults.baseURL}/events?token=${encodeURIComponent(token)}`);
+    source.onmessage = () => load();
+    return () => source.close();
   }, [filters]);
 
   const exportCSV = () => {

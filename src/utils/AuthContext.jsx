@@ -3,7 +3,7 @@ import api from './api';
 
 const AuthContext = createContext(null);
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity auto-logs out
-const IDLE_CHECK_INTERVAL_MS = 30 * 1000;
+const IDLE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 const LAST_ACTIVITY_KEY = 'esat_last_activity';
 
@@ -53,7 +53,8 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
-  // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity.
+  // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity,
+  // or as soon as a backend redeploy invalidates the session.
   // Last-activity is persisted to localStorage (not just a JS variable) so idle
   // time survives a tab reload/discard (laptop sleep, mobile backgrounding,
   // Chrome memory-saver) instead of resetting to "now" on remount.
@@ -76,7 +77,12 @@ export function AuthProvider({ children }) {
       if (Date.now() - last >= IDLE_TIMEOUT_MS) {
         sessionStorage.setItem('esat_idle_logout', '1');
         logout();
+        return;
       }
+      // Session-validity check: a 401 here (e.g. the backend rejecting a
+      // token issued before its current boot time, after a redeploy) is
+      // handled globally by the response interceptor in api.js.
+      api.get('/auth/ping').catch(() => {});
     }, IDLE_CHECK_INTERVAL_MS);
 
     return () => {

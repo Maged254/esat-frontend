@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const RULES = [
-  { num: 1, type: 'ALWAYS', text: 'Buckle up', icon: '/rule1.png' },
-  { num: 2, type: 'ALWAYS', text: 'Drive safely within speed limits', icon: '/rule8.png' },
-  { num: 3, type: 'ALWAYS', text: 'Keep eyes on road, hands on steering, stay alert', icon: '/rule3.png' },
-  { num: 4, type: 'NEVER',  text: 'Drive or work while intoxicated', icon: '/rule4.png' },
-  { num: 5, type: 'ALWAYS', text: 'Wear proper PPE and fall protection at height', icon: '/rule5.png' },
-  { num: 6, type: 'ALWAYS', text: 'Use qualified electricians for electrical work', icon: '/rule6.png' },
-  { num: 7, type: 'ALWAYS', text: 'Stay within safe zone and use insulated tools near powerlines', icon: '/rule7.png' },
-  { num: 8, type: 'ALWAYS', text: 'Assign competent personnel for street and underground work', icon: '/rule2.png' },
+  { num: 1, type: 'ALWAYS', text: 'Buckle up', icon: '/rule1.jpg' },
+  { num: 2, type: 'ALWAYS', text: 'Drive safely within speed limits', icon: '/rule8.jpg' },
+  { num: 3, type: 'ALWAYS', text: 'Keep eyes on road, hands on steering, stay alert', icon: '/rule3.jpg' },
+  { num: 4, type: 'NEVER',  text: 'Drive or work while intoxicated', icon: '/rule4.jpg' },
+  { num: 5, type: 'ALWAYS', text: 'Wear proper PPE and fall protection at height', icon: '/rule5.jpg' },
+  { num: 6, type: 'ALWAYS', text: 'Use qualified electricians for electrical work', icon: '/rule6.jpg' },
+  { num: 7, type: 'ALWAYS', text: 'Stay within safe zone and use insulated tools near powerlines', icon: '/rule7.jpg' },
+  { num: 8, type: 'ALWAYS', text: 'Assign competent personnel for street and underground work', icon: '/rule2.jpg' },
 ];
 
 export default function SafetyCommitmentPage() {

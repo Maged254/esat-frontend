@@ -14,6 +14,9 @@ export default function LoginPage() {
     if (sessionStorage.getItem('esat_idle_logout')) {
       sessionStorage.removeItem('esat_idle_logout');
       setError('You were logged out due to inactivity. Please sign in again.');
+    } else if (sessionStorage.getItem('esat_deploy_logout')) {
+      sessionStorage.removeItem('esat_deploy_logout');
+      setError('The app was updated. Please sign in again.');
     }
   }, []);
 
@@ -34,7 +37,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/esat-login-logo.png" alt="ESAT" style={{ width: '100%', objectFit:'contain' }}
+          <img src="/esat-login-logo.jpg" alt="ESAT" style={{ width: '100%', objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
