@@ -386,7 +386,10 @@ export default function AuditDetailPage() {
                 <span onClick={() => setPreview(null)} style={{padding:'6px 14px',borderRadius:8,background:'#f1f5f9',border:'1px solid #e2e8f0',cursor:'pointer',fontSize:13,color:'#374151'}}>✕ Close</span>
               </div>
             </div>
-            <img src={preview.cloudinary_url} alt={preview.field_name} style={{maxWidth:'100%',borderRadius:8,display:'block'}} />
+            <img
+              src={`${api.defaults.baseURL}/audit-documents/${preview.id}/download?preview=1&token=${encodeURIComponent(localStorage.getItem('esat_token'))}`}
+              alt={preview.field_name} style={{maxWidth:'100%',borderRadius:8,display:'block'}}
+            />
           </div>
         </div>
       )}
