@@ -126,6 +126,9 @@ export default function PPERequestTrackerPage() {
       </td>
       <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
         <div>{r.ppe_name}</div>
+        <div style={{fontSize:10,color:'#9ca3af',marginTop:2}}>
+          {r.last_distributed ? `Last distributed: ${new Date(r.last_distributed).toLocaleDateString('en-GB')}` : 'Never distributed'}
+        </div>
         {r.comment && <div><span className="tag ppe-item-comment">{r.comment}</span></div>}
       </td>
       <td>{r.size_value || '—'}</td>
