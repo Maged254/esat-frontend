@@ -65,6 +65,7 @@ export default function PPERequestTrackerPage() {
   const [trackingModal, setTrackingModal] = useState(null);
   const [groupMode, setGroupMode] = useState('none'); // 'none' | 'po' | 'employee'
   const [successMsg, setSuccessMsg] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     try {
@@ -115,19 +116,115 @@ export default function PPERequestTrackerPage() {
   // Same "recently distributed" window (4 months) and color as the Pending PM tag.
   const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
 
+  // Compact chevron stepper replacing the old 6 separate stage columns —
+  // click a row to expand the full colored timeline underneath.
+  const STAGE_META = [
+    { key: 'flagged', label: 'Flagged', group: 'ehs' },
+    { key: 'purchase_request', label: 'Purchase req.', group: 'ehs' },
+    { key: 'approved', label: 'Approved', group: 'pm' },
+    { key: 'ordered', label: 'Ordered', group: 'scm' },
+    { key: 'availed', label: 'Availed', group: 'scm' },
+    { key: 'distributed', label: 'Distributed', group: 'projects' },
+  ];
+  const WF_VARS = {
+    ehs: { c: 'var(--wf-ehs)', bg: 'var(--wf-ehs-light)' },
+    pm: { c: 'var(--wf-pm)', bg: 'var(--wf-pm-light)' },
+    scm: { c: 'var(--wf-scm)', bg: 'var(--wf-scm-light)' },
+    projects: { c: 'var(--wf-projects)', bg: 'var(--wf-projects-light)' },
+  };
+  const getStages = (r) => ([
+    { done: !!r.date_flagged, date: r.date_flagged, by: r.flagged_by_name },
+    { done: !!r.date_purchase_requested, date: r.date_purchase_requested, by: r.purchase_requested_by_name },
+    r.needs_pda
+      ? { done: !!r.pda_approved_date, date: r.pda_approved_date, by: r.pda_approved_by_name }
+      : (r.date_purchase_requested ? { na: true } : { done: false }),
+    { done: !!r.date_ordered, date: r.date_ordered, by: r.ordered_by_name, extra: r.po_number },
+    { done: !!r.date_available, date: r.date_available, by: r.available_by_name },
+    { done: !!r.date_distributed, date: r.date_distributed, by: r.distributed_by_name, courier: r.distribution_method === 'courier', tracking: r.courier_tracking_number },
+  ]);
+
+  const miniStepper = (stages) => (
+    <div style={{display:'flex',alignItems:'center'}}>
+      {stages.map((s, i) => {
+        const notch = 6;
+        const clip = i === 0
+          ? `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%)`
+          : `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%, ${notch}px 50%)`;
+        const done = s.done || s.na;
+        const title = s.na ? 'Not required' : s.done ? new Date(s.date).toLocaleDateString('en-GB') + (s.by ? ' · ' + s.by : '') : 'Pending';
+        return <div key={i} title={title} style={{flex:1,height:14,background: done ? 'var(--eg-green)' : '#e5e7eb',clipPath:clip,marginLeft: i===0?0:-notch}}></div>;
+      })}
+    </div>
+  );
+
+  const detailChevrons = (r) => {
+    const stages = getStages(r);
+    const groups = [
+      { name: 'EHS', group: 'ehs', span: 2 },
+      { name: 'PM', group: 'pm', span: 1 },
+      { name: 'SCM', group: 'scm', span: 2 },
+      { name: 'PROJECTS', group: 'projects', span: 1 },
+    ];
+    return (
+      <div onClick={e => e.stopPropagation()}>
+        <div style={{display:'flex',marginBottom:6}}>
+          {groups.map(g => (
+            <div key={g.group} style={{flex:g.span,borderTop:'3px solid '+WF_VARS[g.group].c,textAlign:'center',fontSize:11,fontWeight:500,letterSpacing:'0.04em',color:WF_VARS[g.group].c,paddingTop:6}}>{g.name}</div>
+          ))}
+        </div>
+        <div style={{display:'flex',alignItems:'stretch',borderRadius:'var(--radius)',overflow:'hidden',border:'0.5px solid #e5e7eb'}}>
+          {STAGE_META.map((meta, i) => {
+            const s = stages[i];
+            const notch = 16;
+            const clip = i === STAGE_META.length - 1
+              ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${notch}px 50%)`
+              : (i === 0
+                ? `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%)`
+                : `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%, ${notch}px 50%)`);
+            const done = s.na || s.done;
+            const w = WF_VARS[meta.group];
+            const bg = done ? w.bg : '#f3f4f6';
+            const fg = done ? w.c : '#9ca3af';
+            const val = s.na ? 'Not required' : s.done ? new Date(s.date).toLocaleDateString('en-GB') : 'Pending';
+            return (
+              <div key={meta.key} style={{position:'relative',flex:1,minWidth:0,marginLeft:i===0?0:-notch}}>
+                <div style={{position:'absolute',inset:0,clipPath:clip,background:done?w.c:'transparent'}}></div>
+                <div style={{position:'absolute',top:2,bottom:2,left:2,right:2,clipPath:clip,background:bg}}></div>
+                <div style={{position:'relative',color:fg,padding:'8px 10px 8px '+(i===0?10:(notch+10))+'px'}}>
+                  <div style={{fontSize:10,fontWeight:500,textTransform:'uppercase',letterSpacing:'0.03em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{meta.label}</div>
+                  <div style={{fontSize:11,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{val}</div>
+                  {s.done && s.by && <div style={{fontSize:9,opacity:0.85,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{s.by}</div>}
+                  {s.done && s.extra && <div style={{fontSize:9,fontWeight:700,opacity:0.95}}>{s.extra}</div>}
+                  {s.done && s.courier && (
+                    <span
+                      onClick={() => setTrackingModal(s.tracking || 'No tracking number entered')}
+                      style={{display:'inline-block',marginTop:2,fontSize:9,fontWeight:700,background:'rgba(255,255,255,0.25)',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
+                    >Courier ›</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Shared row renderer — used by the PO-grouped, employee-grouped, and
-  // ungrouped table views so the ~14 columns only need to be defined once.
+  // ungrouped table views so the columns only need to be defined once.
   const renderRow = (r) => {
     const highlight = bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : '';
     const stickyBg = highlight || '#fff';
-    return (
-    <tr key={r.id} style={{background: highlight}}>
+    const isOpen = expandedId === r.id;
+    const stages = getStages(r);
+    return [
+    <tr key={r.id} style={{background: highlight, cursor:'pointer'}} onClick={() => setExpandedId(isOpen ? null : r.id)}>
       <td style={{position:'sticky',left:0,zIndex:2,background:stickyBg,width:150,minWidth:150}}>
         <div className="emp-name">{r.employee_name}</div>
         <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
         {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
       </td>
-      <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
+      <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:360,minWidth:360,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
         <div>{r.ppe_name}</div>
         {r.last_distributed ? (
           <span className="tag" style={{marginTop:2,fontWeight:400,fontSize:10,
@@ -141,29 +238,16 @@ export default function PPERequestTrackerPage() {
         )}
         {r.comment && <div><span className="tag ppe-item-comment">{r.comment}</span></div>}
       </td>
-      <td>{r.size_value || '—'}</td>
-      <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>{r.quantity||1}</td>
-      <td style={{fontSize:12}}>{r.location_name || '—'}</td>
-      <td style={{fontSize:12}}><div>{r.project || '—'}</div>{r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}</td>
-      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_flagged?<div><div>{new Date(r.date_flagged).toLocaleDateString('en-GB')}</div>{r.flagged_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.flagged_by_name}</div>}</div>:'—'}</td>
-      <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_purchase_requested?<div><div>{new Date(r.date_purchase_requested).toLocaleDateString('en-GB')}</div>{r.purchase_requested_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.purchase_requested_by_name}</div>}</div>:'—'}</td>
-      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>{r.pda_approved_date?<div><div>{new Date(r.pda_approved_date).toLocaleDateString('en-GB')}</div>{r.pda_approved_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.pda_approved_by_name}</div>}</div>:(r.needs_pda?'—':'N/A')}</td>
-      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb'}}>{r.date_ordered?<div><div>{new Date(r.date_ordered).toLocaleDateString('en-GB')}</div>{r.ordered_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.ordered_by_name}</div>}{r.po_number&&<div style={{fontSize:10,fontWeight:700,color:'#0f2a4a',marginTop:2}}>{r.po_number}</div>}</div>:'—'}</td>
-      <td style={{fontSize:12,borderRight:'1px solid #e5e7eb'}}>{r.date_available?<div><div>{new Date(r.date_available).toLocaleDateString('en-GB')}</div>{r.available_by_name&&<div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.available_by_name}</div>}</div>:'—'}</td>
-      <td style={{fontSize:12,borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>
-        {r.date_distributed ? (
-          <div>
-            <div>{new Date(r.date_distributed).toLocaleDateString('en-GB')}</div>
-            {r.distributed_by_name && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.distributed_by_name}</div>}
-            {r.distribution_method === 'courier' && (
-              <span
-                onClick={() => setTrackingModal(r.courier_tracking_number || 'No tracking number entered')}
-                style={{display:'inline-block',marginTop:4,fontSize:10,fontWeight:700,background:'#fed7aa',color:'#9a3412',border:'1px solid #ffcc80',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
-              >Courier ›</span>
-            )}
-          </div>
-        ) : '—'}
+      <td style={{fontSize:12,color:(r.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(r.quantity||1)>1?700:400}}>
+        {r.quantity||1}
+        <div style={{fontSize:11,color:'#6b7280',fontWeight:400,marginTop:2}}>{r.size_value || '—'}</div>
       </td>
+      <td style={{fontSize:12}}>
+        <div>{r.project || '—'}</div>
+        {r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}
+        {r.location_name && <div style={{fontSize:10,color:'#9ca3af',marginTop:1}}>{r.location_name}</div>}
+      </td>
+      <td style={{padding:'8px 10px'}}>{miniStepper(stages)}</td>
       <td>{(() => {
         const isPdaPending = r.status === 'ehs_purchase_requested' && r.needs_pda;
         const key = isPdaPending ? 'pda_pending' : r.status;
@@ -174,15 +258,16 @@ export default function PPERequestTrackerPage() {
           : <span className={'tag ' + (STATUS_COLORS[r.status] || 'tag-gray')}>{label}</span>;
       })()}</td>
       {bulkTarget && (
-        <td style={{textAlign:'center'}}>
+        <td style={{textAlign:'center'}} onClick={e => e.stopPropagation()}>
           {isEligible(r) && (
             <input type="checkbox" checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}
               style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />
           )}
         </td>
       )}
-    </tr>
-    );
+    </tr>,
+    isOpen && <tr key={r.id+'-detail'} style={{background: highlight}}><td colSpan={bulkTarget?7:6} style={{padding:'0 12px 14px'}}>{detailChevrons(r)}</td></tr>
+    ];
   };
 
   const filtered = requests.filter(r => {
@@ -396,44 +481,20 @@ export default function PPERequestTrackerPage() {
             <table style={{tableLayout:'fixed'}}>
               <colgroup>
                 <col style={{width:150}} />
-                <col style={{width:200}} />
-                <col style={{width:60}} />
+                <col style={{width:360}} />
                 <col style={{width:50}} />
-                <col style={{width:100}} />
                 <col style={{width:130}} />
-                <col style={{width:100}} />
-                <col style={{width:100}} />
-                <col style={{width:100}} />
-                <col style={{width:100}} />
-                <col style={{width:100}} />
-                <col style={{width:100}} />
+                <col style={{width:190}} />
                 <col style={{width:140}} />
                 {bulkTarget && <col style={{width:50}} />}
               </colgroup>
               <thead>
                 <tr style={{position:'sticky',top:0,zIndex:4}}>
-                  <th colSpan={2} style={{background:'#f9fafb',border:'none',padding:'4px 0',position:'sticky',left:0,zIndex:6}}></th>
-                  <th colSpan={4} style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
-                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-ehs-light)',color:'var(--wf-ehs)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-ehs)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>EHS</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-pm-light)',color:'var(--wf-pm)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-pm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>PM</th>
-                  <th colSpan={2} style={{textAlign:'center',background:'var(--wf-scm-light)',color:'var(--wf-scm)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-scm)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>SCM</th>
-                  <th colSpan={1} style={{textAlign:'center',background:'var(--wf-projects-light)',color:'var(--wf-projects)',fontWeight:700,fontSize:11,letterSpacing:1,boxShadow:'inset 0 3px 0 0 var(--wf-projects)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb',borderBottom:'none'}}>Projects</th>
-                  <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>
-                  {bulkTarget && <th style={{background:'#f9fafb',border:'none',padding:'4px 0'}}></th>}
-                </tr>
-                <tr style={{position:'sticky',top:'29px',zIndex:4}}>
                   <th style={{minWidth:150,width:150,position:'sticky',left:0,zIndex:6}}>Employee</th>
-                  <th style={{minWidth:200,width:200,position:'sticky',left:150,zIndex:6,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>PPE/Tool Item</th>
-                  <th style={{minWidth:60}}>Size</th>
+                  <th style={{minWidth:360,width:360,position:'sticky',left:150,zIndex:6,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>PPE/Tool Item</th>
                   <th style={{minWidth:50}}>Qty</th>
-                  <th style={{minWidth:100}}>Location</th>
-                  <th style={{minWidth:120}}>Project / Client</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-ehs-light)',borderLeft:'1px solid #e5e7eb'}}>Flagged</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-ehs-light)',borderRight:'1px solid #e5e7eb'}}>Purchase Request</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-pm-light)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Approved</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-scm-light)',borderLeft:'1px solid #e5e7eb'}}>Ordered</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-scm-light)',borderRight:'1px solid #e5e7eb'}}>Availed</th>
-                  <th style={{width:100,minWidth:100,background:'var(--wf-projects-light)',borderLeft:'1px solid #e5e7eb',borderRight:'1px solid #e5e7eb'}}>Distributed</th>
+                  <th style={{minWidth:130}}>Project / Client</th>
+                  <th style={{minWidth:190}}>Progress</th>
                   <th>Status</th>
                   {bulkTarget && <th></th>}
                 </tr>
@@ -444,7 +505,7 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'client-'+client}><td colSpan={bulkTarget?13:12} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'client-'+client}><td colSpan={bulkTarget?7:6} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                     const projRows = clientRows.filter(r => (r.project || '—') === proj);
@@ -456,10 +517,10 @@ export default function PPERequestTrackerPage() {
                       itemGroups[key].qty += (r.quantity || 1);
                       itemGroups[key].rows.push(r);
                     });
-                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?13:12} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?7:6} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
-                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',position:'sticky',left:0,zIndex:2,background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:12,fontWeight:500,color:'#185fa5',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.size_value||'—'}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}</td><td colSpan={bulkTarget?9:8} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
+                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',position:'sticky',left:0,zIndex:2,background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?4:3} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
                       g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
@@ -470,22 +531,22 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'ec-'+client}><td colSpan={bulkTarget?13:12} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'ec-'+client}><td colSpan={bulkTarget?7:6} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                       const projRows = clientRows.filter(r => (r.project || '—') === proj);
-                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={bulkTarget?13:12} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={bulkTarget?7:6} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                       const employees = [...new Set(projRows.map(r => r.employee_name || '—'))].sort();
                       employees.forEach(emp => {
                         const empRows = projRows.filter(r => (r.employee_name || '—') === emp);
-                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?13:12} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
+                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?7:6} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
                         empRows.forEach(r => rows.push(renderRow(r)));
                       });
                     });
                   });
                   return rows;
-                })() : filtered.map(r => renderRow(r))}
-                {!filtered.length && <tr><td colSpan={bulkTarget?11:10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
+                })() : filtered.map(r => renderRow(r)).flat()}
+                {!filtered.length && <tr><td colSpan={bulkTarget?7:6} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
               </tbody>
             </table>
           </div>
