@@ -78,6 +78,9 @@ export default function RequestPPEPage() {
     setItems(prev => ({ ...prev, [ppeId]: { ...prev[ppeId], [field]: value } }));
   };
 
+  // Same "recently distributed" window (4 months) and color as the Pending PM tag.
+  const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
+
   const handleSubmit = async () => {
     if (!selectedPerson) return;
     const errors = [];
@@ -351,11 +354,16 @@ export default function RequestPPEPage() {
                       <div key={ppe.id} className="ppe-row" style={{ opacity: it.applicable ? 1 : 0.5, gridTemplateColumns: '1.5fr 140px 70px 1.5fr 90px' }}>
                         <div className="ppe-name">
                           {ppe.name}
-                          <div style={{fontSize:11,fontWeight:400,color:'#9ca3af',marginTop:2}}>
-                            {ppe.last_distributed
-                              ? `Last distributed: ${new Date(ppe.last_distributed).toLocaleDateString('en-GB')}`
-                              : 'Never distributed'}
-                          </div>
+                          {ppe.last_distributed ? (
+                            <span className="tag" style={{marginTop:2,fontWeight:400,
+                              background: isRecentDistribution(ppe.last_distributed) ? 'var(--wf-pm-light)' : 'transparent',
+                              color: isRecentDistribution(ppe.last_distributed) ? 'var(--wf-pm)' : '#9ca3af',
+                              padding: isRecentDistribution(ppe.last_distributed) ? '2px 8px' : 0}}>
+                              Last distributed: {new Date(ppe.last_distributed).toLocaleDateString('en-GB')}
+                            </span>
+                          ) : (
+                            <div style={{fontSize:11,fontWeight:400,color:'#9ca3af',marginTop:2}}>Never distributed</div>
+                          )}
                         </div>
                         <div className="ppe-cell">
                           {ppe.has_size ? (

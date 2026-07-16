@@ -458,6 +458,9 @@ export function NCRPage() {
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
+  // Same "recently distributed" window (4 months) and color as the Pending PM tag.
+  const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
+
   const deleteNCR = async (id) => {
     if (!window.confirm('Delete this NCR item? The linked PPE request will also be deleted.')) return;
     await api.delete('/ncr/' + id);
@@ -560,9 +563,16 @@ export function NCRPage() {
                   <td><div><div className="emp-name">{n.employee_name}</div><div className="emp-id">{n.employee_national_id||'—'}</div></div></td>
                   <td>
                     <div>{n.ppe_name}</div>
-                    <div style={{fontSize:10,color:'#9ca3af',marginTop:2}}>
-                      {n.last_distributed ? `Last distributed: ${new Date(n.last_distributed).toLocaleDateString('en-GB')}` : 'Never distributed'}
-                    </div>
+                    {n.last_distributed ? (
+                      <span className="tag" style={{marginTop:2,fontWeight:400,fontSize:10,
+                        background: isRecentDistribution(n.last_distributed) ? 'var(--wf-pm-light)' : 'transparent',
+                        color: isRecentDistribution(n.last_distributed) ? 'var(--wf-pm)' : '#9ca3af',
+                        padding: isRecentDistribution(n.last_distributed) ? '2px 8px' : 0}}>
+                        Last distributed: {new Date(n.last_distributed).toLocaleDateString('en-GB')}
+                      </span>
+                    ) : (
+                      <div style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Never distributed</div>
+                    )}
                     {n.comment && <div><span className="tag ppe-item-comment">{n.comment}</span></div>}
                   </td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>

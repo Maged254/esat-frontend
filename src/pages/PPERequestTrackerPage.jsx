@@ -112,6 +112,9 @@ export default function PPERequestTrackerPage() {
     return true;
   };
 
+  // Same "recently distributed" window (4 months) and color as the Pending PM tag.
+  const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
+
   // Shared row renderer — used by the PO-grouped, employee-grouped, and
   // ungrouped table views so the ~14 columns only need to be defined once.
   const renderRow = (r) => {
@@ -126,9 +129,16 @@ export default function PPERequestTrackerPage() {
       </td>
       <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:200,minWidth:200,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
         <div>{r.ppe_name}</div>
-        <div style={{fontSize:10,color:'#9ca3af',marginTop:2}}>
-          {r.last_distributed ? `Last distributed: ${new Date(r.last_distributed).toLocaleDateString('en-GB')}` : 'Never distributed'}
-        </div>
+        {r.last_distributed ? (
+          <span className="tag" style={{marginTop:2,fontWeight:400,fontSize:10,
+            background: isRecentDistribution(r.last_distributed) ? 'var(--wf-pm-light)' : 'transparent',
+            color: isRecentDistribution(r.last_distributed) ? 'var(--wf-pm)' : '#9ca3af',
+            padding: isRecentDistribution(r.last_distributed) ? '2px 8px' : 0}}>
+            Last distributed: {new Date(r.last_distributed).toLocaleDateString('en-GB')}
+          </span>
+        ) : (
+          <div style={{fontSize:10,color:'#9ca3af',marginTop:2}}>Never distributed</div>
+        )}
         {r.comment && <div><span className="tag ppe-item-comment">{r.comment}</span></div>}
       </td>
       <td>{r.size_value || '—'}</td>
