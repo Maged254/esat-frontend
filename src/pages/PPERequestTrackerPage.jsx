@@ -175,24 +175,31 @@ export default function PPERequestTrackerPage() {
     projects: { c: 'var(--wf-projects)', bg: 'var(--wf-projects-light)' },
   };
   // Days between two dates, or from a date to now if the second one hasn't happened yet.
-  const daysBetween = (from, to) => from ? Math.floor((new Date(to || Date.now()) - new Date(from)) / 86400000) : null;
+  // `allowOngoing=false` stops the count once a request is canceled -- a
+  // stage that will now never happen shouldn't keep ticking up forever.
+  const daysBetween = (from, to, allowOngoing = true) => {
+    if (!from) return null;
+    if (!to && !allowOngoing) return null;
+    return Math.floor((new Date(to || Date.now()) - new Date(from)) / 86400000);
+  };
 
   const getStages = (r) => {
     const pmDate = r.needs_pda ? r.pda_approved_date : r.date_purchase_requested;
+    const ongoing = r.status !== 'canceled';
     return [
       { done: !!r.date_flagged, date: r.date_flagged, by: r.flagged_by_name },
       { done: !!r.date_purchase_requested, date: r.date_purchase_requested, by: r.purchase_requested_by_name,
-        delayDays: daysBetween(r.date_flagged, r.date_purchase_requested) },
+        delayDays: daysBetween(r.date_flagged, r.date_purchase_requested, ongoing) },
       r.needs_pda
         ? { done: !!r.pda_approved_date, date: r.pda_approved_date, by: r.pda_approved_by_name,
-            delayDays: daysBetween(r.date_purchase_requested, r.pda_approved_date) }
+            delayDays: daysBetween(r.date_purchase_requested, r.pda_approved_date, ongoing) }
         : (r.date_purchase_requested ? { na: true } : { done: false }),
       { done: !!r.date_ordered, date: r.date_ordered, by: r.ordered_by_name, extra: r.po_number,
-        delayDays: daysBetween(pmDate, r.date_ordered) },
+        delayDays: daysBetween(pmDate, r.date_ordered, ongoing) },
       { done: !!r.date_available, date: r.date_available, by: r.available_by_name,
-        delayDays: daysBetween(r.date_ordered, r.date_available) },
+        delayDays: daysBetween(r.date_ordered, r.date_available, ongoing) },
       { done: !!r.date_distributed, date: r.date_distributed, by: r.distributed_by_name, courier: r.distribution_method === 'courier', tracking: r.courier_tracking_number,
-        delayDays: daysBetween(r.date_available, r.date_distributed) },
+        delayDays: daysBetween(r.date_available, r.date_distributed, ongoing) },
     ];
   };
 
