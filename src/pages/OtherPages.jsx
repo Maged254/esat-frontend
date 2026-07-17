@@ -297,6 +297,11 @@ export function AuditHistoryPage() {
   const [userRole, setUserRole] = useState('');
   const [currentUserName, setCurrentUserName] = useState('');
   const [filters, setFilters] = useState({ search: '', national_id: '', resource_type: '', project: '', client: '', status: 'active', audited_by: '' });
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 25;
+  const [stats, setStats] = useState({ total:0, compliant:0, partial:0, non_compliant:0, this_month:0, last_month:0 });
+  const [filterOptions, setFilterOptions] = useState({ projects: [], clients: [] });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteError, setDeleteError] = useState('');
@@ -331,33 +336,53 @@ export function AuditHistoryPage() {
     }
   };
 
-  const load = () => {
+  const filterParams = () => {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    api.get('/audits?' + params).then(r=>setAudits(r.data)).catch(logError);
+    return params;
   };
 
-  useEffect(() => { load(); }, [filters]);
+  const load = () => {
+    const params = filterParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    api.get('/audits?' + params).then(r => { setAudits(r.data.rows); setTotal(r.data.total); }).catch(logError);
+  };
 
+  const loadStats = () => {
+    api.get('/audits/stats?' + filterParams()).then(r => setStats(r.data)).catch(logError);
+  };
+
+  useEffect(() => { load(); }, [filters, page]);
+  useEffect(() => { loadStats(); }, [filters]);
+  useEffect(() => { setPage(1); }, [filters]);
+
+  useEffect(() => { api.get('/audits/filter-options').then(r=>setFilterOptions(r.data)).catch(logError); }, []);
   useEffect(() => { api.get('/users').then(r=>setUsers(r.data.filter(u=>!['sync@egypro.com','admin@egypro.com','eats-sync@egypro.app'].includes(u.email)))).catch(logError); }, []);
   const initials = n => n?.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
 
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+
   const exportCSV = () => {
-    const headers = ['employee_name','employee_number','national_id','department','project','organization','audited_by_name','audit_date','total_items','issues_count','overall_status'];
-    const rows = audits.map(a => headers.map(h => {
-      const val = a[h];
-      if (val === null || val === undefined) return '';
-      if (h === 'audit_date') return new Date(val).toLocaleDateString('en-GB');
-      return String(val).includes(',') ? '"' + val + '"' : val;
-    }).join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ESAT_Audit_History_' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const params = filterParams();
+    params.append('export', 'true');
+    api.get('/audits?' + params).then(r => {
+      const headers = ['employee_name','employee_number','national_id','department','project','organization','audited_by_name','audit_date','total_items','issues_count','overall_status'];
+      const rows = r.data.rows.map(a => headers.map(h => {
+        const val = a[h];
+        if (val === null || val === undefined) return '';
+        if (h === 'audit_date') return new Date(val).toLocaleDateString('en-GB');
+        return String(val).includes(',') ? '"' + val + '"' : val;
+      }).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ESAT_Audit_History_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(logError);
   };
 
   const STATUS = {
@@ -374,13 +399,14 @@ export function AuditHistoryPage() {
       </div>
       <div className="content">
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:"repeat(5,1fr)"}}>
-          <div className="stat-card"><div className="stat-label">Total Audits</div><div className="stat-value navy">{audits.length}</div></div>
-          <div className="stat-card"><div className="stat-label">Compliant</div><div className="stat-value green">{audits.filter(a=>a.overall_status==='compliant').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Partial</div><div className="stat-value warning">{audits.filter(a=>a.overall_status==='partial').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Non-Compliant</div><div className="stat-value danger">{audits.filter(a=>a.overall_status==='non_compliant').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Total Audits</div><div className="stat-value navy">{stats.total}</div></div>
+          <div className="stat-card"><div className="stat-label">Compliant</div><div className="stat-value green">{stats.compliant}</div></div>
+          <div className="stat-card"><div className="stat-label">Partial</div><div className="stat-value warning">{stats.partial}</div></div>
+          <div className="stat-card"><div className="stat-label">Non-Compliant</div><div className="stat-value danger">{stats.non_compliant}</div></div>
           <div className="stat-card">
             <div className="stat-label">This Month</div>
-            {(() => { const now = new Date(); const thisMonth = audits.filter(a=>{ const d=new Date(a.audit_date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).length; const lastMonth = audits.filter(a=>{ const d=new Date(a.audit_date); const lm=new Date(now.getFullYear(),now.getMonth()-1); return d.getMonth()===lm.getMonth()&&d.getFullYear()===lm.getFullYear(); }).length; return <><div className="stat-value" style={{color:thisMonth>=lastMonth?'var(--eg-green)':'var(--danger)'}}>{thisMonth}</div><div style={{fontSize:11,color:'#6b7280',marginTop:4}}>vs {lastMonth} last month</div></>; })()}
+            <div className="stat-value" style={{color:stats.this_month>=stats.last_month?'var(--eg-green)':'var(--danger)'}}>{stats.this_month}</div>
+            <div style={{fontSize:11,color:'#6b7280',marginTop:4}}>vs {stats.last_month} last month</div>
           </div>
         </div>
         <div className="card">
@@ -397,11 +423,11 @@ export function AuditHistoryPage() {
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                 <option value="">All Projects</option>
-                {[...new Set(audits.map(a=>a.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:110}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
                 <option value="">All Clients</option>
-                {[...new Set(audits.map(a=>a.client).filter(Boolean))].sort().map(cl=><option key={cl} value={cl}>{cl}</option>)}
+                {filterOptions.clients.map(cl=><option key={cl} value={cl}>{cl}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.audited_by} onChange={e=>setFilters(p=>({...p,audited_by:e.target.value}))}>
                 <option value="">All Auditors</option>
@@ -433,6 +459,22 @@ export function AuditHistoryPage() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+            <span style={{fontSize:12,color:'#6b7280'}}>{total} audit{total===1?'':'s'} total</span>
+            <div style={{display:'flex',gap:4,alignItems:'center'}}>
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.max(p-1,1))} disabled={page===1}>‹ Prev</button>
+              {Array.from({length: totalPages}, (_, i) => i+1)
+                .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
+                .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                .map((p, i) => p==='…'
+                  ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                  : <button key={p} className="btn btn-sm" onClick={()=>setPage(p)} style={{background:p===page?'var(--eg-navy)':'',color:p===page?'white':'',fontWeight:p===page?700:400}}>{p}</button>
+                )}
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.min(p+1,totalPages))} disabled={page===totalPages}>Next ›</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {deleteTarget && (
