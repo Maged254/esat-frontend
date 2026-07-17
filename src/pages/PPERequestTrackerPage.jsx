@@ -66,6 +66,11 @@ export default function PPERequestTrackerPage() {
   const [groupMode, setGroupMode] = useState('none'); // 'none' | 'po' | 'employee'
   const [successMsg, setSuccessMsg] = useState('');
   const [expandedId, setExpandedId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 25;
+  const [stats, setStats] = useState({ pending_ehs:0, pending_ehs_oldest:null, pending_pm:0, pending_pm_oldest:null, pending_scm:0, pending_scm_oldest:null, pending_suppliers:0, pending_suppliers_oldest:null, pending_projects:0, pending_projects_oldest:null });
+  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [], clients: [] });
 
   useEffect(() => {
     try {
@@ -74,12 +79,40 @@ export default function PPERequestTrackerPage() {
     } catch {}
   }, []);
 
+  const filterParams = () => {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.national_id) params.append('national_id', filters.national_id);
+    if (filters.po_number) params.append('po_number', filters.po_number);
+    if (filters.location) params.append('location', filters.location);
+    if (filters.ppe) params.append('ppe', filters.ppe);
+    if (filters.period) params.append('period', filters.period);
+    if (filters.projects.length) params.append('projects', filters.projects.join(','));
+    if (filters.clients.length) params.append('clients', filters.clients.join(','));
+    return params;
+  };
+
+  const load = () => {
+    const params = filterParams();
+    // Grouped views need every matching row to compute correct subtotals, so
+    // only the flat/ungrouped view actually paginates.
+    if (groupMode === 'none') { params.append('page', page); params.append('pageSize', pageSize); }
+    api.get('/ppe-requests?' + params).then(r => { setRequests(r.data.rows); setTotal(r.data.total); }).catch(logError);
+  };
+
+  const loadStats = () => api.get('/ppe-requests/stats').then(r => setStats(r.data)).catch(logError);
+
   useEffect(() => {
-    api.get('/ppe-requests').then(r => setRequests(r.data)).catch(logError);
+    loadStats();
+    api.get('/ppe-requests/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
   }, []);
 
-  const reload = () => api.get('/ppe-requests').then(r => setRequests(r.data)).catch(logError);
+  useEffect(() => { load(); }, [filters, page, groupMode]);
+  useEffect(() => { setPage(1); }, [filters, groupMode]);
+
+  const reload = () => { load(); loadStats(); };
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
@@ -115,15 +148,6 @@ export default function PPERequestTrackerPage() {
 
   // Same "recently distributed" window (4 months) and color as the Pending PM tag.
   const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
-
-  // Age in days of the oldest item currently sitting in a given pending bucket,
-  // measured from when it entered that bucket (not from when it was first flagged).
-  const oldestAgeDays = (items, getDate) => {
-    const dates = items.map(getDate).filter(Boolean).map(d => new Date(d));
-    if (!dates.length) return null;
-    const oldest = new Date(Math.min(...dates));
-    return Math.floor((Date.now() - oldest.getTime()) / 86400000);
-  };
 
   // Small triangular badge in a stat card's bottom-right corner showing the
   // oldest item's age in that bucket.
@@ -302,46 +326,32 @@ export default function PPERequestTrackerPage() {
     ];
   };
 
-  const filtered = requests.filter(r => {
-    if (filters.status === 'pda_pending') { if (r.status !== 'ehs_purchase_requested' || !r.needs_pda) return false; }
-    else if (filters.status === 'ehs_purchase_requested') { if (r.status !== 'ehs_purchase_requested' || (r.needs_pda && !r.pda_approved_date)) return false; }
-    else if (filters.status && r.status !== filters.status) return false;
-    if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.national_id && !r.employee_national_id?.toLowerCase().includes(filters.national_id.toLowerCase())) return false;
-    if (filters.po_number && !r.po_number?.toLowerCase().includes(filters.po_number.toLowerCase())) return false;
-    if (filters.projects.length > 0 && !filters.projects.includes(r.project)) return false;
-    if (filters.clients.length > 0 && !filters.clients.includes(r.client)) return false;
-    if (filters.location && r.location_name !== filters.location) return false;
-    if (filters.ppe && r.ppe_name !== filters.ppe) return false;
-    if (filters.period) {
-      const now = new Date();
-      const flagged = new Date(r.date_flagged);
-      if (filters.period === 'current' && (flagged.getMonth() !== now.getMonth() || flagged.getFullYear() !== now.getFullYear())) return false;
-      if (filters.period === 'previous') {
-        const prev = new Date(now.getFullYear(), now.getMonth() - 1);
-        if (flagged.getMonth() !== prev.getMonth() || flagged.getFullYear() !== prev.getFullYear()) return false;
-      }
-    }
-    return true;
-  });
+  // No client-side filtering anymore -- the server now returns already-filtered
+  // (and, for the flat view, already-paginated) rows directly in `requests`.
+  const filtered = requests;
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   const canEdit = userRole === 'scm_officer' || userRole === 'admin';
 
   const exportCSV = () => {
-    const labels = ['Employee','National ID','PPE/Tool Item','Size','Status','Client','Project'];
-    const rows = filtered.map(r => [
-      r.employee_name, r.employee_national_id, r.ppe_name, r.size_value||'',
-      STATUS_LABELS[r.status]||r.status,
-      r.client||'', r.project||'',
-    ].map(v => String(v).includes(',') ? '"'+v+'"' : v).join(','));
-    const csv = [labels.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ESAT_PPE_Tracker_' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const params = filterParams();
+    params.append('export', 'true');
+    api.get('/ppe-requests?' + params).then(r => {
+      const labels = ['Employee','National ID','PPE/Tool Item','Size','Status','Client','Project'];
+      const rows = r.data.rows.map(row => [
+        row.employee_name, row.employee_national_id, row.ppe_name, row.size_value||'',
+        STATUS_LABELS[row.status]||row.status,
+        row.client||'', row.project||'',
+      ].map(v => String(v).includes(',') ? '"'+v+'"' : v).join(','));
+      const csv = [labels.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ESAT_PPE_Tracker_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(logError);
   };
 
   return (
@@ -400,12 +410,12 @@ export default function PPERequestTrackerPage() {
       <div className="content">
         {successMsg && <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{successMsg}</div>}
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(6,1fr)'}}>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',borderTopColor:'var(--eg-navy)',outline:!filters.status?'2px solid var(--eg-navy)':'',boxShadow:!filters.status?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupMode('none');}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{filtered.length}</div></div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-ehs)',background:filters.status==='pending'?'var(--wf-ehs-light)':'',outline:filters.status==='pending'?'2px solid var(--wf-ehs)':'',boxShadow:filters.status==='pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupMode('none');}}><div className="stat-label">Pending EHS</div><div className="stat-value" style={{color:'var(--wf-ehs)'}}>{requests.filter(r=>r.status==='pending').length}</div>{delayBadge(oldestAgeDays(requests.filter(r=>r.status==='pending'), r=>r.date_flagged), 'var(--wf-ehs-light)', 'var(--wf-ehs)')}</div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-pm)',background:filters.status==='pda_pending'?'var(--wf-pm-light)':'',outline:filters.status==='pda_pending'?'2px solid var(--wf-pm)':'',boxShadow:filters.status==='pda_pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'})); setGroupMode('none');}}><div className="stat-label">Pending PM</div><div className="stat-value" style={{color:'var(--wf-pm)'}}>{requests.filter(r=>r.status==='ehs_purchase_requested' && r.needs_pda).length}</div>{delayBadge(oldestAgeDays(requests.filter(r=>r.status==='ehs_purchase_requested' && r.needs_pda), r=>r.date_purchase_requested), 'var(--wf-pm-light)', 'var(--wf-pm)')}</div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='ehs_purchase_requested'?'var(--wf-scm-light)':'',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='ehs_purchase_requested'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); setGroupMode('none');}}><div className="stat-label">Pending SCM</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{requests.filter(r=>r.status==='ehs_purchase_requested' && !(r.needs_pda && !r.pda_approved_date)).length}</div>{delayBadge(oldestAgeDays(requests.filter(r=>r.status==='ehs_purchase_requested' && !(r.needs_pda && !r.pda_approved_date)), r=>r.needs_pda ? r.pda_approved_date : r.date_purchase_requested), 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='scm_ordered'?'var(--wf-scm-light)':'',outline:filters.status==='scm_ordered'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='scm_ordered'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'})); setGroupMode('none');}}><div className="stat-label">Pending Suppliers</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{requests.filter(r=>r.status==='scm_ordered').length}</div>{delayBadge(oldestAgeDays(requests.filter(r=>r.status==='scm_ordered'), r=>r.date_ordered), 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-projects)',background:filters.status==='warehouse_available'?'var(--wf-projects-light)':'',outline:filters.status==='warehouse_available'?'2px solid var(--wf-projects)':'',boxShadow:filters.status==='warehouse_available'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'})); setGroupMode('none');}}><div className="stat-label">Pending Projects</div><div className="stat-value" style={{color:'var(--wf-projects)'}}>{requests.filter(r=>r.status==='warehouse_available').length}</div>{delayBadge(oldestAgeDays(requests.filter(r=>r.status==='warehouse_available'), r=>r.date_available), 'var(--wf-projects-light)', 'var(--wf-projects)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',borderTopColor:'var(--eg-navy)',outline:!filters.status?'2px solid var(--eg-navy)':'',boxShadow:!filters.status?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupMode('none');}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{total}</div></div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-ehs)',background:filters.status==='pending'?'var(--wf-ehs-light)':'',outline:filters.status==='pending'?'2px solid var(--wf-ehs)':'',boxShadow:filters.status==='pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupMode('none');}}><div className="stat-label">Pending EHS</div><div className="stat-value" style={{color:'var(--wf-ehs)'}}>{stats.pending_ehs}</div>{delayBadge(stats.pending_ehs_oldest, 'var(--wf-ehs-light)', 'var(--wf-ehs)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-pm)',background:filters.status==='pda_pending'?'var(--wf-pm-light)':'',outline:filters.status==='pda_pending'?'2px solid var(--wf-pm)':'',boxShadow:filters.status==='pda_pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'})); setGroupMode('none');}}><div className="stat-label">Pending PM</div><div className="stat-value" style={{color:'var(--wf-pm)'}}>{stats.pending_pm}</div>{delayBadge(stats.pending_pm_oldest, 'var(--wf-pm-light)', 'var(--wf-pm)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='ehs_purchase_requested'?'var(--wf-scm-light)':'',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='ehs_purchase_requested'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); setGroupMode('none');}}><div className="stat-label">Pending SCM</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{stats.pending_scm}</div>{delayBadge(stats.pending_scm_oldest, 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='scm_ordered'?'var(--wf-scm-light)':'',outline:filters.status==='scm_ordered'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='scm_ordered'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'})); setGroupMode('none');}}><div className="stat-label">Pending Suppliers</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{stats.pending_suppliers}</div>{delayBadge(stats.pending_suppliers_oldest, 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-projects)',background:filters.status==='warehouse_available'?'var(--wf-projects-light)':'',outline:filters.status==='warehouse_available'?'2px solid var(--wf-projects)':'',boxShadow:filters.status==='warehouse_available'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'})); setGroupMode('none');}}><div className="stat-label">Pending Projects</div><div className="stat-value" style={{color:'var(--wf-projects)'}}>{stats.pending_projects}</div>{delayBadge(stats.pending_projects_oldest, 'var(--wf-projects-light)', 'var(--wf-projects)')}</div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
@@ -459,7 +469,7 @@ export default function PPERequestTrackerPage() {
                 {showPpeDrop && (
                   <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:220}}>
                     <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,ppe:''})); setPpeSearch(''); setShowPpeDrop(false); }}>All PPE/Tool Items</div>
-                    {[...new Set(requests.map(r=>r.ppe_name).filter(Boolean))].sort()
+                    {filterOptions.ppe_names
                       .filter(p=>!ppeSearch||p.toLowerCase().includes(ppeSearch.toLowerCase()))
                       .map(p=>(
                         <div key={p} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
@@ -483,7 +493,7 @@ export default function PPERequestTrackerPage() {
                 </button>
                 {projDropOpen && (
                   <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:180,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
-                    {[...new Set(requests.map(r=>r.project).filter(Boolean))].sort().map(p=>(
+                    {filterOptions.projects.map(p=>(
                       <label key={p} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
                         <input type="checkbox" checked={filters.projects.includes(p)} onChange={()=>setFilters(f=>({...f,projects:f.projects.includes(p)?f.projects.filter(x=>x!==p):[...f.projects,p]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
                         {p}
@@ -499,7 +509,7 @@ export default function PPERequestTrackerPage() {
                 </button>
                 {clientDropOpen && (
                   <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:160,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
-                    {[...new Set(requests.map(r=>r.client).filter(Boolean))].sort().map(c=>(
+                    {filterOptions.clients.map(c=>(
                       <label key={c} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
                         <input type="checkbox" checked={filters.clients.includes(c)} onChange={()=>setFilters(f=>({...f,clients:f.clients.includes(c)?f.clients.filter(x=>x!==c):[...f.clients,c]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
                         {c}
@@ -584,6 +594,22 @@ export default function PPERequestTrackerPage() {
               </tbody>
             </table>
           </div>
+          {groupMode === 'none' && totalPages > 1 && (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+              <span style={{fontSize:12,color:'#6b7280'}}>{total} request{total===1?'':'s'} total</span>
+              <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                <button className="btn btn-sm" onClick={()=>setPage(p=>Math.max(p-1,1))} disabled={page===1}>‹ Prev</button>
+                {Array.from({length: totalPages}, (_, i) => i+1)
+                  .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
+                  .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                  .map((p, i) => p==='…'
+                    ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                    : <button key={p} className="btn btn-sm" onClick={()=>setPage(p)} style={{background:p===page?'var(--eg-navy)':'',color:p===page?'white':'',fontWeight:p===page?700:400}}>{p}</button>
+                  )}
+                <button className="btn btn-sm" onClick={()=>setPage(p=>Math.min(p+1,totalPages))} disabled={page===totalPages}>Next ›</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {trackingModal && (
