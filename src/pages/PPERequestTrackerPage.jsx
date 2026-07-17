@@ -150,16 +150,27 @@ export default function PPERequestTrackerPage() {
     scm: { c: 'var(--wf-scm)', bg: 'var(--wf-scm-light)' },
     projects: { c: 'var(--wf-projects)', bg: 'var(--wf-projects-light)' },
   };
-  const getStages = (r) => ([
-    { done: !!r.date_flagged, date: r.date_flagged, by: r.flagged_by_name },
-    { done: !!r.date_purchase_requested, date: r.date_purchase_requested, by: r.purchase_requested_by_name },
-    r.needs_pda
-      ? { done: !!r.pda_approved_date, date: r.pda_approved_date, by: r.pda_approved_by_name }
-      : (r.date_purchase_requested ? { na: true } : { done: false }),
-    { done: !!r.date_ordered, date: r.date_ordered, by: r.ordered_by_name, extra: r.po_number },
-    { done: !!r.date_available, date: r.date_available, by: r.available_by_name },
-    { done: !!r.date_distributed, date: r.date_distributed, by: r.distributed_by_name, courier: r.distribution_method === 'courier', tracking: r.courier_tracking_number },
-  ]);
+  // Days between two dates, or from a date to now if the second one hasn't happened yet.
+  const daysBetween = (from, to) => from ? Math.floor((new Date(to || Date.now()) - new Date(from)) / 86400000) : null;
+
+  const getStages = (r) => {
+    const pmDate = r.needs_pda ? r.pda_approved_date : r.date_purchase_requested;
+    return [
+      { done: !!r.date_flagged, date: r.date_flagged, by: r.flagged_by_name },
+      { done: !!r.date_purchase_requested, date: r.date_purchase_requested, by: r.purchase_requested_by_name,
+        delayDays: daysBetween(r.date_flagged, r.date_purchase_requested) },
+      r.needs_pda
+        ? { done: !!r.pda_approved_date, date: r.pda_approved_date, by: r.pda_approved_by_name,
+            delayDays: daysBetween(r.date_purchase_requested, r.pda_approved_date) }
+        : (r.date_purchase_requested ? { na: true } : { done: false }),
+      { done: !!r.date_ordered, date: r.date_ordered, by: r.ordered_by_name, extra: r.po_number,
+        delayDays: daysBetween(pmDate, r.date_ordered) },
+      { done: !!r.date_available, date: r.date_available, by: r.available_by_name,
+        delayDays: daysBetween(r.date_ordered, r.date_available) },
+      { done: !!r.date_distributed, date: r.date_distributed, by: r.distributed_by_name, courier: r.distribution_method === 'courier', tracking: r.courier_tracking_number,
+        delayDays: daysBetween(r.date_available, r.date_distributed) },
+    ];
+  };
 
   const miniStepper = (stages) => (
     <div style={{display:'flex',alignItems:'center'}}>
@@ -220,6 +231,9 @@ export default function PPERequestTrackerPage() {
                     >Courier ›</span>
                   )}
                 </div>
+                {i > 0 && !s.na && s.delayDays !== null && s.delayDays !== undefined && (
+                  <div title={(s.done ? 'Took' : 'Waiting') + ' ' + s.delayDays + ' day' + (s.delayDays===1?'':'s')} style={{position:'absolute',bottom:2,right:i===STAGE_META.length-1?2:notch+2,fontSize:9,fontWeight:700,color:fg,opacity:0.85}}>{s.delayDays}d</div>
+                )}
               </div>
             );
           })}
