@@ -282,12 +282,12 @@ export default function PPERequestTrackerPage() {
     const stages = getStages(r);
     return [
     <tr key={r.id} style={{background: highlight, cursor:'pointer'}} onClick={() => setExpandedId(isOpen ? null : r.id)}>
-      <td style={{position:'sticky',left:0,zIndex:2,background:stickyBg,width:150,minWidth:150}}>
+      <td style={{background:stickyBg,width:150,minWidth:150}}>
         <div className="emp-name">{r.employee_name}</div>
         <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
         {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
       </td>
-      <td style={{position:'sticky',left:150,zIndex:2,background:stickyBg,width:360,minWidth:360,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>
+      <td style={{background:stickyBg,width:360,minWidth:360}}>
         <div>{r.ppe_name}</div>
         {r.last_distributed ? (
           <span className="tag" style={{marginTop:2,fontWeight:400,fontSize:10,
@@ -541,8 +541,8 @@ export default function PPERequestTrackerPage() {
               </colgroup>
               <thead>
                 <tr style={{position:'sticky',top:0,zIndex:4}}>
-                  <th style={{minWidth:150,width:150,position:'sticky',left:0,zIndex:6}}>Employee</th>
-                  <th style={{minWidth:360,width:360,position:'sticky',left:150,zIndex:6,boxShadow:'2px 0 4px rgba(0,0,0,0.06)'}}>PPE/Tool Item</th>
+                  <th style={{minWidth:150,width:150}}>Employee</th>
+                  <th style={{minWidth:360,width:360}}>PPE/Tool Item</th>
                   <th style={{minWidth:50}}>Qty</th>
                   <th style={{minWidth:130}}>Project / Client</th>
                   <th style={{minWidth:190}}>Progress</th>
@@ -571,7 +571,7 @@ export default function PPERequestTrackerPage() {
                     rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?7:6} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
-                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',position:'sticky',left:0,zIndex:2,background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?4:3} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
+                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?4:3} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
                       g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
