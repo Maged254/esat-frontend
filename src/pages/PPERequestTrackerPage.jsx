@@ -37,7 +37,7 @@ const ELIGIBLE_STATUSES = {
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', projects: [], clients: [], location: '' });
+  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '' });
   const [projDropOpen, setProjDropOpen] = useState(false);
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const projRef = React.useRef(null);
@@ -294,6 +294,7 @@ export default function PPERequestTrackerPage() {
     else if (filters.status && r.status !== filters.status) return false;
     if (filters.search && !r.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
     if (filters.national_id && !r.employee_national_id?.toLowerCase().includes(filters.national_id.toLowerCase())) return false;
+    if (filters.po_number && !r.po_number?.toLowerCase().includes(filters.po_number.toLowerCase())) return false;
     if (filters.projects.length > 0 && !filters.projects.includes(r.project)) return false;
     if (filters.clients.length > 0 && !filters.clients.includes(r.client)) return false;
     if (filters.location && r.location_name !== filters.location) return false;
@@ -398,6 +399,7 @@ export default function PPERequestTrackerPage() {
             <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
               <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
               <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="National ID..." value={filters.national_id||''} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="PO number..." value={filters.po_number} onChange={e=>setFilters(p=>({...p,po_number:e.target.value}))} />
               <div style={{position:'relative'}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="All Locations"
                   value={filters.location ? filters.location : locSearch}
@@ -492,7 +494,7 @@ export default function PPERequestTrackerPage() {
                   </div>
                 )}
               </div>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:'',po_number:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)',marginTop:0,borderTop:'1px solid transparent'}}>
