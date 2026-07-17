@@ -10,6 +10,11 @@ export function EmployeesPage() {
   const [assignedPpe, setAssignedPpe] = useState([]); // array of ppe_item ids
   const [ppeAssignSaving, setPpeAssignSaving] = useState(false);
   const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: '', job_title: '', audit_age: '' });
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 25;
+  const [stats, setStats] = useState({ total_active: 0, inhouse: 0, outsource: 0, exits: 0 });
+  const [filterOptions, setFilterOptions] = useState({ departments: [], projects: [], clients: [] });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -32,11 +37,24 @@ export function EmployeesPage() {
     setEmployees(prev => prev.filter(e => e.id !== emp.id));
   };
 
-  const load = () => {
+  const filterParams = () => {
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v && k !== 'audit_age') params.append(k, v); });
-    api.get(`/employees?${params}`).then(r => setEmployees(r.data)).catch(logError);
-  }
+    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    return params;
+  };
+
+  const load = () => {
+    const params = filterParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    api.get(`/employees?${params}`).then(r => { setEmployees(r.data.rows); setTotal(r.data.total); }).catch(logError);
+  };
+
+  const loadStats = () => {
+    api.get(`/employees/stats?${filterParams()}`).then(r => setStats(r.data)).catch(logError);
+  };
+
+  const reload = () => { load(); loadStats(); };
 
   async function openPpeAssign(emp) {
     const [ppeRes, assignRes] = await Promise.all([
@@ -73,13 +91,16 @@ export function EmployeesPage() {
     }
     setImporting(false);
     e.target.value = '';
-    load();
+    reload();
     let msg = `Import complete: ${success} added`;
     if (failed > 0) msg += `, ${failed} failed:\n` + errors.slice(0,5).join('\n');
     alert(msg);
   };
 
-  useEffect(() => { load(); }, [filters]);
+  useEffect(() => { load(); }, [filters, page]);
+  useEffect(() => { loadStats(); }, [filters]);
+  useEffect(() => { setPage(1); }, [filters]);
+  useEffect(() => { api.get('/employees/filter-options').then(r=>setFilterOptions(r.data)).catch(logError); }, []);
 
   async function savePpeAssign() {
     setPpeAssignSaving(true);
@@ -103,37 +124,33 @@ export function EmployeesPage() {
     const token = localStorage.getItem('esat_token');
     if (!token) return;
     const source = new EventSource(`${api.defaults.baseURL}/events?token=${encodeURIComponent(token)}`);
-    source.onmessage = () => load();
+    source.onmessage = () => reload();
     return () => source.close();
-  }, [filters]);
+  }, [filters, page]);
 
+  // Full filtered set (no page/pageSize), not just the currently visible page.
   const exportCSV = () => {
-    const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
-    const rows = auditAgeFiltered.map(e => headers.map(h => {
-      const val = e[h];
-      if (val === null || val === undefined) return '';
-      if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-      if (h === 'last_audit_date' && val) return new Date(val).toLocaleDateString('en-GB');
-      return String(val).includes(',') ? `"${val}"` : val;
-    }).join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `ESAT_Employees_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    api.get(`/employees?${filterParams()}`).then(r => {
+      const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
+      const rows = r.data.map(e => headers.map(h => {
+        const val = e[h];
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+        if (h === 'last_audit_date' && val) return new Date(val).toLocaleDateString('en-GB');
+        return String(val).includes(',') ? `"${val}"` : val;
+      }).join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ESAT_Employees_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(logError);
   };
 
-  const auditAgeFiltered = employees.filter(e => {
-    if (!filters.audit_age) return true;
-    const days = e.days_since_audit !== null && e.days_since_audit !== undefined ? parseInt(e.days_since_audit) : 99999;
-    if (filters.audit_age === '1month' && days > 30) return false;
-    if (filters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
-    if (filters.audit_age === 'over2months' && days <= 60) return false;
-    return true;
-  });
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   const avatarClass = i => ['av-teal','av-navy','av-coral','av-purple'][i % 4];
@@ -158,10 +175,10 @@ export function EmployeesPage() {
       </div>
       <div className="content">
         <div className="stat-grid">
-          <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{auditAgeFiltered.filter(e=>e.employment_status==='active').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{auditAgeFiltered.filter(e=>e.resource_type==='inhouse').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{auditAgeFiltered.filter(e=>e.resource_type==='outsource').length}</div></div>
-          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{auditAgeFiltered.filter(e=>e.employment_status==='exit').length}</div></div>
+          <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div></div>
+          <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div></div>
+          <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{stats.outsource}</div></div>
+          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div></div>
         </div>
         <div className="card">
           <div className="card-header">
@@ -178,15 +195,15 @@ export function EmployeesPage() {
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
                 <option value="">All Departments</option>
-                {[...new Set(employees.map(e=>e.department).filter(Boolean))].sort().map(d=><option key={d} value={d}>{d}</option>)}
+                {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                 <option value="">All Projects</option>
-                {[...new Set(employees.map(e=>e.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
                 <option value="">All Clients</option>
-                {[...new Set(employees.map(e=>e.client).filter(Boolean))].sort().map(c=><option key={c} value={c}>{c}</option>)}
+                {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.san} onChange={e=>setFilters(p=>({...p,san:e.target.value}))}>
                 <option value="">All</option>
@@ -205,15 +222,7 @@ export function EmployeesPage() {
           <table>
             <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {employees.filter(e => {
-                if (filters.audit_age) {
-                  const days = e.days_since_audit !== null && e.days_since_audit !== undefined ? parseInt(e.days_since_audit) : 99999;
-                  if (filters.audit_age === '1month' && days > 30) return false;
-                  if (filters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
-                  if (filters.audit_age === 'over2months' && days <= 60) return false;
-                }
-                return true;
-              }).map((e, i) => (
+              {employees.map((e, i) => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
                   <td>{e.organization||'—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
@@ -229,9 +238,26 @@ export function EmployeesPage() {
                   </td>
                 </tr>
               ))}
+              {!employees.length && <tr><td colSpan={11} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+            <span style={{fontSize:12,color:'#6b7280'}}>{total} employee{total===1?'':'s'} total</span>
+            <div style={{display:'flex',gap:4,alignItems:'center'}}>
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.max(p-1,1))} disabled={page===1}>‹ Prev</button>
+              {Array.from({length: totalPages}, (_, i) => i+1)
+                .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
+                .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                .map((p, i) => p==='…'
+                  ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                  : <button key={p} className="btn btn-sm" onClick={()=>setPage(p)} style={{background:p===page?'var(--eg-navy)':'',color:p===page?'white':'',fontWeight:p===page?700:400}}>{p}</button>
+                )}
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.min(p+1,totalPages))} disabled={page===totalPages}>Next ›</button>
+            </div>
+          </div>
+        )}
       </div>
       {ppeAssignModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -504,7 +530,11 @@ export function AuditHistoryPage() {
 // ── NCRPage ──────────────────────────────────────────────────
 export function NCRPage() {
   const [items, setItems] = useState([]);
-  const [stats, setStats] = useState({});
+  const [stats, setStats] = useState({ total_open: 0, pending: 0, pending_pm: 0, resolved_this_month: 0 });
+  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [] });
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 25;
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState([]);
   const [selectingPda, setSelectingPda] = useState(false);
@@ -517,51 +547,72 @@ export function NCRPage() {
     try { const user = JSON.parse(localStorage.getItem('esat_user')); if (user) setUserRole(user.role); } catch {}
   }, []);
 
-  useEffect(() => {
-    api.get('/ncr').then(r=>setItems(r.data)).catch(logError);
-    api.get('/ncr/stats').then(r=>setStats(r.data)).catch(logError);
-  }, []);
+  // Stat-card clicks (activeStat) and the status dropdown are mutually
+  // exclusive in the UI and collapse to a single canonical status value
+  // for the backend, matching the pda_pending/ehs_purchase_requested
+  // sentinel pattern already used by /api/ppe-requests.
+  const effectiveStatus = () => {
+    if (filters.activeStat === 'pending') return 'pending';
+    if (filters.activeStat === 'pma') return 'pda_pending';
+    if (filters.activeStat === 'distributed') return 'distributed_this_month';
+    return filters.status;
+  };
 
-  const filteredItems = items.filter(n => {
-    const now = new Date();
-    const created = new Date(n.created_at);
-    if (filters.period === 'current' && (created.getMonth() !== now.getMonth() || created.getFullYear() !== now.getFullYear())) return false;
-    if (filters.period === 'previous') {
-      const prev = new Date(now.getFullYear(), now.getMonth() - 1);
-      if (created.getMonth() !== prev.getMonth() || created.getFullYear() !== prev.getFullYear()) return false;
-    }
-    if (filters.search && !n.employee_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.ppe && n.ppe_name !== filters.ppe) return false;
-    if (filters.project && n.project !== filters.project) return false;
-    if (filters.activeStat === 'pending') { if (n.status !== 'pending') return false; }
-    else if (filters.activeStat === 'pma') { if (n.status !== 'ehs_purchase_requested' || !n.needs_pda) return false; }
-    else if (filters.activeStat === 'distributed') {
-      const now2 = new Date();
-      const updated = new Date(n.updated_at);
-      if (!['resolved','distributed'].includes(n.status)) return false;
-      if (updated.getMonth() !== now2.getMonth() || updated.getFullYear() !== now2.getFullYear()) return false;
-    } else if (filters.status === 'pda_pending') { if (n.status !== 'ehs_purchase_requested' || !n.needs_pda) return false; }
-    else if (filters.status === 'ehs_purchase_requested') { if (n.status !== 'ehs_purchase_requested' || n.needs_pda) return false; }
-    else if (filters.status && n.status !== filters.status) return false;
-    return true;
-  });
+  const filterParams = () => {
+    const params = new URLSearchParams();
+    if (filters.search) params.append('search', filters.search);
+    if (filters.period) params.append('period', filters.period);
+    if (filters.ppe) params.append('ppe', filters.ppe);
+    if (filters.project) params.append('project', filters.project);
+    const status = effectiveStatus();
+    if (status) params.append('status', status);
+    return params;
+  };
+
+  const load = () => {
+    const params = filterParams();
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    api.get('/ncr?' + params).then(r => { setItems(r.data.rows); setTotal(r.data.total); }).catch(logError);
+  };
+
+  // Global (unfiltered) counts -- doesn't depend on `filters`, see /api/ncr/stats.
+  const loadStats = () => api.get('/ncr/stats').then(r=>setStats(r.data)).catch(logError);
+
+  const reload = () => { load(); loadStats(); };
+
+  useEffect(() => { load(); }, [filters, page]);
+  useEffect(() => { loadStats(); }, []);
+  useEffect(() => { setPage(1); }, [filters]);
+  useEffect(() => { api.get('/ncr/filter-options').then(r=>setFilterOptions(r.data)).catch(logError); }, []);
+
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   const toggleSelect = (id) => setSelected(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
 
   // Same "recently distributed" window (4 months) and color as the Pending PM tag.
   const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
 
+  const statusLabel = (n) =>
+    n.status==='pending'?'Flagged':
+    n.status==='ehs_purchase_requested'?(n.needs_pda?'Pending PM':'EHS Purchase Requested'):
+    n.status==='pda_approved'?'Approved (PM)':
+    n.status==='scm_ordered'?'SCM Ordered':
+    n.status==='warehouse_available'?'Warehouse Available':
+    n.status==='distributed'?'Distributed':
+    n.status==='resolved'?'Resolved':'Canceled';
+
   const deleteNCR = async (id) => {
     if (!window.confirm('Delete this NCR item? The linked PPE request will also be deleted.')) return;
     await api.delete('/ncr/' + id);
-    setItems(prev => prev.filter(i => i.id !== id));
+    reload();
   };
 
   const approvePurchaseRequest = async () => {
     if (selected.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve (Safety) for ${selected.length} item(s)?`)) return;
     await Promise.all(selected.map(id => api.put(`/ncr/${id}/status`, { status: 'ehs_purchase_requested' })));
-    setItems(prev => prev.map(i => selected.includes(i.id) ? {...i, status: 'ehs_purchase_requested'} : i));
+    reload();
     setSelected([]);
     setSelecting(false);
     alert(`${selected.length} item(s) approved (Safety) successfully.`);
@@ -573,17 +624,39 @@ export function NCRPage() {
     if (selectedPda.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve (PM) for ${selectedPda.length} item(s)?`)) return;
     await Promise.all(selectedPda.map(id => api.put(`/ncr/${id}/status`, { status: 'pda_approved' })));
-    setItems(prev => prev.map(i => selectedPda.includes(i.id) ? {...i, status: 'pda_approved'} : i));
+    reload();
     setSelectedPda([]);
     setSelectingPda(false);
     alert(`${selectedPda.length} item(s) approved (PM) successfully.`);
   };
+
+  const exportCSV = () => {
+    const params = filterParams();
+    params.append('export', 'true');
+    api.get('/ncr?' + params).then(r => {
+      const labels = ['Employee','National ID','PPE/Tool Item','Condition','Qty','Project','Client','Organization','Flagged Date','Status'];
+      const rows = r.data.rows.map(n => [
+        n.employee_name, n.employee_national_id||'', n.ppe_name, n.condition==='not_good'?'Not Good':'Missing',
+        n.quantity||1, n.project||'', n.client||'', n.organization||'',
+        new Date(n.created_at).toLocaleDateString('en-GB'), statusLabel(n),
+      ].map(v => String(v).includes(',') ? '"'+v+'"' : v).join(','));
+      const csv = [labels.join(','), ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'ESAT_NCR_' + new Date().toISOString().slice(0,10) + '.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }).catch(logError);
+  };
+
   return (
     <>
       <div className="topbar">
         <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
         <div className="topbar-right">
-          <button className="btn">↓ Export</button>
+          <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
           {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && !selectingPda && (
             <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve (Safety)</button>
           )}
@@ -608,10 +681,10 @@ export function NCRPage() {
       </div>
       <div className="content">
         <div className="stat-grid">
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat===''?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:'',status:''}))}><div className="stat-label">Total Open</div><div className="stat-value danger">{items.filter(n=>!['resolved','distributed','canceled'].includes(n.status)).length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pending'?'':'pending',status:''}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{items.filter(n=>n.status==='pending').length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pma'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pma'?'':'pma',status:''}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{items.filter(n=>n.status==='ehs_purchase_requested' && n.needs_pda).length}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='distributed'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='distributed'?'':'distributed',status:''}))}><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month||0}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat===''?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:'',status:''}))}><div className="stat-label">Total Open</div><div className="stat-value danger">{stats.total_open}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pending'?'':'pending',status:''}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{stats.pending}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pma'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pma'?'':'pma',status:''}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{stats.pending_pm}</div></div>
+          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='distributed'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='distributed'?'':'distributed',status:''}))}><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month}</div></div>
         </div>
         <div className="card">
           <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
@@ -625,7 +698,7 @@ export function NCRPage() {
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
                 <option value="">All PPE/Tool Items</option>
-                {[...new Set(items.map(n=>n.ppe_name).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                {filterOptions.ppe_names.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
                 <option value="">All Status</option>
@@ -639,7 +712,7 @@ export function NCRPage() {
               </select>
               <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                 <option value="">All Projects</option>
-                {[...new Set(items.map(n=>n.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
               </select>
               <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:'',activeStat:''})}>✕ Clear</button>
             </div>
@@ -647,7 +720,7 @@ export function NCRPage() {
           <table>
             <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Qty</th><th>Project / Client</th><th>Organization</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
             <tbody>
-              {filteredItems.map(n=>(
+              {items.map(n=>(
                 <tr key={n.id}>
                   <td style={{padding:'0 0 0 8px'}}><div style={{width:3,height:40,background:n.condition==='not_good'?'var(--danger)':'var(--warning)',borderRadius:2}}></div></td>
                   <td>
@@ -683,24 +756,32 @@ export function NCRPage() {
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
                   </td>
-                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{
-                    n.status==='pending'?'Flagged':
-                    n.status==='ehs_purchase_requested'?(n.needs_pda?'Pending PM':'EHS Purchase Requested'):
-                    n.status==='pda_approved'?'Approved (PM)':
-                    n.status==='scm_ordered'?'SCM Ordered':
-                    n.status==='warehouse_available'?'Warehouse Available':
-                    n.status==='distributed'?'Distributed':
-                    n.status==='resolved'?'Resolved':'Canceled'
-                  }</span></td>
+                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{statusLabel(n)}</span></td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {selectingPda && <td style={{textAlign:'center'}}>{n.needs_pda && n.status==='ehs_purchase_requested' && <input type="checkbox" checked={selectedPda.includes(n.id)} onChange={()=>togglePdaSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {userRole === 'admin' && !selecting && !selectingPda && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}
-              {!filteredItems.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
+              {!items.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+            <span style={{fontSize:12,color:'#6b7280'}}>{total} item{total===1?'':'s'} total</span>
+            <div style={{display:'flex',gap:4,alignItems:'center'}}>
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.max(p-1,1))} disabled={page===1}>‹ Prev</button>
+              {Array.from({length: totalPages}, (_, i) => i+1)
+                .filter(p => p===1 || p===totalPages || Math.abs(p-page)<=2)
+                .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                .map((p, i) => p==='…'
+                  ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                  : <button key={p} className="btn btn-sm" onClick={()=>setPage(p)} style={{background:p===page?'var(--eg-navy)':'',color:p===page?'white':'',fontWeight:p===page?700:400}}>{p}</button>
+                )}
+              <button className="btn btn-sm" onClick={()=>setPage(p=>Math.min(p+1,totalPages))} disabled={page===totalPages}>Next ›</button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
