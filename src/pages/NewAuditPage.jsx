@@ -22,6 +22,10 @@ export default function NewAuditPage() {
 
   const [step, setStep] = useState(employeeId ? 2 : 1);
   const [employees, setEmployees] = useState([]);
+  const [empPage, setEmpPage] = useState(1);
+  const [empTotal, setEmpTotal] = useState(0);
+  const empPageSize = 25;
+  const [empFilterOptions, setEmpFilterOptions] = useState({ projects: [], departments: [] });
   const [selectedEmp, setSelectedEmp] = useState(null);
   const [ppeItems, setPpeItems] = useState([]);
   const [items, setItems] = useState({});    // { ppeId: { condition, size, comment, applicable } }
@@ -54,10 +58,10 @@ export default function NewAuditPage() {
   const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
 
   useEffect(() => {
-    api.get('/employees?status=active&san=yes').then(r => setEmployees(r.data)).catch(logError);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
     api.get('/users').then(r => { setUsers(r.data.filter(u => !['admin@egypro.com','sync@egypro.com','eats-sync@egypro.app'].includes(u.email) && u.role !== 'scm_officer')); }).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
+    api.get('/employees/filter-options').then(r => setEmpFilterOptions(r.data)).catch(logError);
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
       if (user) {
@@ -67,12 +71,34 @@ export default function NewAuditPage() {
     } catch {}
   }, []);
 
+  // Deep-linked employee (e.g. /audits/new/:employeeId) may not be on the
+  // currently loaded picker page anymore, so fetch it directly instead of
+  // searching the paginated `employees` list.
   useEffect(() => {
-    if (employeeId && employees.length > 0) {
-      const emp = employees.find(e => e.id === employeeId);
-      if (emp) selectEmployee(emp);
+    if (employeeId) {
+      api.get(`/employees/${employeeId}`).then(r => selectEmployee(r.data)).catch(logError);
     }
-  }, [employeeId, employees]);
+  }, [employeeId]);
+
+  const empFilterParams = () => {
+    const params = new URLSearchParams();
+    params.append('status', 'active');
+    params.append('san', 'yes');
+    if (empSearch) params.append('search', empSearch);
+    if (empFilters.project) params.append('project', empFilters.project);
+    if (empFilters.department) params.append('department', empFilters.department);
+    if (empFilters.audit_age) params.append('audit_age', empFilters.audit_age);
+    return params;
+  };
+
+  useEffect(() => {
+    const params = empFilterParams();
+    params.append('page', empPage);
+    params.append('pageSize', empPageSize);
+    api.get('/employees?' + params).then(r => { setEmployees(r.data.rows); setEmpTotal(r.data.total); }).catch(logError);
+  }, [empSearch, empFilters, empPage]);
+
+  useEffect(() => { setEmpPage(1); }, [empSearch, empFilters]);
 
   const selectEmployee = async (emp) => {
     setSelectedEmp(emp);
@@ -234,18 +260,7 @@ export default function NewAuditPage() {
     return acc;
   }, {});
 
-  const filteredEmps = employees.filter(e => {
-    if (empSearch && !e.full_name.toLowerCase().includes(empSearch.toLowerCase()) && !(e.national_id||'').includes(empSearch)) return false;
-    if (empFilters.project && e.project !== empFilters.project) return false;
-    if (empFilters.department && e.department !== empFilters.department) return false;
-    if (empFilters.audit_age) {
-      const days = parseInt(e.days_since_audit) || 9999;
-      if (empFilters.audit_age === '1month' && days > 30) return false;
-      if (empFilters.audit_age === '2months' && (days <= 30 || days > 60)) return false;
-      if (empFilters.audit_age === 'over2months' && days <= 60) return false;
-    }
-    return true;
-  });
+  const empTotalPages = Math.max(Math.ceil(empTotal / empPageSize), 1);
 
   const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
 
@@ -296,11 +311,11 @@ export default function NewAuditPage() {
                 <input className="form-input" placeholder="Search by name or national ID..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{flex:1,minWidth:200}} autoFocus />
                 <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.project} onChange={e=>setEmpFilters(p=>({...p,project:e.target.value}))}>
                   <option value="">All Projects</option>
-                  {[...new Set(employees.map(e=>e.project).filter(Boolean))].sort().map(p=><option key={p} value={p}>{p}</option>)}
+                  {empFilterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
                 </select>
                 <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
                   <option value="">All Departments</option>
-                  {[...new Set(employees.map(e=>e.department).filter(Boolean))].sort().map(d=><option key={d} value={d}>{d}</option>)}
+                  {empFilterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
                 </select>
                 <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:180}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
                   <option value="">All Last Audit</option>
@@ -314,7 +329,7 @@ export default function NewAuditPage() {
             <table>
               <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Last Audit</th><th></th></tr></thead>
               <tbody>
-                {filteredEmps.map((e, i) => (
+                {employees.map((e, i) => (
                   <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => selectEmployee(e)}>
                     <td>
                       <div className="emp-cell">
@@ -338,8 +353,25 @@ export default function NewAuditPage() {
                     <td><button className="btn btn-primary btn-sm">Select →</button></td>
                   </tr>
                 ))}
+                {!employees.length && <tr><td colSpan={5} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
               </tbody>
             </table>
+            {empTotalPages > 1 && (
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+                <span style={{fontSize:12,color:'#6b7280'}}>{empTotal} employee{empTotal===1?'':'s'} total</span>
+                <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                  <button className="btn btn-sm" onClick={()=>setEmpPage(p=>Math.max(p-1,1))} disabled={empPage===1}>‹ Prev</button>
+                  {Array.from({length: empTotalPages}, (_, i) => i+1)
+                    .filter(p => p===1 || p===empTotalPages || Math.abs(p-empPage)<=2)
+                    .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                    .map((p, i) => p==='…'
+                      ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                      : <button key={p} className="btn btn-sm" onClick={()=>setEmpPage(p)} style={{background:p===empPage?'var(--eg-navy)':'',color:p===empPage?'white':'',fontWeight:p===empPage?700:400}}>{p}</button>
+                    )}
+                  <button className="btn btn-sm" onClick={()=>setEmpPage(p=>Math.min(p+1,empTotalPages))} disabled={empPage===empTotalPages}>Next ›</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

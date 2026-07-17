@@ -21,6 +21,10 @@ export default function RequestPPEPage() {
   const [personType, setPersonType] = useState('employee'); // 'employee' | 'casual'
 
   const [employees, setEmployees] = useState([]);
+  const [empPage, setEmpPage] = useState(1);
+  const [empTotal, setEmpTotal] = useState(0);
+  const empPageSize = 25;
+  const [empFilterOptions, setEmpFilterOptions] = useState({ projects: [], departments: [], clients: [] });
   const [casuals, setCasuals] = useState([]);
   const [selectedPerson, setSelectedPerson] = useState(null);
 
@@ -43,14 +47,33 @@ export default function RequestPPEPage() {
   const [currentUserName, setCurrentUserName] = useState('');
 
   useEffect(() => {
-    api.get('/employees?status=active').then(r => setEmployees(r.data)).catch(logError);
     api.get('/casuals').then(r => setCasuals(r.data.filter(c => c.employment_status === 'active'))).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
+    api.get('/employees/filter-options').then(r => setEmpFilterOptions(r.data)).catch(logError);
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
       if (user) setCurrentUserName(user.full_name || user.name || '');
     } catch {}
   }, []);
+
+  const empFilterParams = () => {
+    const params = new URLSearchParams();
+    params.append('status', 'active');
+    if (personSearch) params.append('search', personSearch);
+    if (personFilters.project) params.append('project', personFilters.project);
+    if (personFilters.department) params.append('department', personFilters.department);
+    if (personFilters.client) params.append('client', personFilters.client);
+    return params;
+  };
+
+  useEffect(() => {
+    const params = empFilterParams();
+    params.append('page', empPage);
+    params.append('pageSize', empPageSize);
+    api.get('/employees?' + params).then(r => { setEmployees(r.data.rows); setEmpTotal(r.data.total); }).catch(logError);
+  }, [personSearch, personFilters, empPage]);
+
+  useEffect(() => { setEmpPage(1); }, [personSearch, personFilters]);
 
   const selectPerson = async (person, type) => {
     setSelectedPerson(person);
@@ -136,13 +159,7 @@ export default function RequestPPEPage() {
     return acc;
   }, {});
 
-  const filteredEmployees = employees.filter(e => {
-    if (personSearch && !e.full_name.toLowerCase().includes(personSearch.toLowerCase()) && !(e.national_id || '').includes(personSearch)) return false;
-    if (personFilters.project && e.project !== personFilters.project) return false;
-    if (personFilters.department && e.department !== personFilters.department) return false;
-    if (personFilters.client && e.client !== personFilters.client) return false;
-    return true;
-  });
+  const empTotalPages = Math.max(Math.ceil(empTotal / empPageSize), 1);
 
   const filteredCasuals = casuals.filter(c => {
     if (personSearch && !c.full_name.toLowerCase().includes(personSearch.toLowerCase()) && !(c.national_id || '').includes(personSearch)) return false;
@@ -202,15 +219,15 @@ export default function RequestPPEPage() {
                   <>
                     <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
                       <option value="">All Projects</option>
-                      {[...new Set(employees.map(e => e.project).filter(Boolean))].sort().map(p => <option key={p} value={p}>{p}</option>)}
+                      {empFilterOptions.projects.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                     <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.department} onChange={e => setPersonFilters(p => ({ ...p, department: e.target.value }))}>
                       <option value="">All Departments</option>
-                      {[...new Set(employees.map(e => e.department).filter(Boolean))].sort().map(d => <option key={d} value={d}>{d}</option>)}
+                      {empFilterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                     <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
                       <option value="">All Clients</option>
-                      {[...new Set(employees.map(e => e.client).filter(Boolean))].sort().map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                      {empFilterOptions.clients.map(cl => <option key={cl} value={cl}>{cl}</option>)}
                     </select>
                   </>
                 )}
@@ -226,14 +243,14 @@ export default function RequestPPEPage() {
                     </select>
                   </>
                 )}
-                <button className="btn" style={{ height: 38, padding: '4px 12px', fontSize: 13 }} onClick={() => { setPersonSearch(''); setPersonFilters({ project: '', department: '' }); }}>✕ Clear</button>
+                <button className="btn" style={{ height: 38, padding: '4px 12px', fontSize: 13 }} onClick={() => { setPersonSearch(''); setPersonFilters({ project: '', department: '', client: '' }); }}>✕ Clear</button>
               </div>
             </div>
             {personType === 'employee' ? (
               <table>
                 <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
-                  {filteredEmployees.map((e, i) => (
+                  {employees.map((e, i) => (
                     <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(e, 'employee')}>
                       <td>
                         <div className="emp-cell">
@@ -251,10 +268,27 @@ export default function RequestPPEPage() {
                       <td><button className="btn btn-primary btn-sm">Select →</button></td>
                     </tr>
                   ))}
-                  {!filteredEmployees.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No employees found</td></tr>}
+                  {!employees.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No employees found</td></tr>}
                 </tbody>
               </table>
-            ) : (
+            ) : null}
+            {personType === 'employee' && empTotalPages > 1 && (
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',borderTop:'1px solid #e5e7eb'}}>
+                <span style={{fontSize:12,color:'#6b7280'}}>{empTotal} employee{empTotal===1?'':'s'} total</span>
+                <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                  <button className="btn btn-sm" onClick={()=>setEmpPage(p=>Math.max(p-1,1))} disabled={empPage===1}>‹ Prev</button>
+                  {Array.from({length: empTotalPages}, (_, i) => i+1)
+                    .filter(p => p===1 || p===empTotalPages || Math.abs(p-empPage)<=2)
+                    .reduce((acc, p, i, arr) => { if (i>0 && p-arr[i-1]>1) acc.push('…'); acc.push(p); return acc; }, [])
+                    .map((p, i) => p==='…'
+                      ? <span key={'gap'+i} style={{padding:'0 4px',color:'#9ca3af',fontSize:12}}>…</span>
+                      : <button key={p} className="btn btn-sm" onClick={()=>setEmpPage(p)} style={{background:p===empPage?'var(--eg-navy)':'',color:p===empPage?'white':'',fontWeight:p===empPage?700:400}}>{p}</button>
+                    )}
+                  <button className="btn btn-sm" onClick={()=>setEmpPage(p=>Math.min(p+1,empTotalPages))} disabled={empPage===empTotalPages}>Next ›</button>
+                </div>
+              </div>
+            )}
+            {personType === 'casual' && (
               <table>
                 <thead><tr><th>Casual</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
