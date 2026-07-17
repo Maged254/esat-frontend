@@ -598,12 +598,16 @@ export function NCRPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Size</th><th>Qty</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Qty</th><th>Project / Client</th><th>Organization</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
             <tbody>
               {filteredItems.map(n=>(
                 <tr key={n.id}>
                   <td style={{padding:'0 0 0 8px'}}><div style={{width:3,height:40,background:n.condition==='not_good'?'var(--danger)':'var(--warning)',borderRadius:2}}></div></td>
-                  <td><div><div className="emp-name">{n.employee_name}</div><div className="emp-id">{n.employee_national_id||'—'}</div></div></td>
+                  <td>
+                    <div className="emp-name">{n.employee_name}</div>
+                    <div className="emp-id">{n.employee_national_id||'—'}</div>
+                    {n.job_title && <div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{n.job_title}</div>}
+                  </td>
                   <td>
                     <div>{n.ppe_name}</div>
                     {n.last_distributed ? (
@@ -619,8 +623,15 @@ export function NCRPage() {
                     {n.comment && <div><span className="tag ppe-item-comment">{n.comment}</span></div>}
                   </td>
                   <td><span className={`tag ${n.condition==='not_good'?'tag-red':'tag-amber'}`}>{n.condition==='not_good'?'Not Good':'Missing'}</span></td>
-                  <td>{n.size_value||'—'}</td>
-                  <td style={{color:(n.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(n.quantity||1)>1?700:400}}>{n.quantity||1}</td>
+                  <td style={{color:(n.quantity||1)>1?'#e53e3e':'inherit',fontWeight:(n.quantity||1)>1?700:400}}>
+                    {n.quantity||1}
+                    <div style={{fontSize:11,color:'#6b7280',fontWeight:400,marginTop:2}}>{n.size_value||'—'}</div>
+                  </td>
+                  <td style={{fontSize:12}}>
+                    <div>{n.project||'—'}</div>
+                    {n.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.client}</div>}
+                  </td>
+                  <td style={{fontSize:12}}>{n.organization||'—'}</td>
                   <td style={{fontSize:12}}>
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
