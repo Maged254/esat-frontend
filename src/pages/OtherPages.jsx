@@ -220,12 +220,16 @@ export function EmployeesPage() {
             </div>
           </div>
           <table>
-            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {employees.map((e, i) => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
-                  <td>{e.organization||'—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td><td>{e.project||'—'}</td><td>{e.client||'—'}</td>
+                  <td>{e.organization||'—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td>
+                  <td>
+                    <div>{e.project||'—'}</div>
+                    {e.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.client}</div>}
+                  </td>
                   <td><span className={`tag ${e.resource_type==='inhouse'?'tag-navy':'tag-gray'}`}>{e.resource_type ? e.resource_type.charAt(0).toUpperCase() + e.resource_type.slice(1) : '—'}</span></td>
                   <td>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</td>
                   <td>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</td>
@@ -238,7 +242,7 @@ export function EmployeesPage() {
                   </td>
                 </tr>
               ))}
-              {!employees.length && <tr><td colSpan={11} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
+              {!employees.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
             </tbody>
           </table>
         </div>
