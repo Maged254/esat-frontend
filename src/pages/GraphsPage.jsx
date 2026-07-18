@@ -19,6 +19,9 @@ const DELAY_SERIES = [
   { key: 'project', name: 'Project distribution', color: '#0C447C' },
 ];
 
+// Cycled by index for a dynamic (unknown-length) list of auditors.
+const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
+
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +29,7 @@ export default function GraphsPage() {
   const [filters, setFilters] = useState({ project: '', client: '' });
   const [activeStage, setActiveStage] = useState(null); // clicking a legend pill isolates that series; click again to clear
   const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
+  const [activeAuditor, setActiveAuditor] = useState(null); // isolates one auditor's line; click again to clear
 
   useEffect(() => {
     setLoading(true);
@@ -72,6 +76,28 @@ export default function GraphsPage() {
                 {monthData[series.key + '_open_count'] > 0 ? ` (${monthData[series.key + '_open_count']} open)` : ''}
               </span>
             </span>
+          </div>
+        ) : null)}
+      </div>
+    );
+  };
+
+  const auditors = data.auditors || [];
+  const auditorColor = (name) => AUDITOR_PALETTE[auditors.indexOf(name) % AUDITOR_PALETTE.length];
+
+  const AuditorTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const monthData = payload[0]?.payload || {};
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 220 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
+        {auditors.map(name => monthData[name] !== null && monthData[name] !== undefined ? (
+          <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: auditorColor(name) }} />
+              {name}
+            </span>
+            <span style={{ color: '#111827', fontWeight: 600 }}>{monthData[name]}</span>
           </div>
         ) : null)}
       </div>
@@ -189,6 +215,73 @@ export default function GraphsPage() {
                       activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
                     />
                   ))}
+                </LineChart>
+              </ResponsiveContainer>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
+            <div>
+              <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits per Month by Auditor</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits only (excludes Not Present requests)</div>
+            </div>
+            <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
+          </div>
+          <div className="card-body" style={{ paddingTop: 20 }}>
+            {auditors.length === 0 ? (
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+            ) : (
+              <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
+                {auditors.map(name => {
+                  const color = auditorColor(name);
+                  const isActive = activeAuditor === name;
+                  const dimmed = activeAuditor && !isActive;
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => setActiveAuditor(prev => prev === name ? null : name)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 14px', borderRadius: 999,
+                        border: '1.5px solid ' + (dimmed ? '#e5e7eb' : color),
+                        background: isActive ? color + '18' : '#fff',
+                        color: dimmed ? '#9ca3af' : color,
+                        fontSize: 12, fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+              <ResponsiveContainer width="100%" height={340}>
+                <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
+                  <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<AuditorTooltip />} />
+                  {auditors.filter(name => !activeAuditor || activeAuditor === name).map(name => {
+                    const color = auditorColor(name);
+                    return (
+                      <Line
+                        key={name}
+                        type="monotone"
+                        dataKey={name}
+                        name={name}
+                        stroke={color}
+                        strokeWidth={2.5}
+                        connectNulls={true}
+                        dot={renderStageDot(color)}
+                        activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
+                        isAnimationActive={false}
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
               </>
