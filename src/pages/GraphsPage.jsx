@@ -139,7 +139,7 @@ export default function GraphsPage() {
                       name={series.name}
                       stroke={series.color}
                       strokeWidth={2.5}
-                      connectNulls={false}
+                      connectNulls={true}
                       dot={{ r: 3, fill: '#fff', strokeWidth: 2 }}
                       activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
                     />
