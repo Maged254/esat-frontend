@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
 import PasswordInput from '../components/PasswordInput';
+import { useAuth } from '../utils/AuthContext';
 
 
 const ALL_PAGES = [
@@ -18,6 +19,7 @@ const ALL_PAGES = [
 ];
 
 export default function AdminPage() {
+  const { user: currentUser, refreshUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
@@ -138,6 +140,10 @@ export default function AdminPage() {
         const res = await api.put(`/users/${editUser.id}`, form);
         setUsers(prev => prev.map(u => u.id === editUser.id ? res.data : u));
         setSuccess('User updated!');
+        // Editing your own account (e.g. your profile picture) doesn't
+        // otherwise reach the sidebar, since that reads from AuthContext,
+        // not this page's own `users` list.
+        if (currentUser && editUser.id === currentUser.id) refreshUser();
       } else {
         const res = await api.post('/users', form);
         setUsers(prev => [res.data, ...prev]);
