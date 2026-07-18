@@ -24,6 +24,7 @@ export default function GraphsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ project: '', client: '' });
+  const [activeStage, setActiveStage] = useState(null); // clicking a legend pill isolates that series; click again to clear
 
   useEffect(() => {
     setLoading(true);
@@ -133,14 +134,38 @@ export default function GraphsPage() {
             {!hasStageDelayData ? (
               <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed or open PPE workflow stages in this period</div>
             ) : (
+              <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
+                {DELAY_SERIES.map(series => {
+                  const isActive = activeStage === series.key;
+                  const dimmed = activeStage && !isActive;
+                  return (
+                    <button
+                      key={series.key}
+                      onClick={() => setActiveStage(prev => prev === series.key ? null : series.key)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 14px', borderRadius: 999,
+                        border: '1.5px solid ' + (dimmed ? '#e5e7eb' : series.color),
+                        background: isActive ? series.color + '18' : '#fff',
+                        color: dimmed ? '#9ca3af' : series.color,
+                        fontSize: 12, fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer', transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : series.color }} />
+                      {series.name}
+                    </button>
+                  );
+                })}
+              </div>
               <ResponsiveContainer width="100%" height={340}>
                 <LineChart data={stageDelayData} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
                   <YAxis width={46} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} unit=" d" allowDecimals={false} />
                   <Tooltip content={<StageDelayTooltip />} />
-                  <Legend verticalAlign="top" align="right" height={42} iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: '#4b5563' }} />
-                  {DELAY_SERIES.map(series => (
+                  {DELAY_SERIES.filter(series => !activeStage || activeStage === series.key).map(series => (
                     <Line
                       key={series.key}
                       type="monotone"
@@ -155,6 +180,7 @@ export default function GraphsPage() {
                   ))}
                 </LineChart>
               </ResponsiveContainer>
+              </>
             )}
           </div>
         </div>
