@@ -25,6 +25,7 @@ export default function GraphsPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ project: '', client: '' });
   const [activeStage, setActiveStage] = useState(null); // clicking a legend pill isolates that series; click again to clear
+  const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
 
   useEffect(() => {
     setLoading(true);
@@ -210,6 +211,28 @@ export default function GraphsPage() {
               <span className="card-title">Audits per Month</span>
               <span className="tag tag-navy">Last 6 months</span>
             </div>
+            <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
+              {[{ key: 'audits', label: 'Audits' }, { key: 'requests', label: 'Requests' }].map(opt => {
+                const isActive = auditsView === opt.key;
+                const dimmed = auditsView && !isActive;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
+                    style={{
+                      padding: '6px 14px', borderRadius: 999,
+                      border: '1.5px solid ' + (dimmed ? '#e5e7eb' : '#1B3A6B'),
+                      background: isActive ? '#1B3A6B18' : '#fff',
+                      color: dimmed ? '#9ca3af' : '#1B3A6B',
+                      fontSize: 12, fontWeight: isActive ? 700 : 500,
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
             {data.audits_by_month.length === 0 ? (
               <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
             ) : (
@@ -219,7 +242,13 @@ export default function GraphsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" name="Audits" fill="#1B3A6B" radius={[4, 4, 0, 0]} label={{ position: 'top', fontSize: 11, fill: '#374151' }} />
+                  <Bar
+                    dataKey={auditsView === 'audits' ? 'audits_count' : auditsView === 'requests' ? 'requests_count' : 'count'}
+                    name={auditsView === 'requests' ? 'Requests' : 'Audits'}
+                    fill="#1B3A6B"
+                    radius={[4, 4, 0, 0]}
+                    label={{ position: 'top', fontSize: 11, fill: '#374151' }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
