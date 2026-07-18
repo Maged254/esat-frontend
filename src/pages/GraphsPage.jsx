@@ -43,7 +43,7 @@ export default function GraphsPage() {
       return (
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 14px', fontSize: 13 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-          <div style={{ color: '#1D9E75' }}>Open PPE Requests: <strong>{payload[0].value}</strong></div>
+          <div style={{ color: '#1D9E75' }}>Flagged PPE Requests: <strong>{payload[0].value}</strong></div>
           <div style={{ color: '#94a3b8' }}>Average: <strong>{data.ppe_average}</strong></div>
         </div>
       );
@@ -186,11 +186,11 @@ export default function GraphsPage() {
         </div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
-            <span className="card-title">Open PPE Requests by Employee</span>
+            <span className="card-title">Flagged PPE Requests by Employee</span>
             <span className="tag tag-amber">Avg: {data.ppe_average} items</span>
           </div>
           {data.ppe_by_employee.length === 0 ? (
-            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No open PPE requests</div>
+            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No flagged PPE requests</div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={data.ppe_by_employee} margin={{ top: 10, right: 20, left: 0, bottom: 80 }}>
@@ -199,7 +199,7 @@ export default function GraphsPage() {
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip content={<CustomTooltipPPE />} />
                 <ReferenceLine y={data.ppe_average} stroke="#f59e0b" strokeDasharray="6 3" label={{ value: 'Avg ' + data.ppe_average, position: 'insideTopRight', fontSize: 11, fill: '#f59e0b' }} />
-                <Bar dataKey="count" name="Open PPE Requests" radius={[4, 4, 0, 0]} fill="#1D9E75" label={{ position: 'top', fontSize: 11, fill: '#374151' }} />
+                <Bar dataKey="count" name="Flagged PPE Requests" radius={[4, 4, 0, 0]} fill="#1D9E75" label={{ position: 'top', fontSize: 11, fill: '#374151' }} />
               </BarChart>
             </ResponsiveContainer>
           )}
