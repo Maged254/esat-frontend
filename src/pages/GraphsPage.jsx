@@ -81,6 +81,16 @@ export default function GraphsPage() {
   const stageDelayData = data.ppe_stage_delays_by_month || [];
   const hasStageDelayData = stageDelayData.some(row => DELAY_SERIES.some(series => row[series.key] !== null));
 
+  // Isolating a segment zeroes out the other one instead of unmounting its
+  // <Bar> -- toggling which Bar components are mounted confuses Recharts'
+  // stacking reconciliation between renders (the pill's "off" click stopped
+  // reliably clearing the filter).
+  const auditsChartData = data.audits_by_month.map(row => ({
+    ...row,
+    requests_count_display: auditsView === 'audits' ? 0 : row.requests_count,
+    audits_count_display: auditsView === 'requests' ? 0 : row.audits_count,
+  }));
+
   return (
     <>
       <div className="topbar">
@@ -239,31 +249,29 @@ export default function GraphsPage() {
               <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={data.audits_by_month} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                <BarChart data={auditsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip />
-                  {auditsView !== 'audits' && (
-                    <Bar
-                      dataKey="requests_count"
-                      name="Requests"
-                      stackId="a"
-                      fill="#1D9E75"
-                      radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                      label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                    />
-                  )}
-                  {auditsView !== 'requests' && (
-                    <Bar
-                      dataKey="audits_count"
-                      name="Audits"
-                      stackId="a"
-                      fill="#1B3A6B"
-                      radius={[4, 4, 0, 0]}
-                      label={{ position: 'top', fontSize: 11, fill: '#374151' }}
-                    />
-                  )}
+                  <Bar
+                    dataKey="requests_count_display"
+                    name="Requests"
+                    stackId="a"
+                    fill="#1D9E75"
+                    radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                    label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                    isAnimationActive={false}
+                  />
+                  <Bar
+                    dataKey="audits_count_display"
+                    name="Audits"
+                    stackId="a"
+                    fill="#1B3A6B"
+                    radius={[4, 4, 0, 0]}
+                    label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                    isAnimationActive={false}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
