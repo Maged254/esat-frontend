@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
 import api, { logError } from '../utils/api';
 
 // Plain-object `dot` shorthand can fail to render a point that has no line
@@ -84,6 +84,11 @@ export default function GraphsPage() {
 
   const auditors = data.auditors || [];
   const auditorColor = (name) => AUDITOR_PALETTE[auditors.indexOf(name) % AUDITOR_PALETTE.length];
+  const auditorTotals = auditors
+    .map(name => ({ name, value: (data.audits_by_auditor_month || []).reduce((sum, row) => sum + (row[name] || 0), 0) }))
+    .filter(row => row.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const auditorGrandTotal = auditorTotals.reduce((sum, row) => sum + row.value, 0);
 
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -285,6 +290,51 @@ export default function GraphsPage() {
                 </LineChart>
               </ResponsiveContainer>
               </>
+            )}
+          </div>
+        </div>
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-header">
+            <span className="card-title">Auditor Share of Total Audits</span>
+            <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
+          </div>
+          <div className="card-body" style={{ paddingTop: 20 }}>
+            {auditorTotals.length === 0 ? (
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
+                <div style={{ width: 260, height: 260, flexShrink: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={auditorTotals}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={65}
+                        outerRadius={110}
+                        paddingAngle={1.5}
+                        isAnimationActive={false}
+                      >
+                        {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} stroke="#fff" strokeWidth={2} />)}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {auditorTotals.map(row => (
+                    <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151' }}>
+                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
+                        {row.name}
+                      </span>
+                      <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {row.value} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({Math.round(row.value / auditorGrandTotal * 100)}%)</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
