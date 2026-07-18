@@ -212,7 +212,7 @@ export default function GraphsPage() {
               <span className="tag tag-navy">Last 6 months</span>
             </div>
             <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-              {[{ key: 'audits', label: 'Audits' }, { key: 'requests', label: 'Requests' }].map(opt => {
+              {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#94A3B8' }].map(opt => {
                 const isActive = auditsView === opt.key;
                 const dimmed = auditsView && !isActive;
                 return (
@@ -220,14 +220,16 @@ export default function GraphsPage() {
                     key={opt.key}
                     onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
                     style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '6px 14px', borderRadius: 999,
-                      border: '1.5px solid ' + (dimmed ? '#e5e7eb' : '#1B3A6B'),
-                      background: isActive ? '#1B3A6B18' : '#fff',
-                      color: dimmed ? '#9ca3af' : '#1B3A6B',
+                      border: '1.5px solid ' + (dimmed ? '#e5e7eb' : opt.color),
+                      background: isActive ? opt.color + '18' : '#fff',
+                      color: dimmed ? '#9ca3af' : opt.color,
                       fontSize: 12, fontWeight: isActive ? 700 : 500,
                       cursor: 'pointer', transition: 'all 0.15s ease',
                     }}
                   >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />
                     {opt.label}
                   </button>
                 );
@@ -242,13 +244,26 @@ export default function GraphsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar
-                    dataKey={auditsView === 'audits' ? 'audits_count' : auditsView === 'requests' ? 'requests_count' : 'count'}
-                    name={auditsView === 'requests' ? 'Requests' : 'Audits'}
-                    fill="#1B3A6B"
-                    radius={[4, 4, 0, 0]}
-                    label={{ position: 'top', fontSize: 11, fill: '#374151' }}
-                  />
+                  {auditsView !== 'audits' && (
+                    <Bar
+                      dataKey="requests_count"
+                      name="Requests"
+                      stackId="a"
+                      fill="#94A3B8"
+                      radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                      label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                    />
+                  )}
+                  {auditsView !== 'requests' && (
+                    <Bar
+                      dataKey="audits_count"
+                      name="Audits"
+                      stackId="a"
+                      fill="#1B3A6B"
+                      radius={[4, 4, 0, 0]}
+                      label={{ position: 'top', fontSize: 11, fill: '#374151' }}
+                    />
+                  )}
                 </BarChart>
               </ResponsiveContainer>
             )}
