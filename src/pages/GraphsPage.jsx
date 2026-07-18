@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
 import api, { logError } from '../utils/api';
 
+// Plain-object `dot` shorthand can fail to render a point that has no line
+// segment touching it on either side (e.g. the first real value after a
+// run of months with no data). Drawing it explicitly guarantees it shows.
+const renderStageDot = (color) => (props) => {
+  const { cx, cy, value } = props;
+  if (value === null || value === undefined) return null;
+  return <circle key={props.key} cx={cx} cy={cy} r={3} fill="#fff" stroke={color} strokeWidth={2} />;
+};
+
 const DELAY_SERIES = [
   { key: 'ehs', name: 'EHS processing', color: '#2563EB' },
   { key: 'pm', name: 'PM approval', color: '#BE185D' },
@@ -140,7 +149,7 @@ export default function GraphsPage() {
                       stroke={series.color}
                       strokeWidth={2.5}
                       connectNulls={true}
-                      dot={{ r: 3, fill: '#fff', strokeWidth: 2 }}
+                      dot={renderStageDot(series.color)}
                       activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
                     />
                   ))}
