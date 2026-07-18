@@ -208,7 +208,7 @@ export default function GraphsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           <div className="card">
             <div className="card-header">
-              <span className="card-title">Audits per Month</span>
+              <span className="card-title">Audits / Requests per Month</span>
               <span className="tag tag-navy">Last 6 months</span>
             </div>
             <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
