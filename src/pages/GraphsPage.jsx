@@ -211,7 +211,7 @@ export default function GraphsPage() {
               <span className="card-title">Audits per Month</span>
               <span className="tag tag-navy">Last 6 months</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
+            <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
               {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#94A3B8' }].map(opt => {
                 const isActive = auditsView === opt.key;
                 const dimmed = auditsView && !isActive;
