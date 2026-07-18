@@ -193,7 +193,7 @@ export default function GraphsPage() {
             <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No flagged PPE requests</div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={data.ppe_by_employee} margin={{ top: 10, right: 20, left: 0, bottom: 80 }}>
+              <BarChart data={data.ppe_by_employee} margin={{ top: 26, right: 20, left: 0, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
