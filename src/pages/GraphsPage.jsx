@@ -22,6 +22,9 @@ const DELAY_SERIES = [
 // Cycled by index for a dynamic (unknown-length) list of auditors.
 const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
 
+// Cycled by index for a dynamic (unknown-length) list of projects.
+const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d'];
+
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,6 +92,10 @@ export default function GraphsPage() {
     .filter(row => row.value > 0)
     .sort((a, b) => b.value - a.value);
   const auditorGrandTotal = auditorTotals.reduce((sum, row) => sum + row.value, 0);
+
+  const auditProjects = data.audit_projects || [];
+  const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
+  const auditsByAuditorProject = data.audits_by_auditor_project || [];
 
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -293,49 +300,83 @@ export default function GraphsPage() {
             )}
           </div>
         </div>
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-header">
-            <span className="card-title">Auditor Share of Total Audits</span>
-            <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Auditor Share of Total Audits</span>
+              <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
+            </div>
+            <div className="card-body" style={{ paddingTop: 20 }}>
+              {auditorTotals.length === 0 ? (
+                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
+                  <div style={{ width: 220, height: 220, flexShrink: 0 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={auditorTotals}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={55}
+                          outerRadius={95}
+                          paddingAngle={1.5}
+                          isAnimationActive={false}
+                        >
+                          {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} stroke="#fff" strokeWidth={2} />)}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {auditorTotals.map(row => (
+                      <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151' }}>
+                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
+                          {row.name}
+                        </span>
+                        <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          {row.value} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({Math.round(row.value / auditorGrandTotal * 100)}%)</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="card-body" style={{ paddingTop: 20 }}>
-            {auditorTotals.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
-                <div style={{ width: 260, height: 260, flexShrink: 0 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={auditorTotals}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={65}
-                        outerRadius={110}
-                        paddingAngle={1.5}
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Audits per Auditor by Project</span>
+              <span className="tag tag-navy">Last 12 months</span>
+            </div>
+            <div className="card-body" style={{ paddingTop: 20 }}>
+              {auditsByAuditorProject.length === 0 ? (
+                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={auditsByAuditorProject} margin={{ top: 8, right: 10, left: 0, bottom: 60 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                    <XAxis dataKey="auditor" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} />
+                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    {auditProjects.map((project, i) => (
+                      <Bar
+                        key={project}
+                        dataKey={project}
+                        name={project}
+                        stackId="a"
+                        fill={projectColor(project)}
+                        radius={i === auditProjects.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
                         isAnimationActive={false}
-                      >
-                        {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} stroke="#fff" strokeWidth={2} />)}
-                      </Pie>
-                      <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {auditorTotals.map(row => (
-                    <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151' }}>
-                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
-                        {row.name}
-                      </span>
-                      <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        {row.value} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({Math.round(row.value / auditorGrandTotal * 100)}%)</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                      />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
         </div>
         <div className="card" style={{ marginBottom: 24 }}>
