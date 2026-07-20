@@ -25,6 +25,26 @@ const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', 
 // Cycled by index for a dynamic (unknown-length) list of projects.
 const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#0f766e', '#c2410c', '#4338ca', '#a16207'];
 
+const FilterChip = ({ label, active, disabled, onClick }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '7px 16px', borderRadius: 999,
+      border: '1.5px solid ' + (active ? '#2563EB' : 'transparent'),
+      background: active ? '#fff' : '#F1F2F4',
+      color: active ? '#2563EB' : '#374151',
+      fontSize: 13, fontWeight: active ? 600 : 500,
+      cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s ease',
+      opacity: disabled ? 0.6 : 1,
+    }}
+  >
+    {active && <span style={{ fontSize: 12 }}>✓</span>}
+    {label}
+  </button>
+);
+
 export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -137,40 +157,36 @@ export default function GraphsPage() {
           <span className="topbar-sep">›</span>
           <span className="topbar-title">Graphs</span>
         </div>
-        <div className="topbar-right" style={{ flexWrap: 'wrap' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Project</span>
-            <select
-              className="form-select"
-              style={{ height: 32, minWidth: 170, padding: '4px 28px 4px 9px', fontSize: 12 }}
-              value={filters.project}
-              disabled={loading}
-              onChange={e => setFilters(current => ({ ...current, project: e.target.value }))}
-            >
-              <option value="">All permitted projects</option>
-              {(data.filter_options?.projects || []).map(project => <option key={project} value={project}>{project}</option>)}
-            </select>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Client</span>
-            <select
-              className="form-select"
-              style={{ height: 32, minWidth: 160, padding: '4px 28px 4px 9px', fontSize: 12 }}
-              value={filters.client}
-              disabled={loading}
-              onChange={e => setFilters(current => ({ ...current, client: e.target.value }))}
-            >
-              <option value="">All permitted clients</option>
-              {(data.filter_options?.clients || []).map(client => <option key={client} value={client}>{client}</option>)}
-            </select>
-          </label>
+        <div className="topbar-right">
           {(filters.project || filters.client) && (
-            <button className="btn btn-sm" onClick={() => setFilters({ project: '', client: '' })}>Clear filters</button>
+            <button className="btn btn-sm" onClick={() => setFilters({ project: '', client: '' })} disabled={loading}>Clear filters</button>
           )}
         </div>
       </div>
       <div className="content graphs-content">
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', minWidth: 50 }}>Client</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <FilterChip label="All clients" active={!filters.client} disabled={loading} onClick={() => setFilters(current => ({ ...current, client: '' }))} />
+                {(data.filter_options?.clients || []).map(client => (
+                  <FilterChip key={client} label={client} active={filters.client === client} disabled={loading} onClick={() => setFilters(current => ({ ...current, client }))} />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', minWidth: 50 }}>Project</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <FilterChip label="All projects" active={!filters.project} disabled={loading} onClick={() => setFilters(current => ({ ...current, project: '' }))} />
+                {(data.filter_options?.projects || []).map(project => (
+                  <FilterChip key={project} label={project} active={filters.project === project} disabled={loading} onClick={() => setFilters(current => ({ ...current, project }))} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
