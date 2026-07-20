@@ -172,18 +172,18 @@ export default function GraphsPage() {
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0 }}>Client</span>
-              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                 <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
                 {(data.filter_options?.clients || []).map(client => (
                   <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleFilter('clients', client)} />
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0 }}>Project</span>
-              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Project</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                 <FilterChip label="All projects" active={filters.projects.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, projects: [] }))} />
                 {(data.filter_options?.projects || []).map(project => (
                   <FilterChip key={project} label={project} active={filters.projects.includes(project)} disabled={loading} onClick={() => toggleFilter('projects', project)} />
