@@ -50,6 +50,13 @@ export default function AuditsPage() {
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
 
+  // Explicit, opt-in bulk-add -- ticking a client no longer auto-selects its
+  // projects; this lets the user pull them in with one extra click instead.
+  const selectClientProjects = (client) => setFilters(current => {
+    const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
+    return { ...current, projects: [...new Set([...current.projects, ...relatedProjects])] };
+  });
+
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -272,9 +279,31 @@ export default function AuditsPage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
-                {(data.filter_options?.clients || []).map(client => (
-                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleFilter('clients', client)} />
-                ))}
+                {(data.filter_options?.clients || []).map(client => {
+                  const isActive = filters.clients.includes(client);
+                  const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
+                  const allSelected = relatedProjects.length > 0 && relatedProjects.every(p => filters.projects.includes(p));
+                  return (
+                    <span key={client} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      <FilterChip label={client} active={isActive} disabled={loading} onClick={() => toggleFilter('clients', client)} />
+                      {isActive && relatedProjects.length > 0 && !allSelected && (
+                        <button
+                          onClick={() => selectClientProjects(client)}
+                          disabled={loading}
+                          title={`Select ${client}'s projects (${relatedProjects.join(', ')})`}
+                          style={{
+                            marginLeft: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
+                            padding: '3px 8px', borderRadius: 999, border: '1px dashed #9ca3af',
+                            background: 'transparent', color: '#6b7280', fontSize: 9.5, fontWeight: 500,
+                            cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          + projects
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
