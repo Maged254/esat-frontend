@@ -85,6 +85,7 @@ export default function AuditsPage() {
     return {
       name,
       initials: initialsOf(name),
+      photo: (data.auditor_photos || {})[name] || null,
       color: auditorColor(name),
       current: cur,
       pct,
@@ -114,17 +115,28 @@ export default function AuditsPage() {
             style={{
               position: 'relative', width: 56, height: 56, flexShrink: 0, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `conic-gradient(${a.color} ${a.share * 360}deg, #e7ebf2 0deg)`,
-              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
-              mask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
             }}
           >
             <div style={{
-              width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em',
-              background: `linear-gradient(155deg, ${a.color}, ${a.color}cc)`,
-              boxShadow: '0 0 0 3px #fff',
-            }}>{a.initials}</div>
+              position: 'absolute', inset: 0, borderRadius: '50%',
+              background: `conic-gradient(${a.color} ${a.share * 360}deg, #e7ebf2 0deg)`,
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
+            }} />
+            {a.photo ? (
+              <img
+                src={a.photo}
+                alt={a.name}
+                style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 3px #fff' }}
+              />
+            ) : (
+              <div style={{
+                width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em',
+                background: `linear-gradient(155deg, ${a.color}, ${a.color}cc)`,
+                boxShadow: '0 0 0 3px #fff',
+              }}>{a.initials}</div>
+            )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 2, flex: 1 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
