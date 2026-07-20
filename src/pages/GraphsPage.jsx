@@ -43,8 +43,8 @@ export default function GraphsPage() {
       .finally(() => setLoading(false));
   }, [filters]);
 
-  if (loading && !data) return <div className="content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
-  if (error && !data) return <div className="content"><div style={{color:'#A32D2D',padding:40,textAlign:'center'}}>{error}</div></div>;
+  if (loading && !data) return <div className="content graphs-content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
+  if (error && !data) return <div className="content graphs-content"><div style={{color:'#A32D2D',padding:40,textAlign:'center'}}>{error}</div></div>;
 
   const CustomTooltipPPE = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -169,7 +169,7 @@ export default function GraphsPage() {
           )}
         </div>
       </div>
-      <div className="content">
+      <div className="content graphs-content">
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
