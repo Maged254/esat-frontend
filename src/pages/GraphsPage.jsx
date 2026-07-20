@@ -30,17 +30,17 @@ const FilterChip = ({ label, active, disabled, onClick }) => (
     onClick={onClick}
     disabled={disabled}
     style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '7px 16px', borderRadius: 999,
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '5px 12px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
       border: '1.5px solid ' + (active ? '#2563EB' : 'transparent'),
-      background: active ? '#fff' : '#F1F2F4',
+      background: active ? '#E6F1FB' : '#F1F2F4',
       color: active ? '#2563EB' : '#374151',
-      fontSize: 13, fontWeight: active ? 600 : 500,
+      fontSize: 12, fontWeight: active ? 600 : 500,
       cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s ease',
       opacity: disabled ? 0.6 : 1,
     }}
   >
-    {active && <span style={{ fontSize: 12 }}>✓</span>}
+    {active && <span style={{ fontSize: 11 }}>✓</span>}
     {label}
   </button>
 );
@@ -49,15 +49,20 @@ export default function GraphsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ project: '', client: '' });
+  const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [activeStage, setActiveStage] = useState(null); // clicking a legend pill isolates that series; click again to clear
   const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
   const [activeAuditor, setActiveAuditor] = useState(null); // isolates one auditor's line; click again to clear
 
+  const toggleFilter = (key, value) => setFilters(current => ({
+    ...current,
+    [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
+  }));
+
   useEffect(() => {
     setLoading(true);
     setError('');
-    api.get('/graphs', { params: filters })
+    api.get('/graphs', { params: { project: filters.projects.join(','), client: filters.clients.join(',') } })
       .then(r => setData(r.data))
       .catch(e => { logError(e); setError(e.response?.data?.error || 'Unable to load graph data'); })
       .finally(() => setLoading(false));
@@ -158,30 +163,30 @@ export default function GraphsPage() {
           <span className="topbar-title">Graphs</span>
         </div>
         <div className="topbar-right">
-          {(filters.project || filters.client) && (
-            <button className="btn btn-sm" onClick={() => setFilters({ project: '', client: '' })} disabled={loading}>Clear filters</button>
+          {(filters.projects.length > 0 || filters.clients.length > 0) && (
+            <button className="btn btn-sm" onClick={() => setFilters({ projects: [], clients: [] })} disabled={loading}>Clear filters</button>
           )}
         </div>
       </div>
       <div className="content graphs-content">
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
         <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', minWidth: 50 }}>Client</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <FilterChip label="All clients" active={!filters.client} disabled={loading} onClick={() => setFilters(current => ({ ...current, client: '' }))} />
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0 }}>Client</span>
+              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+                <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
                 {(data.filter_options?.clients || []).map(client => (
-                  <FilterChip key={client} label={client} active={filters.client === client} disabled={loading} onClick={() => setFilters(current => ({ ...current, client }))} />
+                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleFilter('clients', client)} />
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', minWidth: 50 }}>Project</span>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <FilterChip label="All projects" active={!filters.project} disabled={loading} onClick={() => setFilters(current => ({ ...current, project: '' }))} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'nowrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0 }}>Project</span>
+              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+                <FilterChip label="All projects" active={filters.projects.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, projects: [] }))} />
                 {(data.filter_options?.projects || []).map(project => (
-                  <FilterChip key={project} label={project} active={filters.project === project} disabled={loading} onClick={() => setFilters(current => ({ ...current, project }))} />
+                  <FilterChip key={project} label={project} active={filters.projects.includes(project)} disabled={loading} onClick={() => toggleFilter('projects', project)} />
                 ))}
               </div>
             </div>
