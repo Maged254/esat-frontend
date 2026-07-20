@@ -4,6 +4,7 @@ import api, { logError } from '../utils/api';
 const STATUS_LABELS = {
   pending: 'Flagged',
   ehs_purchase_requested: 'EHS Purchase Requested',
+  pda_approved: 'Approved (PM)',
   scm_ordered: 'SCM Ordered',
   warehouse_available: 'Warehouse Available',
   distributed: 'Distributed',
@@ -13,6 +14,7 @@ const STATUS_LABELS = {
 const STATUS_COLORS = {
   pending: 'tag-amber',
   ehs_purchase_requested: 'tag-navy',
+  pda_approved: 'tag-navy',
   scm_ordered: 'tag-navy',
   warehouse_available: 'tag-teal',
   distributed: 'tag-green',
@@ -25,6 +27,7 @@ const STATUS_ACCENT = {
   pending: { background: 'var(--wf-ehs-light)', color: 'var(--wf-ehs)' },              // EHS
   pda_pending: { background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' },            // PM
   ehs_purchase_requested: { background: 'var(--wf-scm-light)', color: 'var(--wf-scm)' }, // SCM
+  pda_approved: { background: 'var(--wf-scm-light)', color: 'var(--wf-scm)' },         // SCM (ready to order)
   scm_ordered: { background: 'var(--wf-scm-light)', color: 'var(--wf-scm)' },          // SCM
   warehouse_available: { background: 'var(--wf-projects-light)', color: 'var(--wf-projects)' }, // Projects
 };
@@ -420,7 +423,7 @@ export default function PPERequestTrackerPage() {
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',borderTopColor:'var(--eg-navy)',outline:!filters.status?'2px solid var(--eg-navy)':'',boxShadow:!filters.status?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupMode('none');}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{total}</div></div>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-ehs)',background:filters.status==='pending'?'var(--wf-ehs-light)':'',outline:filters.status==='pending'?'2px solid var(--wf-ehs)':'',boxShadow:filters.status==='pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupMode('none');}}><div className="stat-label">Pending EHS</div><div className="stat-value" style={{color:'var(--wf-ehs)'}}>{stats.pending_ehs}</div>{delayBadge(stats.pending_ehs_oldest, 'var(--wf-ehs-light)', 'var(--wf-ehs)')}</div>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-pm)',background:filters.status==='pda_pending'?'var(--wf-pm-light)':'',outline:filters.status==='pda_pending'?'2px solid var(--wf-pm)':'',boxShadow:filters.status==='pda_pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pda_pending'?'':'pda_pending'})); setGroupMode('none');}}><div className="stat-label">Pending PM</div><div className="stat-value" style={{color:'var(--wf-pm)'}}>{stats.pending_pm}</div>{delayBadge(stats.pending_pm_oldest, 'var(--wf-pm-light)', 'var(--wf-pm)')}</div>
-          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='ehs_purchase_requested'?'var(--wf-scm-light)':'',outline:filters.status==='ehs_purchase_requested'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='ehs_purchase_requested'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='ehs_purchase_requested'?'':'ehs_purchase_requested'})); setGroupMode('none');}}><div className="stat-label">Pending SCM</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{stats.pending_scm}</div>{delayBadge(stats.pending_scm_oldest, 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
+          <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='pending_scm'?'var(--wf-scm-light)':'',outline:filters.status==='pending_scm'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='pending_scm'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending_scm'?'':'pending_scm'})); setGroupMode('none');}}><div className="stat-label">Pending SCM</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{stats.pending_scm}</div>{delayBadge(stats.pending_scm_oldest, 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-scm)',background:filters.status==='scm_ordered'?'var(--wf-scm-light)':'',outline:filters.status==='scm_ordered'?'2px solid var(--wf-scm)':'',boxShadow:filters.status==='scm_ordered'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='scm_ordered'?'':'scm_ordered'})); setGroupMode('none');}}><div className="stat-label">Pending Suppliers</div><div className="stat-value" style={{color:'var(--wf-scm)'}}>{stats.pending_suppliers}</div>{delayBadge(stats.pending_suppliers_oldest, 'var(--wf-scm-light)', 'var(--wf-scm)')}</div>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-projects)',background:filters.status==='warehouse_available'?'var(--wf-projects-light)':'',outline:filters.status==='warehouse_available'?'2px solid var(--wf-projects)':'',boxShadow:filters.status==='warehouse_available'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'})); setGroupMode('none');}}><div className="stat-label">Pending Projects</div><div className="stat-value" style={{color:'var(--wf-projects)'}}>{stats.pending_projects}</div>{delayBadge(stats.pending_projects_oldest, 'var(--wf-projects-light)', 'var(--wf-projects)')}</div>
         </div>
@@ -460,6 +463,7 @@ export default function PPERequestTrackerPage() {
                 <option value="pending">Flagged</option>
                 <option value="pda_pending">Pending PM</option>
                 <option value="ehs_purchase_requested">EHS Purchase Requested</option>
+                <option value="pda_approved">Approved (PM)</option>
                 <option value="scm_ordered">SCM Ordered</option>
                 <option value="warehouse_available">Warehouse Available</option>
                 <option value="distributed">Distributed</option>
