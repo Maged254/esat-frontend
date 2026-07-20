@@ -50,14 +50,22 @@ export default function AuditsPage() {
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
 
-  // Ticking a client also ticks the projects that belong to it (unticking a
-  // client leaves projects as-is -- the user may still want them selected).
+  // Ticking a client also ticks the projects that belong to it. Unticking a
+  // client drops those same projects again, unless another still-ticked
+  // client also claims them.
   const toggleClientFilter = (client) => setFilters(current => {
+    const clientProjects = data.filter_options?.client_projects || {};
     const isSelecting = !current.clients.includes(client);
-    const clients = isSelecting ? [...current.clients, client] : current.clients.filter(c => c !== client);
-    if (!isSelecting) return { ...current, clients };
-    const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
-    const projects = [...new Set([...current.projects, ...relatedProjects])];
+    if (isSelecting) {
+      const clients = [...current.clients, client];
+      const relatedProjects = clientProjects[client] || [];
+      const projects = [...new Set([...current.projects, ...relatedProjects])];
+      return { ...current, clients, projects };
+    }
+    const clients = current.clients.filter(c => c !== client);
+    const droppedProjects = new Set(clientProjects[client] || []);
+    const stillProtected = new Set(clients.flatMap(c => clientProjects[c] || []));
+    const projects = current.projects.filter(p => !droppedProjects.has(p) || stillProtected.has(p));
     return { ...current, clients, projects };
   });
 
