@@ -270,16 +270,16 @@ export default function AuditsPage() {
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
                 <>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16, justifyContent: 'flex-end' }}>
                   {auditProjects.map(project => (
                     <span
                       key={project}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '4px 10px', borderRadius: 999,
-                        border: '1.5px solid ' + projectColor(project),
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                        border: '1.2px solid ' + projectColor(project),
                         color: '#374151',
-                        fontSize: 11, fontWeight: 500,
+                        fontSize: 10, fontWeight: 500,
                       }}
                     >
                       <span style={{ width: 7, height: 7, borderRadius: '50%', background: projectColor(project) }} />
