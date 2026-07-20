@@ -89,18 +89,22 @@ export default function AuditsPage() {
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     const monthData = payload[0]?.payload || {};
+    const rows = auditors
+      .map(name => ({ name, value: monthData[name] }))
+      .filter(({ value }) => value !== null && value !== undefined)
+      .sort((a, b) => b.value - a.value);
     return (
       <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 220 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
-        {auditors.map(name => monthData[name] !== null && monthData[name] !== undefined ? (
+        {rows.map(({ name, value }) => (
           <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: auditorColor(name) }} />
               {name}
             </span>
-            <span style={{ color: '#111827', fontWeight: 600 }}>{monthData[name]}</span>
+            <span style={{ color: '#111827', fontWeight: 600 }}>{value}</span>
           </div>
-        ) : null)}
+        ))}
       </div>
     );
   };
