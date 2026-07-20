@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Text } from 'recharts';
 import api, { logError } from '../utils/api';
 
 // Plain-object `dot` shorthand can fail to render a point that has no line
@@ -77,6 +77,14 @@ export default function AuditsPage() {
   // fixed width -- a fixed width left a lot of unused blank gutter in front
   // of shorter names, space that should go to the bars instead.
   const auditorAxisWidth = Math.min(100, Math.max(50, Math.max(0, ...auditsByAuditorProject.map(r => (r.auditor || '').length)) * 5.5));
+  // Recharts right-anchors category tick text toward the axis line by default,
+  // which leaves a blank gap in front of any name shorter than the longest one.
+  // Left-anchor it instead so every label starts flush at the left edge.
+  const renderAuditorTick = ({ y, payload }) => (
+    <Text x={14} y={y} width={auditorAxisWidth - 14} textAnchor="start" verticalAnchor="middle" fontSize={11} fill="#374151">
+      {payload.value}
+    </Text>
+  );
 
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -291,7 +299,7 @@ export default function AuditsPage() {
                   <BarChart data={auditsByAuditorProject} layout="vertical" margin={{ top: 8, right: 20, left: 10, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf3" />
                     <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="auditor" tick={{ fontSize: 11 }} width={auditorAxisWidth} />
+                    <YAxis type="category" dataKey="auditor" tick={renderAuditorTick} width={auditorAxisWidth} />
                     <Tooltip />
                     {auditProjects.map((project, i) => (
                       <Bar
