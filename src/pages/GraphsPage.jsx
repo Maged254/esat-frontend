@@ -23,7 +23,7 @@ const DELAY_SERIES = [
 const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
 
 // Cycled by index for a dynamic (unknown-length) list of projects.
-const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d'];
+const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#0f766e', '#c2410c', '#4338ca', '#a16207'];
 
 export default function GraphsPage() {
   const [data, setData] = useState(null);
@@ -355,13 +355,30 @@ export default function GraphsPage() {
               {auditsByAuditorProject.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={auditsByAuditorProject} margin={{ top: 8, right: 10, left: 0, bottom: 60 }}>
+                <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  {auditProjects.map(project => (
+                    <span
+                      key={project}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '4px 10px', borderRadius: 999,
+                        border: '1.5px solid ' + projectColor(project),
+                        color: projectColor(project),
+                        fontSize: 11, fontWeight: 500,
+                      }}
+                    >
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: projectColor(project) }} />
+                      {project}
+                    </span>
+                  ))}
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={auditsByAuditorProject} margin={{ top: 8, right: 10, left: 0, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
-                    <XAxis dataKey="auditor" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} />
+                    <XAxis dataKey="auditor" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} height={60} />
                     <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                     <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
                     {auditProjects.map((project, i) => (
                       <Bar
                         key={project}
@@ -375,6 +392,7 @@ export default function GraphsPage() {
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
+                </>
               )}
             </div>
           </div>
