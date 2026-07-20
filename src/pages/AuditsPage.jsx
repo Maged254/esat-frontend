@@ -359,8 +359,11 @@ export default function AuditsPage() {
             </div>
           </div>
           <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="card-header">
-              <span className="card-title">Auditor Pulse</span>
+            <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
+              <div>
+                <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Auditor Pulse</div>
+                <div style={{ color: '#6b7280', fontSize: 12 }}>Share of audits, trend, and change per auditor</div>
+              </div>
               <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>This month vs. last</span>
             </div>
             <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
