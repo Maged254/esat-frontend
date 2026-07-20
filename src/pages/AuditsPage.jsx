@@ -43,7 +43,7 @@ export default function AuditsPage() {
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
-  const [activeAuditor, setActiveAuditor] = useState(null); // isolates one auditor's line; click again to clear
+  const [activeAuditors, setActiveAuditors] = useState([]); // isolates one or more auditors' lines; empty = show all
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
@@ -161,23 +161,25 @@ export default function AuditsPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
                 {auditors.map(name => {
                   const color = auditorColor(name);
-                  const isActive = activeAuditor === name;
-                  const dimmed = activeAuditor && !isActive;
+                  const isActive = activeAuditors.includes(name);
+                  const dimmed = activeAuditors.length > 0 && !isActive;
                   return (
                     <button
                       key={name}
-                      onClick={() => setActiveAuditor(prev => prev === name ? null : name)}
+                      onClick={() => setActiveAuditors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name])}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 14px', borderRadius: 999,
-                        border: '1.5px solid ' + (dimmed ? '#e5e7eb' : color),
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                        border: '1.2px solid ' + (dimmed ? '#e5e7eb' : color),
                         background: isActive ? color + '18' : '#fff',
                         color: dimmed ? '#9ca3af' : color,
-                        fontSize: 12, fontWeight: isActive ? 700 : 500,
+                        fontSize: 10, fontWeight: isActive ? 600 : 500,
                         cursor: 'pointer', transition: 'all 0.15s ease',
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />
+                      {isActive
+                        ? <span style={{ fontSize: 9 }}>✓</span>
+                        : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />}
                       {name}
                     </button>
                   );
@@ -189,7 +191,7 @@ export default function AuditsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
                   <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
                   <Tooltip content={<AuditorTooltip />} />
-                  {auditors.filter(name => !activeAuditor || activeAuditor === name).map(name => {
+                  {auditors.filter(name => activeAuditors.length === 0 || activeAuditors.includes(name)).map(name => {
                     const color = auditorColor(name);
                     return (
                       <Line
