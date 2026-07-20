@@ -278,7 +278,7 @@ export default function AuditsPage() {
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '4px 10px', borderRadius: 999,
                         border: '1.5px solid ' + projectColor(project),
-                        color: projectColor(project),
+                        color: '#374151',
                         fontSize: 11, fontWeight: 500,
                       }}
                     >
