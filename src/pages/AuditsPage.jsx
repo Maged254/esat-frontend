@@ -92,7 +92,7 @@ export default function AuditsPage() {
       share: teamThisMonth > 0 ? cur / teamThisMonth : 0,
       series: trailingMonths.map(row => row[name] || 0),
     };
-  });
+  }).sort((a, b) => b.current - a.current);
 
   const renderPulseCard = (a) => {
     const up = a.pct >= 0;
@@ -140,7 +140,7 @@ export default function AuditsPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 2, flex: 1 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-            <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of team this month</span>
+            <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of this month's audits</span>
           </div>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
@@ -288,7 +288,7 @@ export default function AuditsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24, alignItems: 'start' }}>
           <div className="card">
             <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
               <div>
