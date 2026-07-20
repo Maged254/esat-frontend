@@ -105,6 +105,29 @@ export default function AuditsPage() {
     );
   };
 
+  const ProjectTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const rowData = payload[0]?.payload || {};
+    const rows = auditProjects
+      .map(project => ({ project, value: rowData[project] }))
+      .filter(({ value }) => value !== null && value !== undefined)
+      .sort((a, b) => b.value - a.value);
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 220 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
+        {rows.map(({ project, value }) => (
+          <div key={project} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: projectColor(project) }} />
+              {project}
+            </span>
+            <span style={{ color: '#111827', fontWeight: 600 }}>{value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Isolating a segment zeroes out the other one instead of unmounting its
   // <Bar> -- toggling which Bar components are mounted confuses Recharts'
   // stacking reconciliation between renders (the pill's "off" click stopped
@@ -300,7 +323,7 @@ export default function AuditsPage() {
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf3" />
                     <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
                     <YAxis type="category" dataKey="auditor" tick={renderAuditorTick} width={auditorAxisWidth} />
-                    <Tooltip />
+                    <Tooltip content={<ProjectTooltip />} />
                     {auditProjects.map((project, i) => (
                       <Bar
                         key={project}
