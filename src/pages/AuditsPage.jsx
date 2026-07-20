@@ -73,6 +73,10 @@ export default function AuditsPage() {
   const auditProjects = data.audit_projects || [];
   const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
   const auditsByAuditorProject = data.audits_by_auditor_project || [];
+  // Fit the Y-axis label column to the longest auditor name instead of a
+  // fixed width -- a fixed width left a lot of unused blank gutter in front
+  // of shorter names, space that should go to the bars instead.
+  const auditorAxisWidth = Math.min(100, Math.max(50, Math.max(0, ...auditsByAuditorProject.map(r => (r.auditor || '').length)) * 5.5));
 
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
@@ -285,7 +289,7 @@ export default function AuditsPage() {
                   <BarChart data={auditsByAuditorProject} layout="vertical" margin={{ top: 8, right: 20, left: 10, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf3" />
                     <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
-                    <YAxis type="category" dataKey="auditor" tick={{ fontSize: 11 }} width={110} />
+                    <YAxis type="category" dataKey="auditor" tick={{ fontSize: 11 }} width={auditorAxisWidth} />
                     <Tooltip />
                     {auditProjects.map((project, i) => (
                       <Bar
