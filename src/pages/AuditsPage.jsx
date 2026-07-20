@@ -17,16 +17,19 @@ const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', 
 // Cycled by index for a dynamic (unknown-length) list of projects.
 const PROJECT_PALETTE = ['#3FC1C0', '#20BAC5', '#00B2CA', '#04A6C2', '#0899BA', '#0F80AA', '#16679A', '#1A5B92', '#1C558E', '#1D4E89'];
 
-const FilterChip = ({ label, active, disabled, onClick }) => (
+// `highlighted` marks a project as belonging to a currently-ticked client --
+// purely a visual cue (dashed accent, no checkmark) so the user can spot and
+// click it themselves. It never selects anything on its own.
+const FilterChip = ({ label, active, highlighted, disabled, onClick }) => (
   <button
     onClick={onClick}
     disabled={disabled}
     style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
-      border: '1.2px solid ' + (active ? '#2563EB' : 'transparent'),
-      background: active ? '#E6F1FB' : '#F1F2F4',
-      color: active ? '#2563EB' : '#374151',
+      border: '1.2px ' + (active ? 'solid #2563EB' : highlighted ? 'dashed #93b4e8' : 'solid transparent'),
+      background: active ? '#E6F1FB' : highlighted ? '#F3F7FD' : '#F1F2F4',
+      color: active ? '#2563EB' : highlighted ? '#3B5B92' : '#374151',
       fontSize: 10, fontWeight: active ? 600 : 500,
       cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s ease',
       opacity: disabled ? 0.6 : 1,
@@ -50,13 +53,6 @@ export default function AuditsPage() {
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
 
-  // Explicit, opt-in bulk-add -- ticking a client no longer auto-selects its
-  // projects; this lets the user pull them in with one extra click instead.
-  const selectClientProjects = (client) => setFilters(current => {
-    const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
-    return { ...current, projects: [...new Set([...current.projects, ...relatedProjects])] };
-  });
-
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -68,6 +64,17 @@ export default function AuditsPage() {
 
   if (loading && !data) return <div className="content graphs-content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
   if (error && !data) return <div className="content graphs-content"><div style={{color:'#A32D2D',padding:40,textAlign:'center'}}>{error}</div></div>;
+
+  // Ticking a client doesn't select anything for you -- it just brings that
+  // client's projects to the front of the row with a dashed accent, so
+  // they're easy to spot and click yourself.
+  const clientProjectsMap = data.filter_options?.client_projects || {};
+  const highlightedProjects = new Set(filters.clients.flatMap(c => clientProjectsMap[c] || []));
+  const allFilterProjects = data.filter_options?.projects || [];
+  const sortedFilterProjects = highlightedProjects.size === 0 ? allFilterProjects : [
+    ...allFilterProjects.filter(p => highlightedProjects.has(p)),
+    ...allFilterProjects.filter(p => !highlightedProjects.has(p)),
+  ];
 
   const auditors = data.auditors || [];
   const auditorColor = (name) => AUDITOR_PALETTE[auditors.indexOf(name) % AUDITOR_PALETTE.length];
@@ -281,28 +288,7 @@ export default function AuditsPage() {
                 <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
                 {(data.filter_options?.clients || []).map(client => {
                   const isActive = filters.clients.includes(client);
-                  const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
-                  const allSelected = relatedProjects.length > 0 && relatedProjects.every(p => filters.projects.includes(p));
-                  return (
-                    <span key={client} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                      <FilterChip label={client} active={isActive} disabled={loading} onClick={() => toggleFilter('clients', client)} />
-                      {isActive && relatedProjects.length > 0 && !allSelected && (
-                        <button
-                          onClick={() => selectClientProjects(client)}
-                          disabled={loading}
-                          title={`Select ${client}'s projects (${relatedProjects.join(', ')})`}
-                          style={{
-                            marginLeft: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
-                            padding: '3px 8px', borderRadius: 999, border: '1px dashed #9ca3af',
-                            background: 'transparent', color: '#6b7280', fontSize: 9.5, fontWeight: 500,
-                            cursor: loading ? 'default' : 'pointer', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          + projects
-                        </button>
-                      )}
-                    </span>
-                  );
+                  return <FilterChip key={client} label={client} active={isActive} disabled={loading} onClick={() => toggleFilter('clients', client)} />;
                 })}
               </div>
             </div>
@@ -310,8 +296,15 @@ export default function AuditsPage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Project</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <FilterChip label="All projects" active={filters.projects.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, projects: [] }))} />
-                {(data.filter_options?.projects || []).map(project => (
-                  <FilterChip key={project} label={project} active={filters.projects.includes(project)} disabled={loading} onClick={() => toggleFilter('projects', project)} />
+                {sortedFilterProjects.map(project => (
+                  <FilterChip
+                    key={project}
+                    label={project}
+                    active={filters.projects.includes(project)}
+                    highlighted={highlightedProjects.has(project)}
+                    disabled={loading}
+                    onClick={() => toggleFilter('projects', project)}
+                  />
                 ))}
               </div>
             </div>
