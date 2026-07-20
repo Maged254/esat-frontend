@@ -72,7 +72,11 @@ export default function AuditsPage() {
 
   const auditProjects = data.audit_projects || [];
   const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
-  const auditsByAuditorProject = data.audits_by_auditor_project || [];
+  // Ascending by total so the highest bar ends up at the bottom of the chart.
+  const auditsByAuditorProject = [...(data.audits_by_auditor_project || [])].sort((a, b) => {
+    const totalOf = row => Object.keys(row).filter(k => k !== 'auditor').reduce((sum, k) => sum + (row[k] || 0), 0);
+    return totalOf(a) - totalOf(b);
+  });
   // Fit the Y-axis label column to the longest auditor name instead of a
   // fixed width -- a fixed width left a lot of unused blank gutter in front
   // of shorter names, space that should go to the bars instead.
