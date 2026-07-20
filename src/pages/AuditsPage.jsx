@@ -15,7 +15,7 @@ const renderStageDot = (color) => (props) => {
 const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
 
 // Cycled by index for a dynamic (unknown-length) list of projects.
-const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#0f766e', '#c2410c', '#4338ca', '#a16207'];
+const PROJECT_PALETTE = ['#E3F2FD', '#BBDEFB', '#90CAF9', '#64B5F6', '#42A5F5', '#2196F3', '#1E88E5', '#1976D2', '#1565C0', '#0D47A1'];
 
 const FilterChip = ({ label, active, disabled, onClick }) => (
   <button
