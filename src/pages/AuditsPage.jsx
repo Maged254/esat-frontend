@@ -70,6 +70,98 @@ export default function AuditsPage() {
     .sort((a, b) => b.value - a.value);
   const auditorGrandTotal = auditorTotals.reduce((sum, row) => sum + row.value, 0);
 
+  // "Auditor Pulse" cards: this month vs. last month, plus a trailing 6-month
+  // sparkline, all reshaped from audits_by_auditor_month -- no extra endpoint.
+  const monthRows = data.audits_by_auditor_month || [];
+  const lastMonthRow = monthRows[monthRows.length - 1] || {};
+  const prevMonthRow = monthRows[monthRows.length - 2] || {};
+  const teamThisMonth = auditors.reduce((sum, name) => sum + (lastMonthRow[name] || 0), 0);
+  const trailingMonths = monthRows.slice(-6);
+  const initialsOf = (name) => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const auditorPulse = auditors.map(name => {
+    const cur = lastMonthRow[name] || 0;
+    const prev = prevMonthRow[name] || 0;
+    const pct = prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : 0);
+    return {
+      name,
+      initials: initialsOf(name),
+      color: auditorColor(name),
+      current: cur,
+      pct,
+      share: teamThisMonth > 0 ? cur / teamThisMonth : 0,
+      series: trailingMonths.map(row => row[name] || 0),
+    };
+  });
+
+  const renderPulseCard = (a) => {
+    const up = a.pct >= 0;
+    const sw = 90, sh = 30, pad = 3;
+    const sMax = Math.max(...a.series), sMin = Math.min(...a.series);
+    const sx = (i) => pad + (i / Math.max(1, a.series.length - 1)) * (sw - pad * 2);
+    const sy = (v) => pad + (1 - (v - sMin) / Math.max(1, sMax - sMin)) * (sh - pad * 2);
+    const linePts = a.series.map((v, i) => `${sx(i)},${sy(v)}`).join(' ');
+    const areaPts = `${sx(0)},${sh} ${linePts} ${sx(a.series.length - 1)},${sh}`;
+    const endX = sx(a.series.length - 1), endY = sy(a.series[a.series.length - 1]);
+    const gradId = 'pulseGrad-' + a.name.replace(/\s+/g, '');
+    return (
+      <div
+        key={a.name}
+        className="pulse-card"
+        style={{ border: '1px solid #eef0f3', borderRadius: 12, padding: '14px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+          <div
+            style={{
+              position: 'relative', width: 56, height: 56, flexShrink: 0, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: `conic-gradient(${a.color} ${a.share * 360}deg, #e7ebf2 0deg)`,
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
+            }}
+          >
+            <div style={{
+              width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em',
+              background: `linear-gradient(155deg, ${a.color}, ${a.color}cc)`,
+              boxShadow: '0 0 0 3px #fff',
+            }}>{a.initials}</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 2, flex: 1 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+            <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of team this month</span>
+          </div>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
+            fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 999,
+            color: up ? '#0ca30c' : '#d03b3b',
+            background: up ? '#0ca30c1f' : '#d03b3b1f',
+          }}>
+            {up ? '▲' : '▼'}{Math.abs(a.pct).toFixed(0)}%
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, height: 28 }}>
+            <svg viewBox={`0 0 ${sw} ${sh}`} width="100%" height="100%" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={a.color} stopOpacity="0.35" />
+                  <stop offset="100%" stopColor={a.color} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon points={areaPts} fill={`url(#${gradId})`} />
+              <polyline points={linePts} fill="none" stroke={a.color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx={endX} cy={endY} r="2.6" fill={a.color} stroke="#fff" strokeWidth="1.2" />
+            </svg>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{a.current}</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#9ca3af', marginTop: 1 }}>this month</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const auditProjects = data.audit_projects || [];
   const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
   // Ascending by total so the highest bar ends up at the bottom of the chart.
@@ -184,73 +276,90 @@ export default function AuditsPage() {
             </div>
           </div>
         </div>
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
-            <div>
-              <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits per Month by Auditor</div>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits only (excludes Not Present requests)</div>
-            </div>
-            <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
-          </div>
-          <div className="card-body" style={{ paddingTop: 20 }}>
-            {auditors.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
-            ) : (
-              <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
-                {auditors.map(name => {
-                  const color = auditorColor(name);
-                  const isActive = activeAuditors.includes(name);
-                  const dimmed = activeAuditors.length > 0 && !isActive;
-                  return (
-                    <button
-                      key={name}
-                      onClick={() => setActiveAuditors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name])}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
-                        border: '1.2px solid ' + (dimmed ? '#e5e7eb' : color),
-                        background: isActive ? color + '18' : '#fff',
-                        color: dimmed ? '#9ca3af' : color,
-                        fontSize: 10, fontWeight: isActive ? 600 : 500,
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {isActive
-                        ? <span style={{ fontSize: 9 }}>✓</span>
-                        : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />}
-                      {name}
-                    </button>
-                  );
-                })}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24 }}>
+          <div className="card">
+            <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
+              <div>
+                <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits per Month by Auditor</div>
+                <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits only (excludes Not Present requests)</div>
               </div>
-              <ResponsiveContainer width="100%" height={340}>
-                <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
-                  <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip content={<AuditorTooltip />} />
-                  {auditors.filter(name => activeAuditors.length === 0 || activeAuditors.includes(name)).map(name => {
+              <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
+            </div>
+            <div className="card-body" style={{ paddingTop: 20 }}>
+              {auditors.length === 0 ? (
+                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+              ) : (
+                <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
+                  {auditors.map(name => {
                     const color = auditorColor(name);
+                    const isActive = activeAuditors.includes(name);
+                    const dimmed = activeAuditors.length > 0 && !isActive;
                     return (
-                      <Line
+                      <button
                         key={name}
-                        type="monotone"
-                        dataKey={name}
-                        name={name}
-                        stroke={color}
-                        strokeWidth={2.5}
-                        connectNulls={true}
-                        dot={renderStageDot(color)}
-                        activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
-                        isAnimationActive={false}
-                      />
+                        onClick={() => setActiveAuditors(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name])}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                          border: '1.2px solid ' + (dimmed ? '#e5e7eb' : color),
+                          background: isActive ? color + '18' : '#fff',
+                          color: dimmed ? '#9ca3af' : color,
+                          fontSize: 10, fontWeight: isActive ? 600 : 500,
+                          cursor: 'pointer', transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isActive
+                          ? <span style={{ fontSize: 9 }}>✓</span>
+                          : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />}
+                        {name}
+                      </button>
                     );
                   })}
-                </LineChart>
-              </ResponsiveContainer>
-              </>
-            )}
+                </div>
+                <ResponsiveContainer width="100%" height={340}>
+                  <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
+                    <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <Tooltip content={<AuditorTooltip />} />
+                    {auditors.filter(name => activeAuditors.length === 0 || activeAuditors.includes(name)).map(name => {
+                      const color = auditorColor(name);
+                      return (
+                        <Line
+                          key={name}
+                          type="monotone"
+                          dataKey={name}
+                          name={name}
+                          stroke={color}
+                          strokeWidth={2.5}
+                          connectNulls={true}
+                          dot={renderStageDot(color)}
+                          activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
+                  </LineChart>
+                </ResponsiveContainer>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Auditor Pulse</span>
+              <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>This month vs. last</span>
+            </div>
+            <div className="card-body" style={{ paddingTop: 20 }}>
+              {auditorPulse.length === 0 ? (
+                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {auditorPulse.map(renderPulseCard)}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '3fr 7fr', gap: 24, marginBottom: 24 }}>
