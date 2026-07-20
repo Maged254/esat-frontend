@@ -50,25 +50,6 @@ export default function AuditsPage() {
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
 
-  // Ticking a client also ticks the projects that belong to it. Unticking a
-  // client drops those same projects again, unless another still-ticked
-  // client also claims them.
-  const toggleClientFilter = (client) => setFilters(current => {
-    const clientProjects = data.filter_options?.client_projects || {};
-    const isSelecting = !current.clients.includes(client);
-    if (isSelecting) {
-      const clients = [...current.clients, client];
-      const relatedProjects = clientProjects[client] || [];
-      const projects = [...new Set([...current.projects, ...relatedProjects])];
-      return { ...current, clients, projects };
-    }
-    const clients = current.clients.filter(c => c !== client);
-    const droppedProjects = new Set(clientProjects[client] || []);
-    const stillProtected = new Set(clients.flatMap(c => clientProjects[c] || []));
-    const projects = current.projects.filter(p => !droppedProjects.has(p) || stillProtected.has(p));
-    return { ...current, clients, projects };
-  });
-
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -292,7 +273,7 @@ export default function AuditsPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
                 {(data.filter_options?.clients || []).map(client => (
-                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleClientFilter(client)} />
+                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleFilter('clients', client)} />
                 ))}
               </div>
             </div>
