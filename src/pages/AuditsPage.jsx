@@ -208,7 +208,7 @@ export default function AuditsPage() {
             )}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 7fr', gap: 24, marginBottom: 24 }}>
           <div className="card">
             <div className="card-header">
               <span className="card-title">Auditor Share of Total Audits</span>
@@ -281,11 +281,11 @@ export default function AuditsPage() {
                     </span>
                   ))}
                 </div>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={auditsByAuditorProject} margin={{ top: 8, right: 10, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
-                    <XAxis dataKey="auditor" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} height={60} />
-                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <ResponsiveContainer width="100%" height={Math.max(220, auditsByAuditorProject.length * 60)}>
+                  <BarChart data={auditsByAuditorProject} layout="vertical" margin={{ top: 8, right: 20, left: 10, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf3" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <YAxis type="category" dataKey="auditor" tick={{ fontSize: 11 }} width={110} />
                     <Tooltip />
                     {auditProjects.map((project, i) => (
                       <Bar
@@ -294,7 +294,7 @@ export default function AuditsPage() {
                         name={project}
                         stackId="a"
                         fill={projectColor(project)}
-                        radius={i === auditProjects.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                        radius={i === auditProjects.length - 1 ? [0, 3, 3, 0] : [0, 0, 0, 0]}
                         isAnimationActive={false}
                       />
                     ))}
