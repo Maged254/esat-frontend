@@ -15,7 +15,8 @@ import ProfilePage from './pages/ProfilePage';
 import AuditDetailPage from './pages/AuditDetailPage';
 import PPERequestTrackerPage from './pages/PPERequestTrackerPage';
 import SafetyCommitmentPage from './pages/SafetyCommitmentPage';
-import GraphsPage from './pages/GraphsPage';
+import AuditsPage from './pages/AuditsPage';
+import RequestsPage from './pages/RequestsPage';
 import AuditCoveragePage from './pages/AuditCoveragePage';
 import CasualsPage from './pages/CasualsPage';
 import RequestPPEPage from './pages/RequestPPEPage';
@@ -62,7 +63,8 @@ export default function App() {
             <Route path="ncr" element={<PageGuard pageKey="/ncr"><NCRPage /></PageGuard>} />
             <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
             <Route path="ppe-tracker" element={<PageGuard pageKey="/ppe-tracker"><PPERequestTrackerPage /></PageGuard>} />
-            <Route path="graphs" element={<PageGuard pageKey="/graphs"><GraphsPage /></PageGuard>} />
+            <Route path="audits" element={<PageGuard pageKey="/audits"><AuditsPage /></PageGuard>} />
+            <Route path="requests" element={<PageGuard pageKey="/requests"><RequestsPage /></PageGuard>} />
             <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={
               <ProtectedRoute roles={['admin']}>

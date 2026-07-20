@@ -45,7 +45,7 @@ const FilterChip = ({ label, active, disabled, onClick }) => (
   </button>
 );
 
-export default function GraphsPage() {
+export default function AuditsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -160,7 +160,7 @@ export default function GraphsPage() {
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Graphs</span>
+          <span className="topbar-title">Audits</span>
         </div>
         <div className="topbar-right">
           {(filters.projects.length > 0 || filters.clients.length > 0) && (
