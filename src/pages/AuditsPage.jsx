@@ -110,35 +110,35 @@ export default function AuditsPage() {
         className="pulse-card"
         style={{ border: '1px solid #eef0f3', borderRadius: 12, padding: '14px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
           <div
             style={{
-              position: 'relative', width: 56, height: 56, flexShrink: 0, borderRadius: '50%',
+              position: 'relative', width: 72, height: 72, flexShrink: 0, borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             <div style={{
               position: 'absolute', inset: 0, borderRadius: '50%',
               background: `conic-gradient(${a.color} ${a.share * 360}deg, #e7ebf2 0deg)`,
-              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
-              mask: 'radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 6px))',
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px))',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 7px))',
             }} />
             {a.photo ? (
               <img
                 src={a.photo}
                 alt={a.name}
-                style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 3px #fff' }}
+                style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 3px #fff' }}
               />
             ) : (
               <div style={{
-                width: 42, height: 42, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.02em',
+                width: 56, height: 56, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, fontWeight: 700, color: '#fff', letterSpacing: '0.02em',
                 background: `linear-gradient(155deg, ${a.color}, ${a.color}cc)`,
                 boxShadow: '0 0 0 3px #fff',
               }}>{a.initials}</div>
             )}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 2, flex: 1 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 6, flex: 1 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
             <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of this month's audits</span>
           </div>
