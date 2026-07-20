@@ -50,6 +50,17 @@ export default function AuditsPage() {
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
 
+  // Ticking a client also ticks the projects that belong to it (unticking a
+  // client leaves projects as-is -- the user may still want them selected).
+  const toggleClientFilter = (client) => setFilters(current => {
+    const isSelecting = !current.clients.includes(client);
+    const clients = isSelecting ? [...current.clients, client] : current.clients.filter(c => c !== client);
+    if (!isSelecting) return { ...current, clients };
+    const relatedProjects = (data.filter_options?.client_projects || {})[client] || [];
+    const projects = [...new Set([...current.projects, ...relatedProjects])];
+    return { ...current, clients, projects };
+  });
+
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -273,7 +284,7 @@ export default function AuditsPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <FilterChip label="All clients" active={filters.clients.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, clients: [] }))} />
                 {(data.filter_options?.clients || []).map(client => (
-                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleFilter('clients', client)} />
+                  <FilterChip key={client} label={client} active={filters.clients.includes(client)} disabled={loading} onClick={() => toggleClientFilter(client)} />
                 ))}
               </div>
             </div>
