@@ -325,7 +325,7 @@ export default function RepeatRequestsPage() {
                       className="pulse-card"
                       onMouseEnter={() => setHoveredRow(rowKey)}
                       onMouseLeave={() => setHoveredRow(prev => prev === rowKey ? null : prev)}
-                      style={{ position: 'relative', borderRadius: 10, overflow: 'visible', flexShrink: 0 }}
+                      style={{ position: 'relative', borderRadius: 10, overflow: 'visible', flexShrink: 0, zIndex: hoveredRow === rowKey ? 10 : 1 }}
                     >
                       <div style={{ position: 'absolute', inset: 0, borderRadius: 10, overflow: 'hidden', border: '1px solid #eef0f3' }}>
                         <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: bg, transition: 'width 0.2s ease' }} />
@@ -339,10 +339,10 @@ export default function RepeatRequestsPage() {
                         }}>
                           {i + 1}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
                           <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '2px 9px', borderRadius: 999, marginBottom: 4,
+                            display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                            padding: '2px 9px', borderRadius: 999,
                             background: bg, color: ink, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
                           }}>
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink }} />
