@@ -146,6 +146,7 @@ export default function RepeatRequestsPage() {
   const [sortBy, setSortBy] = useState('count'); // 'count' | 'recent'
   const [includeItems, setIncludeItems] = useState([]); // empty = no include filter
   const [excludeItems, setExcludeItems] = useState([]); // empty = no exclude filter
+  const [hoveredRow, setHoveredRow] = useState(null); // row key showing its flagged-dates tooltip
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
@@ -316,13 +317,19 @@ export default function RepeatRequestsPage() {
                   const barWidth = Math.max(4, (row.count / maxCount) * 100);
                   const badgeColor = rankBlue(i, visibleItems.length);
                   const badgeText = luminance(badgeColor) > 190 ? '#1e3a6b' : '#fff';
+                  const rowKey = row.employee + '::' + row.item;
+                  const dates = row.flagged_dates || (row.last_flagged ? [row.last_flagged] : []);
                   return (
                     <div
-                      key={row.employee + '::' + row.item}
+                      key={rowKey}
                       className="pulse-card"
-                      style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #eef0f3', flexShrink: 0 }}
+                      onMouseEnter={() => setHoveredRow(rowKey)}
+                      onMouseLeave={() => setHoveredRow(prev => prev === rowKey ? null : prev)}
+                      style={{ position: 'relative', borderRadius: 10, overflow: 'visible', flexShrink: 0 }}
                     >
-                      <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: bg, transition: 'width 0.2s ease' }} />
+                      <div style={{ position: 'absolute', inset: 0, borderRadius: 10, overflow: 'hidden', border: '1px solid #eef0f3' }}>
+                        <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: bg, transition: 'width 0.2s ease' }} />
+                      </div>
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px' }}>
                         <div style={{
                           width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
@@ -347,12 +354,31 @@ export default function RepeatRequestsPage() {
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 70 }}>
                           <div style={{ fontSize: 19, fontWeight: 700, color: ink }}>{row.count}×</div>
-                          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9ca3af' }}>requests</div>
+                          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: ink }}>requests</div>
                         </div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, minWidth: 90, textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: ink, flexShrink: 0, minWidth: 90, textAlign: 'right', cursor: dates.length > 1 ? 'help' : 'default', textDecoration: dates.length > 1 ? 'underline dotted' : 'none', textUnderlineOffset: 3 }}>
                           {row.last_flagged ? 'Last ' + formatDate(row.last_flagged) : ''}
                         </div>
                       </div>
+                      {hoveredRow === rowKey && dates.length > 0 && (
+                        <div style={{
+                          position: 'absolute', top: '100%', right: 16, marginTop: 4, zIndex: 50, minWidth: 160,
+                          background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10,
+                          boxShadow: '0 8px 24px rgba(15,42,74,0.14)', padding: '10px 14px',
+                        }}>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+                            {dates.length === 1 ? 'Flagged on' : `Flagged ${dates.length}×`}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {dates.map((d, di) => (
+                              <div key={d + di} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: '#374151' }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink, flexShrink: 0 }} />
+                                {formatDate(d)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
