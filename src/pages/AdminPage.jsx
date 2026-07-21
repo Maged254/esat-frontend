@@ -14,8 +14,9 @@ const ALL_PAGES = [
   { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
   { key: '/ppe-tracker', label: 'PPE Request Tracker' },
-  { key: '/audits', label: 'Audits' },
-  { key: '/requests', label: 'Requests' },
+  { key: '/audits', label: 'Auditor Performance' },
+  { key: '/requests', label: 'PPE Request Trends' },
+  { key: '/repeat-requests', label: 'Repeated Requests' },
   { key: '/admin', label: 'Admin Panel' },
 ];
 

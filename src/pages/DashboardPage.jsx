@@ -179,7 +179,7 @@ export default function DashboardPage() {
         <div className="two-col" style={{marginBottom:16}}>
           <div className="card">
             <div className="card-header">
-              <span className="card-title">Auditor Leaderboard</span>
+              <span className="card-title">Auditor Performance</span>
             </div>
             <table>
               <thead><tr><th>#</th><th>Auditor</th><th>Total Audits</th><th>This Month</th><th>Last Month</th></tr></thead>

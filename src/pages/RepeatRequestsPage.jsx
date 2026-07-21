@@ -203,7 +203,7 @@ export default function RepeatRequestsPage() {
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Repeat Requests</span>
+          <span className="topbar-title">Repeated Requests</span>
         </div>
         <div className="topbar-right">
           {(filters.projects.length > 0 || filters.clients.length > 0) && (
