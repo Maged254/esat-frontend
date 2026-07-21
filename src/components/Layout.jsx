@@ -19,6 +19,7 @@ const NAV = [
   { section: 'Insights', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/audits', label: 'Auditor Leaderboard', icon: 'ti-chart-bar', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/requests', label: 'Requests', icon: 'ti-chart-line', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
+  { to: '/repeat-requests', label: 'Repeat Requests', icon: 'ti-repeat', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
   { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },

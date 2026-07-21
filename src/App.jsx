@@ -17,6 +17,7 @@ import PPERequestTrackerPage from './pages/PPERequestTrackerPage';
 import SafetyCommitmentPage from './pages/SafetyCommitmentPage';
 import AuditsPage from './pages/AuditsPage';
 import RequestsPage from './pages/RequestsPage';
+import RepeatRequestsPage from './pages/RepeatRequestsPage';
 import AuditCoveragePage from './pages/AuditCoveragePage';
 import CasualsPage from './pages/CasualsPage';
 import RequestPPEPage from './pages/RequestPPEPage';
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="ppe-tracker" element={<PageGuard pageKey="/ppe-tracker"><PPERequestTrackerPage /></PageGuard>} />
             <Route path="audits" element={<PageGuard pageKey="/audits"><AuditsPage /></PageGuard>} />
             <Route path="requests" element={<PageGuard pageKey="/requests"><RequestsPage /></PageGuard>} />
+            <Route path="repeat-requests" element={<PageGuard pageKey="/repeat-requests"><RepeatRequestsPage /></PageGuard>} />
             <Route path="profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="admin" element={
               <ProtectedRoute roles={['admin']}>
