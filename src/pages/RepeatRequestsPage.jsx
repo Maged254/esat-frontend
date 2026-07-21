@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
 
-// Soft pastel tints; cycled by first-seen order so each distinct PPE item
-// keeps a stable pill background across the list.
-const ITEM_PASTELS = ['#FFF8D6', '#FFE9C7', '#FFF1D6', '#F0FAD9', '#E6F7D4', '#D9F7E3', '#CCF2E6', '#C7F0F4', '#D6ECFF', '#E3ECFF', '#E8F0FF', '#ECE7FF', '#F0ECFF', '#F3E8FF', '#F6F0FF', '#EDF2F7', '#E0F2FE', '#ECFDF5', '#F0FDF4', '#FEF9E7'];
+// Single blue family shared by both the item pills and the rank badges below.
+const BLUE_PALETTE = ['#F0F7FF', '#E6F1FF', '#DCEBFF', '#D2E4FF', '#C7DEFF', '#BED6FF', '#B4CEFF', '#A9C7FF', '#9EC0FF', '#93B9FF', '#88B2FF', '#7DAAFF', '#73A2FF', '#699AFF', '#5F91FF', '#5590FF', '#4C8AFF', '#66B3FF', '#7CC2FF', '#B3D9FF'];
+// Cycled by first-seen order so each distinct PPE item keeps a stable pill
+// background across the list.
+const ITEM_PASTELS = BLUE_PALETTE;
 
 const hexToRgb = (hex) => {
   const n = parseInt(hex.slice(1), 16);
@@ -21,8 +23,7 @@ const luminance = (hex) => {
 };
 // Every rank gets a badge now (not just the top 3) -- sorted darkest-first
 // so #1 stands out and the color fades out toward the bottom of the list.
-const RANK_BLUES = ['#F0F7FF', '#E6F1FF', '#DCEBFF', '#D2E4FF', '#C7DEFF', '#BED6FF', '#B4CEFF', '#A9C7FF', '#9EC0FF', '#93B9FF', '#88B2FF', '#7DAAFF', '#73A2FF', '#699AFF', '#5F91FF', '#5590FF', '#4C8AFF', '#66B3FF', '#7CC2FF', '#B3D9FF']
-  .sort((a, b) => luminance(a) - luminance(b));
+const RANK_BLUES = [...BLUE_PALETTE].sort((a, b) => luminance(a) - luminance(b));
 const rankBlue = (i, total) => {
   const t = total > 1 ? i / (total - 1) : 0;
   const scaled = t * (RANK_BLUES.length - 1);
