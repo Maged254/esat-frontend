@@ -231,6 +231,24 @@ export default function AuditsPage() {
     );
   };
 
+  const ShareTooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload;
+    if (!row) return null;
+    const pct = Math.round(row.value / auditorGrandTotal * 100);
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '10px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: '#111827' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
+          {row.name}
+        </div>
+        <div style={{ fontSize: 12, color: '#6b7280', marginTop: 6 }}>
+          <span style={{ color: '#111827', fontWeight: 600 }}>{row.value}</span> audits · {pct}%
+        </div>
+      </div>
+    );
+  };
+
   const ProjectTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     const rowData = payload[0]?.payload || {};
@@ -423,7 +441,7 @@ export default function AuditsPage() {
                         >
                           {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} style={{ filter: 'url(#donutSliceShadow)' }} />)}
                         </Pie>
-                        <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
+                        <Tooltip content={<ShareTooltip />} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div style={{
@@ -440,18 +458,20 @@ export default function AuditsPage() {
                       const pulse = auditorPulseByName[row.name];
                       const up = pulse && pulse.pct >= 0;
                       return (
-                        <div key={row.name} style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
-                          <span style={{ display: 'block', width: 3, borderRadius: 999, background: auditorColor(row.name), flexShrink: 0 }} />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                            <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
-                            <span style={{ fontSize: 19, fontWeight: 700, color: '#111827' }}>
-                              {Math.round(row.value / auditorGrandTotal * 100)}%
-                              <span style={{ fontSize: 12, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>({row.value})</span>
-                            </span>
+                        <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+                          <div style={{ display: 'flex', alignItems: 'stretch', gap: 12, minWidth: 0 }}>
+                            <span style={{ display: 'block', width: 3, borderRadius: 999, background: auditorColor(row.name), flexShrink: 0 }} />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                              <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+                              <span style={{ fontSize: 19, fontWeight: 700, color: '#111827' }}>
+                                {Math.round(row.value / auditorGrandTotal * 100)}%
+                                <span style={{ fontSize: 12, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>({row.value})</span>
+                              </span>
+                            </div>
                           </div>
                           {pulse && (
                             <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 2, alignSelf: 'center', flexShrink: 0,
+                              display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
                               fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 999,
                               color: up ? '#0ca30c' : '#d03b3b',
                               background: up ? '#0ca30c1f' : '#d03b3b1f',
