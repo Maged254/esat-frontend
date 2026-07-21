@@ -45,7 +45,6 @@ export default function AuditsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ projects: [], clients: [] });
-  const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
   const [activeAuditors, setActiveAuditors] = useState([]); // isolates one or more auditors' lines; empty = show all
 
   const toggleFilter = (key, value) => setFilters(current => ({
@@ -254,23 +253,13 @@ export default function AuditsPage() {
     );
   };
 
-  // Isolating a segment zeroes out the other one instead of unmounting its
-  // <Bar> -- toggling which Bar components are mounted confuses Recharts'
-  // stacking reconciliation between renders (the pill's "off" click stopped
-  // reliably clearing the filter).
-  const auditsChartData = data.audits_by_month.map(row => ({
-    ...row,
-    requests_count_display: auditsView === 'audits' ? 0 : row.requests_count,
-    audits_count_display: auditsView === 'requests' ? 0 : row.audits_count,
-  }));
-
   return (
     <>
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Audits</span>
+          <span className="topbar-title">Auditor Leaderboard</span>
         </div>
         <div className="topbar-right">
           {(filters.projects.length > 0 || filters.clients.length > 0) && (
@@ -495,66 +484,6 @@ export default function AuditsPage() {
               )}
             </div>
           </div>
-        </div>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">Audits / Requests per Month</span>
-            <span className="tag tag-navy">Last 6 months</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
-            {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#1D9E75' }].map(opt => {
-              const isActive = auditsView === opt.key;
-              const dimmed = auditsView && !isActive;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '6px 14px', borderRadius: 999,
-                    border: '1.5px solid ' + (dimmed ? '#e5e7eb' : opt.color),
-                    background: isActive ? opt.color + '18' : '#fff',
-                    color: dimmed ? '#9ca3af' : opt.color,
-                    fontSize: 12, fontWeight: isActive ? 700 : 500,
-                    cursor: 'pointer', transition: 'all 0.15s ease',
-                  }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          {data.audits_by_month.length === 0 ? (
-            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={auditsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar
-                  dataKey="requests_count_display"
-                  name="Requests"
-                  stackId="a"
-                  fill="#1D9E75"
-                  radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                  label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                  isAnimationActive={false}
-                />
-                <Bar
-                  dataKey="audits_count_display"
-                  name="Audits"
-                  stackId="a"
-                  fill="#1B3A6B"
-                  radius={[4, 4, 0, 0]}
-                  label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
         </div>
       </div>
     </>

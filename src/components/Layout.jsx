@@ -17,7 +17,7 @@ const NAV = [
   { section: 'SCM', roles: ['admin','ehs_manager','scm_officer','supervisor','ehs_officer','project_director'] },
   { to: '/ppe-tracker', label: 'PPE Tracker', icon: 'ti-shield-check', roles: ['admin','ehs_manager','scm_officer','supervisor','ehs_officer','project_director'] },
   { section: 'Insights', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
-  { to: '/audits', label: 'Audits', icon: 'ti-chart-bar', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
+  { to: '/audits', label: 'Auditor Leaderboard', icon: 'ti-chart-bar', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/requests', label: 'Requests', icon: 'ti-chart-line', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
