@@ -421,7 +421,7 @@ export default function AuditsPage() {
               ) : (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'center', justifyContent: 'center' }}>
                   <div style={{ position: 'relative', width: 240, height: 240, flexShrink: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" style={{ position: 'relative', zIndex: 2 }}>
                       <PieChart>
                         <defs>
                           <filter id="donutSliceShadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -445,7 +445,7 @@ export default function AuditsPage() {
                       </PieChart>
                     </ResponsiveContainer>
                     <div style={{
-                      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                      position: 'absolute', inset: 0, zIndex: 1, display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
                     }}>
                       <span style={{ fontSize: 12.5, color: '#9ca3af', fontWeight: 500 }}>Total</span>
