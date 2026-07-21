@@ -84,7 +84,7 @@ export default function Layout() {
 
       <main className="main" style={{position:'relative'}}>
         <button className="hamburger" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle menu">&#9776;</button>
-        <div style={{position:'relative',zIndex:1}}>
+        <div style={{position:'relative',zIndex:1,display:'flex',flexDirection:'column',height:'100%'}}>
           <Outlet />
         </div>
       </main>

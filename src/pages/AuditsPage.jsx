@@ -267,9 +267,9 @@ export default function AuditsPage() {
           )}
         </div>
       </div>
-      <div className="content graphs-content">
+      <div className="content graphs-content" style={{ display: 'flex', flexDirection: 'column' }}>
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
-        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40, flexShrink: 0 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
@@ -299,8 +299,8 @@ export default function AuditsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24 }}>
-          <div className="card">
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24, flex: 1, minHeight: 420 }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
               <div>
                 <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits per Month by Auditor</div>
@@ -308,12 +308,12 @@ export default function AuditsPage() {
               </div>
               <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
             </div>
-            <div className="card-body" style={{ paddingTop: 20 }}>
+            <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               {auditors.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
                 <>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12, flexShrink: 0 }}>
                   {auditors.map(name => {
                     const color = auditorColor(name);
                     const isActive = activeAuditors.includes(name);
@@ -340,7 +340,8 @@ export default function AuditsPage() {
                     );
                   })}
                 </div>
-                <ResponsiveContainer width="100%" height={340}>
+                <div style={{ flex: 1, minHeight: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
@@ -365,11 +366,12 @@ export default function AuditsPage() {
                     })}
                   </LineChart>
                 </ResponsiveContainer>
+                </div>
                 </>
               )}
             </div>
           </div>
-          <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
               <div>
                 <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Auditor Pulse</div>
@@ -388,13 +390,13 @@ export default function AuditsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '3fr 7fr', gap: 24, marginBottom: 24 }}>
-          <div className="card">
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 7fr', gap: 24, flex: 1, minHeight: 320 }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header">
               <span className="card-title">Auditor Share of Total Audits</span>
               <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
             </div>
-            <div className="card-body" style={{ paddingTop: 20 }}>
+            <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
               {auditorTotals.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
@@ -434,17 +436,17 @@ export default function AuditsPage() {
               )}
             </div>
           </div>
-          <div className="card">
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header">
               <span className="card-title">Audits per Auditor by Project</span>
               <span className="tag tag-navy">Last 12 months</span>
             </div>
-            <div className="card-body" style={{ paddingTop: 20 }}>
+            <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
               {auditsByAuditorProject.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
                 <>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16, justifyContent: 'flex-end', flexShrink: 0 }}>
                   {auditProjects.map(project => (
                     <span
                       key={project}
