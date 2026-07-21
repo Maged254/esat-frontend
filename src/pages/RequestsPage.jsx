@@ -50,7 +50,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({ projects: [], clients: [] });
-  const [activeStage, setActiveStage] = useState(null); // clicking a legend pill isolates that series; click again to clear
+  const [activeStages, setActiveStages] = useState([]); // ticking legend pills isolates those series; empty = show all
   const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
   const [activeAuditor, setActiveAuditor] = useState(null); // isolates one auditor's line; click again to clear
 
@@ -192,7 +192,8 @@ export default function RequestsPage() {
             </div>
           </div>
         </div>
-        <div className="card" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 24, marginBottom: 24 }}>
+        <div className="card">
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
               <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Average PPE Workflow Delay by Month</div>
@@ -205,25 +206,27 @@ export default function RequestsPage() {
               <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed or open PPE workflow stages in this period</div>
             ) : (
               <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', marginBottom: 12 }}>
                 {DELAY_SERIES.map(series => {
-                  const isActive = activeStage === series.key;
-                  const dimmed = activeStage && !isActive;
+                  const isActive = activeStages.includes(series.key);
+                  const dimmed = activeStages.length > 0 && !isActive;
                   return (
                     <button
                       key={series.key}
-                      onClick={() => setActiveStage(prev => prev === series.key ? null : series.key)}
+                      onClick={() => setActiveStages(prev => prev.includes(series.key) ? prev.filter(k => k !== series.key) : [...prev, series.key])}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 14px', borderRadius: 999,
-                        border: '1.5px solid ' + (dimmed ? '#e5e7eb' : series.color),
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
+                        border: '1.2px solid ' + (dimmed ? '#e5e7eb' : series.color),
                         background: isActive ? series.color + '18' : '#fff',
                         color: dimmed ? '#9ca3af' : series.color,
-                        fontSize: 12, fontWeight: isActive ? 700 : 500,
+                        fontSize: 10, fontWeight: isActive ? 600 : 500,
                         cursor: 'pointer', transition: 'all 0.15s ease',
                       }}
                     >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : series.color }} />
+                      {isActive
+                        ? <span style={{ fontSize: 9 }}>✓</span>
+                        : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : series.color }} />}
                       {series.name}
                     </button>
                   );
@@ -235,7 +238,7 @@ export default function RequestsPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
                   <YAxis width={46} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} unit=" d" allowDecimals={false} />
                   <Tooltip content={<StageDelayTooltip />} />
-                  {DELAY_SERIES.filter(series => !activeStage || activeStage === series.key).map(series => (
+                  {DELAY_SERIES.filter(series => activeStages.length === 0 || activeStages.includes(series.key)).map(series => (
                     <Line
                       key={series.key}
                       type="monotone"
@@ -253,6 +256,67 @@ export default function RequestsPage() {
               </>
             )}
           </div>
+        </div>
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Audits / Requests per Month</span>
+            <span className="tag tag-navy">Last 6 months</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
+            {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#1D9E75' }].map(opt => {
+              const isActive = auditsView === opt.key;
+              const dimmed = auditsView && !isActive;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 999,
+                    border: '1.5px solid ' + (dimmed ? '#e5e7eb' : opt.color),
+                    background: isActive ? opt.color + '18' : '#fff',
+                    color: dimmed ? '#9ca3af' : opt.color,
+                    fontSize: 12, fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer', transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          {data.audits_by_month.length === 0 ? (
+            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={auditsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar
+                  dataKey="requests_count_display"
+                  name="Requests"
+                  stackId="a"
+                  fill="#1D9E75"
+                  radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+                  label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                  isAnimationActive={false}
+                />
+                <Bar
+                  dataKey="audits_count_display"
+                  name="Audits"
+                  stackId="a"
+                  fill="#1B3A6B"
+                  radius={[4, 4, 0, 0]}
+                  label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                  isAnimationActive={false}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
         </div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
@@ -438,88 +502,26 @@ export default function RequestsPage() {
             </ResponsiveContainer>
           )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Audits / Requests per Month</span>
-              <span className="tag tag-navy">Last 6 months</span>
-            </div>
-            <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
-              {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#1D9E75' }].map(opt => {
-                const isActive = auditsView === opt.key;
-                const dimmed = auditsView && !isActive;
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '6px 14px', borderRadius: 999,
-                      border: '1.5px solid ' + (dimmed ? '#e5e7eb' : opt.color),
-                      background: isActive ? opt.color + '18' : '#fff',
-                      color: dimmed ? '#9ca3af' : opt.color,
-                      fontSize: 12, fontWeight: isActive ? 700 : 500,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                    }}
-                  >
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-            {data.audits_by_month.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={auditsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar
-                    dataKey="requests_count_display"
-                    name="Requests"
-                    stackId="a"
-                    fill="#1D9E75"
-                    radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                    label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                    isAnimationActive={false}
-                  />
-                  <Bar
-                    dataKey="audits_count_display"
-                    name="Audits"
-                    stackId="a"
-                    fill="#1B3A6B"
-                    radius={[4, 4, 0, 0]}
-                    label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                    isAnimationActive={false}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">NCRs Created vs Resolved</span>
+            <span className="tag tag-teal">Last 6 months</span>
           </div>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">NCRs Created vs Resolved</span>
-              <span className="tag tag-teal">Last 6 months</span>
-            </div>
-            {data.ncr_by_month.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No NCR data</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={data.ncr_by_month} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="created" name="Created" stroke="#e24b4a" strokeWidth={2} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#1D9E75" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          {data.ncr_by_month.length === 0 ? (
+            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No NCR data</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={data.ncr_by_month} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="created" name="Created" stroke="#e24b4a" strokeWidth={2} dot={{ r: 4 }} />
+                <Line type="monotone" dataKey="resolved" name="Resolved" stroke="#1D9E75" strokeWidth={2} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
     </>
