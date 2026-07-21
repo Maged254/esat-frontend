@@ -1,6 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend, Cell } from 'recharts';
 import api, { logError } from '../utils/api';
+
+// Teal-to-navy ramp; bars are colored by rank (highest count = teal) by
+// interpolating across these stops instead of picking one color per bar,
+// so it reads smoothly regardless of how many employees come back.
+const EMPLOYEE_COLOR_STOPS = ['#3FC1C0', '#20BAC5', '#00B2CA', '#04A6C2', '#0899BA', '#0F80AA', '#16679A', '#1A5B92', '#1C558E', '#1D4E89'];
+const hexToRgb = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const mixHex = (hex1, hex2, t) => {
+  const [r1, g1, b1] = hexToRgb(hex1);
+  const [r2, g2, b2] = hexToRgb(hex2);
+  const round = (v) => Math.round(v).toString(16).padStart(2, '0');
+  return '#' + round(r1 + (r2 - r1) * t) + round(g1 + (g2 - g1) * t) + round(b1 + (b2 - b1) * t);
+};
+const rampColor = (t) => {
+  const scaled = Math.max(0, Math.min(1, t)) * (EMPLOYEE_COLOR_STOPS.length - 1);
+  const i = Math.min(EMPLOYEE_COLOR_STOPS.length - 2, Math.floor(scaled));
+  return mixHex(EMPLOYEE_COLOR_STOPS[i], EMPLOYEE_COLOR_STOPS[i + 1], scaled - i);
+};
 
 // Plain-object `dot` shorthand can fail to render a point that has no line
 // segment touching it on either side (e.g. the first real value after a
@@ -81,16 +101,26 @@ export default function RequestsPage() {
   ];
 
   const CustomTooltipPPE = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 14px', fontSize: 13 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-          <div style={{ color: '#1D9E75' }}>Flagged PPE Requests: <strong>{payload[0].value}</strong></div>
-          <div style={{ color: '#94a3b8' }}>Average: <strong>{data.ppe_average}</strong></div>
+    if (!active || !payload?.length) return null;
+    const employees = data.ppe_by_employee;
+    const idx = employees.findIndex(r => r.name === label);
+    const color = rampColor(employees.length > 1 ? idx / (employees.length - 1) : 0);
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 190 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, fontSize: 12 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
+            Flagged requests
+          </span>
+          <span style={{ color: '#111827', fontWeight: 600 }}>{payload[0].value}</span>
         </div>
-      );
-    }
-    return null;
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+          <span style={{ color: '#9ca3af' }}>Top-20 average</span>
+          <span style={{ color: '#111827', fontWeight: 600 }}>{data.ppe_average}</span>
+        </div>
+      </div>
+    );
   };
 
   const StageDelayTooltip = ({ active, payload, label }) => {
@@ -343,19 +373,23 @@ export default function RequestsPage() {
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
             <span className="card-title">Flagged PPE Requests by Employee</span>
-            <span className="tag tag-amber">Avg: {data.ppe_average} items</span>
+            <span className="tag tag-amber">Top 20 · Avg: {data.ppe_average} items</span>
           </div>
           {data.ppe_by_employee.length === 0 ? (
             <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No flagged PPE requests</div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={data.ppe_by_employee} margin={{ top: 26, right: 20, left: 0, bottom: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} />
-                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                <Tooltip content={<CustomTooltipPPE />} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} interval={0} />
+                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip content={<CustomTooltipPPE />} cursor={{ fill: '#f8fafc' }} />
                 <ReferenceLine y={data.ppe_average} stroke="#f59e0b" strokeDasharray="6 3" label={{ value: 'Avg ' + data.ppe_average, position: 'insideTopRight', fontSize: 11, fill: '#f59e0b' }} />
-                <Bar dataKey="count" name="Flagged PPE Requests" radius={[4, 4, 0, 0]} fill="#1D9E75" label={{ position: 'top', fontSize: 11, fill: '#374151' }} />
+                <Bar dataKey="count" name="Flagged PPE Requests" radius={[6, 6, 0, 0]} label={{ position: 'top', fontSize: 11, fill: '#374151' }} isAnimationActive={false}>
+                  {data.ppe_by_employee.map((row, i) => (
+                    <Cell key={row.name} fill={rampColor(data.ppe_by_employee.length > 1 ? i / (data.ppe_by_employee.length - 1) : 0)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
