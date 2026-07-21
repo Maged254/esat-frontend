@@ -394,7 +394,7 @@ export default function AuditsPage() {
           <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header">
               <span className="card-title">Auditor Share of Total Audits</span>
-              <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
+              <span className="tag tag-navy">Last 12 months</span>
             </div>
             <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
               {auditorTotals.length === 0 ? (
@@ -434,7 +434,7 @@ export default function AuditsPage() {
                       <span style={{ fontSize: 11, color: '#9ca3af' }}>audits</span>
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div style={{ minWidth: 160, display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {auditorTotals.map(row => (
                       <div key={row.name} style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
                         <span style={{ display: 'block', width: 3, borderRadius: 999, background: auditorColor(row.name), flexShrink: 0 }} />
