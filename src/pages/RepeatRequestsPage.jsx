@@ -340,15 +340,19 @@ export default function RepeatRequestsPage() {
                           {i + 1}
                         </div>
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                            padding: '2px 9px', borderRadius: 999,
-                            background: bg, color: ink, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
-                          }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink }} />
-                            {row.item}
+                          <span
+                            title={row.item}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                              width: 260, overflow: 'hidden',
+                              padding: '2px 9px', borderRadius: 999,
+                              background: bg, color: ink, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink, flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.item}</span>
                           </span>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {row.employee}
                           </div>
                         </div>
