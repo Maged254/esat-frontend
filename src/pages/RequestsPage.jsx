@@ -300,37 +300,40 @@ export default function RequestsPage() {
           </div>
         </div>
         <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div className="card-header">
-            <span className="card-title">Audits / Requests per Month</span>
-            <span className="tag tag-navy">Last 6 months</span>
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0, paddingTop: 12 }}>
-            <div style={{ display: 'flex', gap: 6, padding: '0 16px 12px', justifyContent: 'flex-end' }}>
-              {AUDITS_REQUESTS_SERIES.map(opt => {
-                const isActive = auditsView === opt.key;
-                const dimmed = auditsView && !isActive;
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
-                      border: '1.2px solid ' + (dimmed ? '#e5e7eb' : opt.color),
-                      background: isActive ? opt.color + '18' : '#fff',
-                      color: dimmed ? '#9ca3af' : opt.color,
-                      fontSize: 10, fontWeight: isActive ? 600 : 500,
-                      cursor: 'pointer', transition: 'all 0.15s ease',
-                    }}
-                  >
-                    {isActive
-                      ? <span style={{ fontSize: 9 }}>✓</span>
-                      : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />}
-                    {opt.label}
-                  </button>
-                );
-              })}
+          <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
+            <div>
+              <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits / Requests per Month</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits vs. not-present PPE requests by month</div>
             </div>
+            <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 6 months</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'flex-end', padding: '16px 18px 0' }}>
+            {AUDITS_REQUESTS_SERIES.map(opt => {
+              const isActive = auditsView === opt.key;
+              const dimmed = auditsView && !isActive;
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
+                    border: '1.2px solid ' + (dimmed ? '#e5e7eb' : opt.color),
+                    background: isActive ? opt.color + '18' : '#fff',
+                    color: dimmed ? '#9ca3af' : opt.color,
+                    fontSize: 10, fontWeight: isActive ? 600 : 500,
+                    cursor: 'pointer', transition: 'all 0.15s ease',
+                  }}
+                >
+                  {isActive
+                    ? <span style={{ fontSize: 9 }}>✓</span>
+                    : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />}
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0 }}>
             {data.audits_by_month.length === 0 ? (
               <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0', textAlign: 'center' }}>No audit data</div>
             ) : (
