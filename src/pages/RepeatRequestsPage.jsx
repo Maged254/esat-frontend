@@ -1,11 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
 
-// Cycled by first-seen order so each distinct PPE item keeps a stable,
-// visually distinct color across the list (unlike a magnitude ramp, these
-// need to read as separate categories, not a gradient).
-const ITEM_PALETTE = ['#2563EB', '#DB2777', '#059669', '#D97706', '#7C3AED', '#0891B2', '#DC2626', '#65A30D', '#0F766E', '#C2410C', '#4338CA', '#B45309'];
+// Soft pastel tints; cycled by first-seen order so each distinct PPE item
+// keeps a stable pill background across the list.
+const ITEM_PASTELS = ['#FFF8D6', '#FFE9C7', '#FFF1D6', '#F0FAD9', '#E6F7D4', '#D9F7E3', '#CCF2E6', '#C7F0F4', '#D6ECFF', '#E3ECFF', '#E8F0FF', '#ECE7FF', '#F0ECFF', '#F3E8FF', '#F6F0FF', '#EDF2F7', '#E0F2FE', '#ECFDF5', '#F0FDF4', '#FEF9E7'];
 const RANK_MEDAL = ['#F5B300', '#B8C0CC', '#CD7F32'];
+
+const hexToRgb = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+const mixHex = (hex1, hex2, t) => {
+  const [r1, g1, b1] = hexToRgb(hex1);
+  const [r2, g2, b2] = hexToRgb(hex2);
+  const round = (v) => Math.round(v).toString(16).padStart(2, '0');
+  return '#' + round(r1 + (r2 - r1) * t) + round(g1 + (g2 - g1) * t) + round(b1 + (b2 - b1) * t);
+};
+// Pastels are too pale to read as text/dot color on their own, so each pill's
+// accent is derived by darkening its own pastel toward slate -- keeps the
+// same hue family instead of needing a second hand-picked palette.
+const inkFromPastel = (hex) => mixHex(hex, '#1e293b', 0.72);
 
 const FilterChip = ({ label, active, highlighted, disabled, onClick }) => (
   <button
@@ -42,6 +56,73 @@ const formatDate = (iso) => {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+// Searchable multi-select popover, reused for both the "Items" (include) and
+// "Exclude" filters -- same list of options, opposite effect on the result.
+const ItemMultiSelect = ({ label, options, selected, onToggle, onClear, itemColor, itemInk, accentActive }) => {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filteredOptions = options.filter(o => o.toLowerCase().includes(q.trim().toLowerCase()));
+  const hasSelection = selected.length > 0;
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          height: 30, padding: '0 12px', borderRadius: 999, whiteSpace: 'nowrap',
+          border: '1.2px solid ' + (hasSelection ? accentActive : '#e5e7eb'),
+          background: hasSelection ? accentActive + '14' : '#fff',
+          color: hasSelection ? accentActive : '#6b7280',
+          fontSize: 11.5, fontWeight: hasSelection ? 600 : 500, cursor: 'pointer', transition: 'all 0.15s ease',
+        }}
+      >
+        {label}{hasSelection ? ` (${selected.length})` : ''}
+        <span style={{ fontSize: 9 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 36, right: 0, zIndex: 100, width: 250,
+          background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(15,42,74,0.14)', padding: 10,
+        }}>
+          <input
+            autoFocus
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search items..."
+            style={{ width: '100%', padding: '6px 10px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: 12, marginBottom: 8, outline: 'none', boxSizing: 'border-box' }}
+          />
+          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#9ca3af', padding: '8px 4px' }}>No items match</div>
+            ) : filteredOptions.map(name => (
+              <label key={name} onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 6px', borderRadius: 6, cursor: 'pointer', fontSize: 12.5 }}>
+                <input type="checkbox" checked={selected.includes(name)} onChange={() => onToggle(name)} style={{ width: 14, height: 14, accentColor: itemInk(name), flexShrink: 0 }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: itemInk(name), flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#374151' }}>{name}</span>
+              </label>
+            ))}
+          </div>
+          {hasSelection && (
+            <button onClick={onClear} style={{ marginTop: 8, width: '100%', padding: '5px 0', borderRadius: 6, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#6b7280', fontSize: 11.5, cursor: 'pointer' }}>
+              Clear selection
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function RepeatRequestsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,11 +130,15 @@ export default function RepeatRequestsPage() {
   const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('count'); // 'count' | 'recent'
+  const [includeItems, setIncludeItems] = useState([]); // empty = no include filter
+  const [excludeItems, setExcludeItems] = useState([]); // empty = no exclude filter
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
     [key]: current[key].includes(value) ? current[key].filter(v => v !== value) : [...current[key], value],
   }));
+  const toggleInclude = (name) => setIncludeItems(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+  const toggleExclude = (name) => setExcludeItems(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
 
   useEffect(() => {
     setLoading(true);
@@ -80,11 +165,14 @@ export default function RepeatRequestsPage() {
 
   const repeatItems = data.ppe_repeat_items || [];
   const itemNames = [...new Set(repeatItems.map(r => r.item))];
-  const itemColor = (name) => ITEM_PALETTE[itemNames.indexOf(name) % ITEM_PALETTE.length];
+  const itemColor = (name) => ITEM_PASTELS[itemNames.indexOf(name) % ITEM_PASTELS.length];
+  const itemInk = (name) => inkFromPastel(itemColor(name));
 
   const query = search.trim().toLowerCase();
   const visibleItems = repeatItems
     .filter(r => !query || r.employee.toLowerCase().includes(query) || r.item.toLowerCase().includes(query))
+    .filter(r => includeItems.length === 0 || includeItems.includes(r.item))
+    .filter(r => excludeItems.length === 0 || !excludeItems.includes(r.item))
     .slice()
     .sort((a, b) => sortBy === 'recent'
       ? new Date(b.last_flagged) - new Date(a.last_flagged)
@@ -108,9 +196,9 @@ export default function RepeatRequestsPage() {
           )}
         </div>
       </div>
-      <div className="content graphs-content">
+      <div className="content graphs-content" style={{ display: 'flex', flexDirection: 'column' }}>
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
-        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40, flexShrink: 0 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
@@ -140,7 +228,7 @@ export default function RepeatRequestsPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24, flexShrink: 0 }}>
           <StatTile label="Repeat cases" value={repeatItems.length} sub="employee + item pairs" />
           <StatTile label="Employees affected" value={affectedEmployees} sub="flagged 2+ times for something" />
           <StatTile label="Items involved" value={itemNames.length} sub="distinct PPE items" />
@@ -148,11 +236,11 @@ export default function RepeatRequestsPage() {
             label="Highest repeat"
             value={topCase ? `${topCase.count}×` : '—'}
             sub={topCase ? `${topCase.item} · ${topCase.employee}` : 'No repeats in this period'}
-            accent={topCase ? itemColor(topCase.item) : undefined}
+            accent={topCase ? itemInk(topCase.item) : undefined}
           />
         </div>
 
-        <div className="card">
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 480 }}>
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
               <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Repeat PPE Item Requests</div>
@@ -160,8 +248,8 @@ export default function RepeatRequestsPage() {
             </div>
             <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
           </div>
-          <div className="card-body" style={{ paddingTop: 16 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="card-body" style={{ paddingTop: 16, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexShrink: 0 }}>
               <input
                 type="text"
                 value={search}
@@ -172,7 +260,15 @@ export default function RepeatRequestsPage() {
                   border: '1px solid #e5e7eb', fontSize: 12.5, color: '#374151', outline: 'none',
                 }}
               />
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <ItemMultiSelect
+                  label="Items" options={itemNames} selected={includeItems} onToggle={toggleInclude}
+                  onClear={() => setIncludeItems([])} itemColor={itemColor} itemInk={itemInk} accentActive="#2563EB"
+                />
+                <ItemMultiSelect
+                  label="Exclude" options={itemNames} selected={excludeItems} onToggle={toggleExclude}
+                  onClear={() => setExcludeItems([])} itemColor={itemColor} itemInk={itemInk} accentActive="#DC2626"
+                />
                 {[{ key: 'count', label: 'Most repeated' }, { key: 'recent', label: 'Recently flagged' }].map(opt => {
                   const isActive = sortBy === opt.key;
                   return (
@@ -195,13 +291,14 @@ export default function RepeatRequestsPage() {
             </div>
 
             {visibleItems.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>
-                {repeatItems.length === 0 ? 'No employee has been flagged for the same PPE item more than once in this period' : 'No matches for that search'}
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {repeatItems.length === 0 ? 'No employee has been flagged for the same PPE item more than once in this period' : 'No matches for that search / filter combination'}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 640, overflowY: 'auto', paddingRight: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
                 {visibleItems.map((row, i) => {
-                  const color = itemColor(row.item);
+                  const bg = itemColor(row.item);
+                  const ink = itemInk(row.item);
                   const barWidth = Math.max(4, (row.count / maxCount) * 100);
                   return (
                     <div
@@ -209,7 +306,7 @@ export default function RepeatRequestsPage() {
                       className="pulse-card"
                       style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #eef0f3', flexShrink: 0 }}
                     >
-                      <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: color + '14', transition: 'width 0.2s ease' }} />
+                      <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: bg, transition: 'width 0.2s ease' }} />
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px' }}>
                         <div style={{
                           width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
@@ -223,9 +320,9 @@ export default function RepeatRequestsPage() {
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '2px 9px', borderRadius: 999, marginBottom: 4,
-                            background: color + '18', color, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
+                            background: bg, color: ink, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap',
                           }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: ink }} />
                             {row.item}
                           </span>
                           <div style={{ fontSize: 13.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -233,7 +330,7 @@ export default function RepeatRequestsPage() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 70 }}>
-                          <div style={{ fontSize: 19, fontWeight: 700, color }}>{row.count}×</div>
+                          <div style={{ fontSize: 19, fontWeight: 700, color: ink }}>{row.count}×</div>
                           <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#9ca3af' }}>requests</div>
                         </div>
                         <div style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, minWidth: 90, textAlign: 'right' }}>
