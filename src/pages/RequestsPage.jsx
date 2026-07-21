@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, LineChart, Line, Legend } from 'recharts';
 import api, { logError } from '../utils/api';
 
 // Plain-object `dot` shorthand can fail to render a point that has no line
@@ -23,12 +23,6 @@ const AUDITS_REQUESTS_SERIES = [
   { key: 'audits', label: 'Audits', color: '#2563EB', gradientId: 'auditsBarGradient', gradientFrom: '#3b82f6', gradientTo: '#1d4ed8' },
   { key: 'requests', label: 'Requests', color: '#10B981', gradientId: 'requestsBarGradient', gradientFrom: '#34d399', gradientTo: '#059669' },
 ];
-
-// Cycled by index for a dynamic (unknown-length) list of auditors.
-const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
-
-// Cycled by index for a dynamic (unknown-length) list of projects.
-const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#0f766e', '#c2410c', '#4338ca', '#a16207'];
 
 const FilterChip = ({ label, active, highlighted, disabled, onClick }) => (
   <button
@@ -57,7 +51,6 @@ export default function RequestsPage() {
   const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [activeStages, setActiveStages] = useState([]); // ticking legend pills isolates those series; empty = show all
   const [auditsView, setAuditsView] = useState(null); // null (all) | 'audits' (present, has a result) | 'requests' (not present)
-  const [activeAuditor, setActiveAuditor] = useState(null); // isolates one auditor's line; click again to clear
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
@@ -106,22 +99,25 @@ export default function RequestsPage() {
     return (
       <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 310 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
-        {DELAY_SERIES.map(series => monthData[series.key] !== null && monthData[series.key] !== undefined ? (
-          <div key={series.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: series.color }} />
-              {series.name}
-            </span>
-            <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              Avg {monthData[series.key]} d
-              <span style={{ color: '#6b7280', fontWeight: 400 }}> · Max {monthData[series.key + '_max']} d</span>
-              <span style={{ color: '#9ca3af', fontWeight: 400 }}>
-                {' · '}{monthData[series.key + '_count']} items
-                {monthData[series.key + '_open_count'] > 0 ? ` (${monthData[series.key + '_open_count']} open)` : ''}
+        {DELAY_SERIES
+          .filter(series => monthData[series.key] !== null && monthData[series.key] !== undefined)
+          .sort((a, b) => monthData[b.key] - monthData[a.key])
+          .map(series => (
+            <div key={series.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: series.color }} />
+                {series.name}
               </span>
-            </span>
-          </div>
-        ) : null)}
+              <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                Avg {monthData[series.key]} d
+                <span style={{ color: '#6b7280', fontWeight: 400 }}> · Max {monthData[series.key + '_max']} d</span>
+                <span style={{ color: '#9ca3af', fontWeight: 400 }}>
+                  {' · '}{monthData[series.key + '_count']} items
+                  {monthData[series.key + '_open_count'] > 0 ? ` (${monthData[series.key + '_open_count']} open)` : ''}
+                </span>
+              </span>
+            </div>
+          ))}
       </div>
     );
   };
@@ -141,37 +137,6 @@ export default function RequestsPage() {
             <span style={{ color: '#111827', fontWeight: 600 }}>{row[series.key + '_count']}</span>
           </div>
         ))}
-      </div>
-    );
-  };
-
-  const auditors = data.auditors || [];
-  const auditorColor = (name) => AUDITOR_PALETTE[auditors.indexOf(name) % AUDITOR_PALETTE.length];
-  const auditorTotals = auditors
-    .map(name => ({ name, value: (data.audits_by_auditor_month || []).reduce((sum, row) => sum + (row[name] || 0), 0) }))
-    .filter(row => row.value > 0)
-    .sort((a, b) => b.value - a.value);
-  const auditorGrandTotal = auditorTotals.reduce((sum, row) => sum + row.value, 0);
-
-  const auditProjects = data.audit_projects || [];
-  const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
-  const auditsByAuditorProject = data.audits_by_auditor_project || [];
-
-  const AuditorTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null;
-    const monthData = payload[0]?.payload || {};
-    return (
-      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 220 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
-        {auditors.map(name => monthData[name] !== null && monthData[name] !== undefined ? (
-          <div key={name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: auditorColor(name) }} />
-              {name}
-            </span>
-            <span style={{ color: '#111827', fontWeight: 600 }}>{monthData[name]}</span>
-          </div>
-        ) : null)}
       </div>
     );
   };
@@ -303,7 +268,7 @@ export default function RequestsPage() {
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
               <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits / Requests per Month</div>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits vs. not-present PPE requests by month</div>
+              <div style={{ color: '#6b7280', fontSize: 12 }}>Audits vs. Requests by month</div>
             </div>
             <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 6 months</span>
           </div>
@@ -338,7 +303,7 @@ export default function RequestsPage() {
               <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0', textAlign: 'center' }}>No audit data</div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={auditsChartData} margin={{ top: 10, right: 16, left: 4, bottom: 4 }}>
+                <BarChart data={auditsChartData} margin={{ top: 30, right: 16, left: 4, bottom: 4 }}>
                   <defs>
                     {AUDITS_REQUESTS_SERIES.map(series => (
                       <linearGradient key={series.gradientId} id={series.gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -374,170 +339,6 @@ export default function RequestsPage() {
             )}
           </div>
         </div>
-        </div>
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
-            <div>
-              <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Audits per Month by Auditor</div>
-              <div style={{ color: '#6b7280', fontSize: 12 }}>Completed audits only (excludes Not Present requests)</div>
-            </div>
-            <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 12 months</span>
-          </div>
-          <div className="card-body" style={{ paddingTop: 20 }}>
-            {auditors.length === 0 ? (
-              <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
-            ) : (
-              <>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-end', marginBottom: 12 }}>
-                {auditors.map(name => {
-                  const color = auditorColor(name);
-                  const isActive = activeAuditor === name;
-                  const dimmed = activeAuditor && !isActive;
-                  return (
-                    <button
-                      key={name}
-                      onClick={() => setActiveAuditor(prev => prev === name ? null : name)}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 14px', borderRadius: 999,
-                        border: '1.5px solid ' + (dimmed ? '#e5e7eb' : color),
-                        background: isActive ? color + '18' : '#fff',
-                        color: dimmed ? '#9ca3af' : color,
-                        fontSize: 12, fontWeight: isActive ? 700 : 500,
-                        cursor: 'pointer', transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : color }} />
-                      {name}
-                    </button>
-                  );
-                })}
-              </div>
-              <ResponsiveContainer width="100%" height={340}>
-                <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
-                  <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip content={<AuditorTooltip />} />
-                  {auditors.filter(name => !activeAuditor || activeAuditor === name).map(name => {
-                    const color = auditorColor(name);
-                    return (
-                      <Line
-                        key={name}
-                        type="monotone"
-                        dataKey={name}
-                        name={name}
-                        stroke={color}
-                        strokeWidth={2.5}
-                        connectNulls={true}
-                        dot={renderStageDot(color)}
-                        activeDot={{ r: 5, strokeWidth: 2, fill: '#fff' }}
-                        isAnimationActive={false}
-                      />
-                    );
-                  })}
-                </LineChart>
-              </ResponsiveContainer>
-              </>
-            )}
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Auditor Share of Total Audits</span>
-              <span className="tag tag-navy">{auditorGrandTotal} audits · Last 12 months</span>
-            </div>
-            <div className="card-body" style={{ paddingTop: 20 }}>
-              {auditorTotals.length === 0 ? (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
-                  <div style={{ width: 220, height: 220, flexShrink: 0 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={auditorTotals}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={55}
-                          outerRadius={95}
-                          paddingAngle={1.5}
-                          isAnimationActive={false}
-                        >
-                          {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} stroke="#fff" strokeWidth={2} />)}
-                        </Pie>
-                        <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {auditorTotals.map(row => (
-                      <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151' }}>
-                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
-                          {row.name}
-                        </span>
-                        <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                          {row.value} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({Math.round(row.value / auditorGrandTotal * 100)}%)</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Audits per Auditor by Project</span>
-              <span className="tag tag-navy">Last 12 months</span>
-            </div>
-            <div className="card-body" style={{ paddingTop: 20 }}>
-              {auditsByAuditorProject.length === 0 ? (
-                <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
-              ) : (
-                <>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-                  {auditProjects.map(project => (
-                    <span
-                      key={project}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '4px 10px', borderRadius: 999,
-                        border: '1.5px solid ' + projectColor(project),
-                        color: projectColor(project),
-                        fontSize: 11, fontWeight: 500,
-                      }}
-                    >
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: projectColor(project) }} />
-                      {project}
-                    </span>
-                  ))}
-                </div>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={auditsByAuditorProject} margin={{ top: 8, right: 10, left: 0, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
-                    <XAxis dataKey="auditor" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} height={60} />
-                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                    <Tooltip />
-                    {auditProjects.map((project, i) => (
-                      <Bar
-                        key={project}
-                        dataKey={project}
-                        name={project}
-                        stackId="a"
-                        fill={projectColor(project)}
-                        radius={i === auditProjects.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-                        isAnimationActive={false}
-                      />
-                    ))}
-                  </BarChart>
-                </ResponsiveContainer>
-                </>
-              )}
-            </div>
-          </div>
         </div>
         <div className="card" style={{ marginBottom: 24 }}>
           <div className="card-header">
