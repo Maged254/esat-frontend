@@ -19,22 +19,27 @@ const DELAY_SERIES = [
   { key: 'project', name: 'Project distribution', color: '#0C447C' },
 ];
 
+const AUDITS_REQUESTS_SERIES = [
+  { key: 'audits', label: 'Audits', color: '#2563EB', gradientId: 'auditsBarGradient', gradientFrom: '#3b82f6', gradientTo: '#1d4ed8' },
+  { key: 'requests', label: 'Requests', color: '#10B981', gradientId: 'requestsBarGradient', gradientFrom: '#34d399', gradientTo: '#059669' },
+];
+
 // Cycled by index for a dynamic (unknown-length) list of auditors.
 const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
 
 // Cycled by index for a dynamic (unknown-length) list of projects.
 const PROJECT_PALETTE = ['#1B3A6B', '#1D9E75', '#BE185D', '#eda100', '#7c3aed', '#0891b2', '#dc2626', '#65a30d', '#0f766e', '#c2410c', '#4338ca', '#a16207'];
 
-const FilterChip = ({ label, active, disabled, onClick }) => (
+const FilterChip = ({ label, active, highlighted, disabled, onClick }) => (
   <button
     onClick={onClick}
     disabled={disabled}
     style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
-      border: '1.2px solid ' + (active ? '#2563EB' : 'transparent'),
-      background: active ? '#E6F1FB' : '#F1F2F4',
-      color: active ? '#2563EB' : '#374151',
+      border: '1.2px ' + (active ? 'solid #2563EB' : highlighted ? 'dashed #93b4e8' : 'solid transparent'),
+      background: active ? '#E6F1FB' : highlighted ? '#F3F7FD' : '#F1F2F4',
+      color: active ? '#2563EB' : highlighted ? '#3B5B92' : '#374151',
       fontSize: 10, fontWeight: active ? 600 : 500,
       cursor: disabled ? 'default' : 'pointer', transition: 'all 0.15s ease',
       opacity: disabled ? 0.6 : 1,
@@ -71,6 +76,17 @@ export default function RequestsPage() {
   if (loading && !data) return <div className="content graphs-content"><div style={{color:'#6b7280',padding:40,textAlign:'center'}}>Loading charts...</div></div>;
   if (error && !data) return <div className="content graphs-content"><div style={{color:'#A32D2D',padding:40,textAlign:'center'}}>{error}</div></div>;
 
+  // Ticking a client doesn't select anything for you -- it just brings that
+  // client's projects to the front of the row with a dashed accent, so
+  // they're easy to spot and click yourself.
+  const clientProjectsMap = data.filter_options?.client_projects || {};
+  const highlightedProjects = new Set(filters.clients.flatMap(c => clientProjectsMap[c] || []));
+  const allFilterProjects = data.filter_options?.projects || [];
+  const sortedFilterProjects = highlightedProjects.size === 0 ? allFilterProjects : [
+    ...allFilterProjects.filter(p => highlightedProjects.has(p)),
+    ...allFilterProjects.filter(p => !highlightedProjects.has(p)),
+  ];
+
   const CustomTooltipPPE = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -106,6 +122,25 @@ export default function RequestsPage() {
             </span>
           </div>
         ) : null)}
+      </div>
+    );
+  };
+
+  const AuditsRequestsTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload || {};
+    return (
+      <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 170 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
+        {AUDITS_REQUESTS_SERIES.map(series => (
+          <div key={series.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, marginTop: 6, fontSize: 12 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#4b5563' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: series.color }} />
+              {series.label}
+            </span>
+            <span style={{ color: '#111827', fontWeight: 600 }}>{row[series.key + '_count']}</span>
+          </div>
+        ))}
       </div>
     );
   };
@@ -170,7 +205,7 @@ export default function RequestsPage() {
       </div>
       <div className="content graphs-content">
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
-        <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
@@ -185,8 +220,15 @@ export default function RequestsPage() {
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Project</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <FilterChip label="All projects" active={filters.projects.length === 0} disabled={loading} onClick={() => setFilters(current => ({ ...current, projects: [] }))} />
-                {(data.filter_options?.projects || []).map(project => (
-                  <FilterChip key={project} label={project} active={filters.projects.includes(project)} disabled={loading} onClick={() => toggleFilter('projects', project)} />
+                {sortedFilterProjects.map(project => (
+                  <FilterChip
+                    key={project}
+                    label={project}
+                    active={filters.projects.includes(project)}
+                    highlighted={highlightedProjects.has(project)}
+                    disabled={loading}
+                    onClick={() => toggleFilter('projects', project)}
+                  />
                 ))}
               </div>
             </div>
@@ -257,65 +299,77 @@ export default function RequestsPage() {
             )}
           </div>
         </div>
-        <div className="card">
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="card-header">
             <span className="card-title">Audits / Requests per Month</span>
             <span className="tag tag-navy">Last 6 months</span>
           </div>
-          <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', justifyContent: 'flex-end' }}>
-            {[{ key: 'audits', label: 'Audits', color: '#1B3A6B' }, { key: 'requests', label: 'Requests', color: '#1D9E75' }].map(opt => {
-              const isActive = auditsView === opt.key;
-              const dimmed = auditsView && !isActive;
-              return (
-                <button
-                  key={opt.key}
-                  onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '6px 14px', borderRadius: 999,
-                    border: '1.5px solid ' + (dimmed ? '#e5e7eb' : opt.color),
-                    background: isActive ? opt.color + '18' : '#fff',
-                    color: dimmed ? '#9ca3af' : opt.color,
-                    fontSize: 12, fontWeight: isActive ? 700 : 500,
-                    cursor: 'pointer', transition: 'all 0.15s ease',
-                  }}
-                >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />
-                  {opt.label}
-                </button>
-              );
-            })}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 0, paddingTop: 12 }}>
+            <div style={{ display: 'flex', gap: 6, padding: '0 16px 12px', justifyContent: 'flex-end' }}>
+              {AUDITS_REQUESTS_SERIES.map(opt => {
+                const isActive = auditsView === opt.key;
+                const dimmed = auditsView && !isActive;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setAuditsView(prev => prev === opt.key ? null : opt.key)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 10px', borderRadius: 999, flexShrink: 0, whiteSpace: 'nowrap',
+                      border: '1.2px solid ' + (dimmed ? '#e5e7eb' : opt.color),
+                      background: isActive ? opt.color + '18' : '#fff',
+                      color: dimmed ? '#9ca3af' : opt.color,
+                      fontSize: 10, fontWeight: isActive ? 600 : 500,
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {isActive
+                      ? <span style={{ fontSize: 9 }}>✓</span>
+                      : <span style={{ width: 8, height: 8, borderRadius: '50%', background: dimmed ? '#d1d5db' : opt.color }} />}
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {data.audits_by_month.length === 0 ? (
+              <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0', textAlign: 'center' }}>No audit data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={auditsChartData} margin={{ top: 10, right: 16, left: 4, bottom: 4 }}>
+                  <defs>
+                    {AUDITS_REQUESTS_SERIES.map(series => (
+                      <linearGradient key={series.gradientId} id={series.gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={series.gradientFrom} />
+                        <stop offset="100%" stopColor={series.gradientTo} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
+                  <YAxis width={32} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip content={<AuditsRequestsTooltip />} cursor={{ fill: '#f8fafc' }} />
+                  <Bar
+                    dataKey="requests_count_display"
+                    name="Requests"
+                    stackId="a"
+                    fill="url(#requestsBarGradient)"
+                    radius={auditsView === 'requests' ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                    label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                    isAnimationActive={false}
+                  />
+                  <Bar
+                    dataKey="audits_count_display"
+                    name="Audits"
+                    stackId="a"
+                    fill="url(#auditsBarGradient)"
+                    radius={[6, 6, 0, 0]}
+                    label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
-          {data.audits_by_month.length === 0 ? (
-            <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0' }}>No audit data</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={auditsChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar
-                  dataKey="requests_count_display"
-                  name="Requests"
-                  stackId="a"
-                  fill="#1D9E75"
-                  radius={auditsView === 'requests' ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-                  label={auditsView === 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                  isAnimationActive={false}
-                />
-                <Bar
-                  dataKey="audits_count_display"
-                  name="Audits"
-                  stackId="a"
-                  fill="#1B3A6B"
-                  radius={[4, 4, 0, 0]}
-                  label={auditsView !== 'requests' ? { position: 'top', fontSize: 11, fill: '#374151' } : undefined}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
         </div>
         </div>
         <div className="card" style={{ marginBottom: 24 }}>
