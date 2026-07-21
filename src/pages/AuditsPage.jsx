@@ -400,35 +400,51 @@ export default function AuditsPage() {
               {auditorTotals.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center' }}>
-                  <div style={{ width: 220, height: 220, flexShrink: 0 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', width: 240, height: 240, flexShrink: 0 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
+                        <defs>
+                          <filter id="donutSliceShadow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#1f2937" floodOpacity="0.18" />
+                          </filter>
+                        </defs>
                         <Pie
                           data={auditorTotals}
                           dataKey="value"
                           nameKey="name"
-                          innerRadius={55}
-                          outerRadius={95}
-                          paddingAngle={1.5}
+                          innerRadius={68}
+                          outerRadius={110}
+                          paddingAngle={3}
+                          cornerRadius={8}
+                          stroke="none"
                           isAnimationActive={false}
                         >
-                          {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} stroke="#fff" strokeWidth={2} />)}
+                          {auditorTotals.map(row => <Cell key={row.name} fill={auditorColor(row.name)} style={{ filter: 'url(#donutSliceShadow)' }} />)}
                         </Pie>
                         <Tooltip formatter={(value, name) => [value + ' audits (' + Math.round(value / auditorGrandTotal * 100) + '%)', name]} />
                       </PieChart>
                     </ResponsiveContainer>
+                    <div style={{
+                      position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+                    }}>
+                      <span style={{ fontSize: 12.5, color: '#9ca3af', fontWeight: 500 }}>Total</span>
+                      <span style={{ fontSize: 26, fontWeight: 700, color: '#111827', marginTop: 2 }}>{auditorGrandTotal}</span>
+                      <span style={{ fontSize: 11, color: '#9ca3af' }}>audits</span>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 160, display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {auditorTotals.map(row => (
-                      <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#374151' }}>
-                          <span style={{ width: 9, height: 9, borderRadius: '50%', background: auditorColor(row.name), flexShrink: 0 }} />
-                          {row.name}
-                        </span>
-                        <span style={{ color: '#111827', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                          {row.value} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({Math.round(row.value / auditorGrandTotal * 100)}%)</span>
-                        </span>
+                      <div key={row.name} style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
+                        <span style={{ display: 'block', width: 3, borderRadius: 999, background: auditorColor(row.name), flexShrink: 0 }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                          <span style={{ fontSize: 12, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+                          <span style={{ fontSize: 19, fontWeight: 700, color: '#111827' }}>
+                            {Math.round(row.value / auditorGrandTotal * 100)}%
+                            <span style={{ fontSize: 12, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>({row.value})</span>
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
