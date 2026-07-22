@@ -33,14 +33,14 @@ const STATUS_ACCENT = {
 };
 
 const ELIGIBLE_STATUSES = {
-  scm_ordered: ['ehs_purchase_requested'],
-  warehouse_available: ['ehs_purchase_requested', 'scm_ordered'],
-  distributed: ['ehs_purchase_requested', 'scm_ordered', 'warehouse_available'],
+  scm_ordered: ['ehs_purchase_requested', 'pda_approved'],
+  warehouse_available: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered'],
+  distributed: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available'],
 };
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'ehs_purchase_requested', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '' });
+  const [filters, setFilters] = useState({ status: 'pending_scm', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '' });
   const [projDropOpen, setProjDropOpen] = useState(false);
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const projRef = React.useRef(null);
