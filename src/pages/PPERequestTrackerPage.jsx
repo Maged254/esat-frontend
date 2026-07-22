@@ -9,6 +9,7 @@ const STATUS_LABELS = {
   warehouse_available: 'Warehouse Available',
   distributed: 'Distributed',
   canceled: 'Canceled',
+  exit: 'Exit',
 };
 
 const STATUS_COLORS = {
@@ -19,6 +20,7 @@ const STATUS_COLORS = {
   warehouse_available: 'tag-teal',
   distributed: 'tag-green',
   canceled: 'tag-red',
+  exit: 'tag-gray',
 };
 
 // Status tag accents matching the EHS/PM/SCM/Projects group header colors
@@ -468,6 +470,7 @@ export default function PPERequestTrackerPage() {
                 <option value="warehouse_available">Warehouse Available</option>
                 <option value="distributed">Distributed</option>
                 <option value="canceled">Canceled</option>
+                <option value="exit">Exit</option>
               </select>
               <div style={{position:'relative'}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
