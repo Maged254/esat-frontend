@@ -169,6 +169,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   background: #fff; border-left: 0.5px solid var(--wf-border); border-top: 0.5px solid var(--wf-border);
   transform: rotate(45deg);
 }
+/* Flipped variant (opens upward when there's no room below in the
+   viewport) -- move the arrow to the bottom edge, pointing down. */
+.ppe-milestone-tip.flip::before {
+  top: auto; bottom: -6px;
+  border-left: none; border-top: none;
+  border-right: 0.5px solid var(--wf-border); border-bottom: 0.5px solid var(--wf-border);
+}
 .card-header { padding: 14px 18px; border-bottom: var(--border); display: flex; align-items: center; justify-content: space-between; }
 .card-title { font-size: 14px; font-weight: 500; }
 .card-body { padding: 16px 18px; }

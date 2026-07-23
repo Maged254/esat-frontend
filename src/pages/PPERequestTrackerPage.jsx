@@ -74,12 +74,24 @@ export default function PPERequestTrackerPage() {
   // Floating milestone tooltip -- portaled to <body> (see milestoneTip render
   // below) so it escapes the table's `overflow:auto` scroll container, which
   // would otherwise clip it regardless of z-index.
-  const [tip, setTip] = useState(null); // { id, top, left, pinned }
+  const [tip, setTip] = useState(null); // { id, top|bottom, left, flip, pinned }
   const tipCloseTimer = useRef(null);
+  // Anchors below the trigger by default; flips to open upward (anchored via
+  // `bottom` so it grows away from the trigger regardless of its actual
+  // rendered height) when there isn't enough room below in the viewport --
+  // rows near the bottom of the table would otherwise render off-screen.
+  const TIP_EST_HEIGHT = 320;
+  const tipPosition = (rect) => {
+    const flip = window.innerHeight - rect.bottom < TIP_EST_HEIGHT;
+    const left = Math.min(rect.left, window.innerWidth - 276);
+    return flip
+      ? { left, bottom: window.innerHeight - rect.top + 8, flip: true }
+      : { left, top: rect.bottom + 8, flip: false };
+  };
   const openTip = (id, el) => {
     if (tipCloseTimer.current) { clearTimeout(tipCloseTimer.current); tipCloseTimer.current = null; }
     const rect = el.getBoundingClientRect();
-    setTip(prev => ({ id, top: rect.bottom + 8, left: rect.left, pinned: prev && prev.id === id ? prev.pinned : false }));
+    setTip(prev => ({ id, ...tipPosition(rect), pinned: prev && prev.id === id ? prev.pinned : false }));
   };
   // Small grace period before closing so moving the cursor from the bar down
   // into the tooltip (to click the courier chip) doesn't flicker-close it.
@@ -88,7 +100,7 @@ export default function PPERequestTrackerPage() {
   };
   const togglePinTip = (id, el) => {
     const rect = el.getBoundingClientRect();
-    setTip(prev => (prev && prev.id === id && prev.pinned) ? null : { id, top: rect.bottom + 8, left: rect.left, pinned: true });
+    setTip(prev => (prev && prev.id === id && prev.pinned) ? null : { id, ...tipPosition(rect), pinned: true });
   };
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -227,18 +239,39 @@ export default function PPERequestTrackerPage() {
     ];
   };
 
-  const miniStepper = (stages) => (
-    <div style={{display:'flex',alignItems:'center'}}>
-      {stages.map((s, i) => {
-        const notch = 6;
-        const clip = i === 0
-          ? `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%)`
-          : `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%, ${notch}px 50%)`;
-        const done = s.done || s.na;
-        return <div key={i} style={{flex:1,height:14,background: done ? 'var(--eg-green)' : '#e5e7eb',clipPath:clip,marginLeft: i===0?0:-notch}}></div>;
-      })}
-    </div>
-  );
+  // Compact always-visible milestone indicator -- a dot per stage (colored by
+  // its EHS/PM/SCM/Projects group once reached, hollow while pending) joined
+  // by a thin connector that fills in behind completed stages. The next
+  // actionable stage gets a soft ring so it reads as "you are here" at a
+  // glance, without needing to open the tooltip.
+  const miniStepper = (stages, stopped) => {
+    const currentIdx = stopped ? -1 : stages.findIndex(s => !s.done && !s.na);
+    return (
+      <div style={{display:'flex',alignItems:'center',width:'100%'}}>
+        {STAGE_META.map((meta, i) => {
+          const s = stages[i];
+          const w = WF_VARS[meta.group];
+          const reached = s.done || s.na;
+          const isCurrent = i === currentIdx;
+          const size = isCurrent ? 9 : 7;
+          return (
+            <React.Fragment key={meta.key}>
+              {i > 0 && (
+                <div style={{flex:1,height:2,minWidth:4,borderRadius:1,
+                  background: reached ? w.c : '#e5e7eb'}}></div>
+              )}
+              <div style={{
+                width:size,height:size,borderRadius:'50%',flexShrink:0,
+                background: s.na ? '#e5e7eb' : reached ? w.c : '#fff',
+                border: reached ? 'none' : '1.5px solid #d1d5db',
+                boxShadow: isCurrent ? `0 0 0 3px ${w.bg}` : 'none',
+              }}></div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Vertical timeline shown in the milestone tooltip -- one dot+line per
   // stage, colored by its EHS/PM/SCM/Projects group, replacing the old
@@ -328,12 +361,12 @@ export default function PPERequestTrackerPage() {
           onMouseLeave={() => scheduleCloseTip(r.id)}
           onClick={e => { e.stopPropagation(); togglePinTip(r.id, e.currentTarget); }}
         >
-          {miniStepper(stages)}
+          {miniStepper(stages, r.status === 'canceled' || r.status === 'exit')}
         </div>
         {tip && tip.id === r.id && createPortal(
           <div
-            className="ppe-milestone-tip"
-            style={{position:'fixed',top:tip.top,left:tip.left}}
+            className={'ppe-milestone-tip' + (tip.flip ? ' flip' : '')}
+            style={{position:'fixed',left:tip.left,...(tip.flip ? {bottom:tip.bottom} : {top:tip.top})}}
             onMouseEnter={() => { if (tipCloseTimer.current) { clearTimeout(tipCloseTimer.current); tipCloseTimer.current = null; } }}
             onMouseLeave={() => scheduleCloseTip(r.id)}
             onClick={e => e.stopPropagation()}
