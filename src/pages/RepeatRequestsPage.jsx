@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api, { logError } from '../utils/api';
 
 // Single blue family shared by both the item pills and the rank badges below.
@@ -146,7 +147,22 @@ export default function RepeatRequestsPage() {
   const [sortBy, setSortBy] = useState('count'); // 'count' | 'recent'
   const [includeItems, setIncludeItems] = useState([]); // empty = no include filter
   const [excludeItems, setExcludeItems] = useState([]); // empty = no exclude filter
-  const [hoveredRow, setHoveredRow] = useState(null); // row key showing its flagged-dates tooltip
+  // Flagged-dates tooltip -- portaled to <body> (see render below) so it
+  // escapes the list's `overflow-y: auto` container, which would otherwise
+  // clip it for rows near the bottom regardless of z-index. Anchored via
+  // `right`/`bottom` (not `left`/`top`) so it keeps its position without
+  // needing to know its own rendered width/height up front.
+  const [tip, setTip] = useState(null); // { key, right, top|bottom, flip }
+  const TIP_EST_HEIGHT = 200;
+  const tipPosition = (rect) => {
+    const flip = window.innerHeight - rect.bottom < TIP_EST_HEIGHT;
+    const right = window.innerWidth - rect.right + 16;
+    return flip
+      ? { right, bottom: window.innerHeight - rect.top + 4, flip: true }
+      : { right, top: rect.bottom + 4, flip: false };
+  };
+  const showTip = (key, el) => setTip({ key, ...tipPosition(el.getBoundingClientRect()) });
+  const hideTip = (key) => setTip(prev => (prev && prev.key === key) ? null : prev);
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
@@ -323,9 +339,9 @@ export default function RepeatRequestsPage() {
                     <div
                       key={rowKey}
                       className="pulse-card"
-                      onMouseEnter={() => setHoveredRow(rowKey)}
-                      onMouseLeave={() => setHoveredRow(prev => prev === rowKey ? null : prev)}
-                      style={{ position: 'relative', borderRadius: 10, overflow: 'visible', flexShrink: 0, zIndex: hoveredRow === rowKey ? 10 : 1 }}
+                      onMouseEnter={e => showTip(rowKey, e.currentTarget)}
+                      onMouseLeave={() => hideTip(rowKey)}
+                      style={{ position: 'relative', borderRadius: 10, overflow: 'visible', flexShrink: 0 }}
                     >
                       <div style={{ position: 'absolute', inset: 0, borderRadius: 10, overflow: 'hidden', border: '1px solid #eef0f3' }}>
                         <div style={{ position: 'absolute', inset: 0, width: `${barWidth}%`, background: bg, transition: 'width 0.2s ease' }} />
@@ -362,9 +378,10 @@ export default function RepeatRequestsPage() {
                           {row.last_flagged ? 'Last ' + formatDate(row.last_flagged) : ''}
                         </div>
                       </div>
-                      {hoveredRow === rowKey && dates.length > 0 && (
+                      {tip && tip.key === rowKey && dates.length > 0 && createPortal(
                         <div style={{
-                          position: 'absolute', top: '100%', right: 16, marginTop: 4, zIndex: 50, minWidth: 160,
+                          position: 'fixed', right: tip.right, zIndex: 1000, minWidth: 160,
+                          ...(tip.flip ? { bottom: tip.bottom } : { top: tip.top }),
                           background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10,
                           boxShadow: '0 8px 24px rgba(15,42,74,0.14)', padding: '10px 14px',
                         }}>
@@ -379,7 +396,8 @@ export default function RepeatRequestsPage() {
                               </div>
                             ))}
                           </div>
-                        </div>
+                        </div>,
+                        document.body
                       )}
                     </div>
                   );
