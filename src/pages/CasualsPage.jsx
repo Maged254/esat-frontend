@@ -204,7 +204,7 @@ export default function CasualsPage() {
               <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters({ search: '', project: '', client: '', status: 'active' })}>✕ Clear</button>
             </div>
           </div>
-          <table>
+          <table className="table-hover-blue">
             <thead><tr><th>Name</th><th>National ID</th><th>Job Title</th><th>Project</th><th>Client</th><th>Status</th><th>Last Edited</th><th></th></tr></thead>
             <tbody>
               {filtered.map(c => (

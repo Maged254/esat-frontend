@@ -264,7 +264,7 @@ export function EmployeesPage() {
             </div>
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
-          <table>
+          <table className="table-hover-blue">
             <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {employees.map((e, i) => (
