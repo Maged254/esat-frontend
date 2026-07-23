@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api, { logError } from '../utils/api';
 
 const STATUS_LABELS = {
@@ -70,7 +71,25 @@ export default function PPERequestTrackerPage() {
   const [trackingModal, setTrackingModal] = useState(null);
   const [groupMode, setGroupMode] = useState('none'); // 'none' | 'po' | 'employee'
   const [successMsg, setSuccessMsg] = useState('');
-  const [expandedId, setExpandedId] = useState(null);
+  // Floating milestone tooltip -- portaled to <body> (see milestoneTip render
+  // below) so it escapes the table's `overflow:auto` scroll container, which
+  // would otherwise clip it regardless of z-index.
+  const [tip, setTip] = useState(null); // { id, top, left, pinned }
+  const tipCloseTimer = useRef(null);
+  const openTip = (id, el) => {
+    if (tipCloseTimer.current) { clearTimeout(tipCloseTimer.current); tipCloseTimer.current = null; }
+    const rect = el.getBoundingClientRect();
+    setTip(prev => ({ id, top: rect.bottom + 8, left: rect.left, pinned: prev && prev.id === id ? prev.pinned : false }));
+  };
+  // Small grace period before closing so moving the cursor from the bar down
+  // into the tooltip (to click the courier chip) doesn't flicker-close it.
+  const scheduleCloseTip = (id) => {
+    tipCloseTimer.current = setTimeout(() => setTip(prev => (prev && prev.id === id && !prev.pinned) ? null : prev), 150);
+  };
+  const togglePinTip = (id, el) => {
+    const rect = el.getBoundingClientRect();
+    setTip(prev => (prev && prev.id === id && prev.pinned) ? null : { id, top: rect.bottom + 8, left: rect.left, pinned: true });
+  };
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
@@ -164,7 +183,7 @@ export default function PPERequestTrackerPage() {
   );
 
   // Compact chevron stepper replacing the old 6 separate stage columns —
-  // click a row to expand the full colored timeline underneath.
+  // hovering (or tapping, on touch) it pops the full timeline in a tooltip.
   const STAGE_META = [
     { key: 'flagged', label: 'Flagged', group: 'ehs' },
     { key: 'purchase_request', label: 'Purchase req.', group: 'ehs' },
@@ -190,7 +209,7 @@ export default function PPERequestTrackerPage() {
 
   const getStages = (r) => {
     const pmDate = r.needs_pda ? r.pda_approved_date : r.date_purchase_requested;
-    const ongoing = r.status !== 'canceled';
+    const ongoing = r.status !== 'canceled' && r.status !== 'exit';
     return [
       { done: !!r.date_flagged, date: r.date_flagged, by: r.flagged_by_name },
       { done: !!r.date_purchase_requested, date: r.date_purchase_requested, by: r.purchase_requested_by_name,
@@ -216,77 +235,64 @@ export default function PPERequestTrackerPage() {
           ? `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%)`
           : `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%, ${notch}px 50%)`;
         const done = s.done || s.na;
-        const title = s.na ? 'Not required' : s.done ? new Date(s.date).toLocaleDateString('en-GB') + (s.by ? ' · ' + s.by : '') : 'Pending';
-        return <div key={i} title={title} style={{flex:1,height:14,background: done ? 'var(--eg-green)' : '#e5e7eb',clipPath:clip,marginLeft: i===0?0:-notch}}></div>;
+        return <div key={i} style={{flex:1,height:14,background: done ? 'var(--eg-green)' : '#e5e7eb',clipPath:clip,marginLeft: i===0?0:-notch}}></div>;
       })}
     </div>
   );
 
-  const detailChevrons = (r) => {
-    const stages = getStages(r);
-    const groups = [
-      { name: 'EHS', group: 'ehs', span: 2 },
-      { name: 'PM', group: 'pm', span: 1 },
-      { name: 'SCM', group: 'scm', span: 2 },
-      { name: 'PROJECTS', group: 'projects', span: 1 },
-    ];
-    return (
-      <div onClick={e => e.stopPropagation()}>
-        <div style={{display:'flex',marginBottom:6}}>
-          {groups.map(g => (
-            <div key={g.group} style={{flex:g.span,borderTop:'3px solid '+WF_VARS[g.group].c,textAlign:'center',fontSize:11,fontWeight:500,letterSpacing:'0.04em',color:WF_VARS[g.group].c,paddingTop:6}}>{g.name}</div>
-          ))}
-        </div>
-        <div style={{display:'flex',alignItems:'stretch',borderRadius:'var(--radius)',overflow:'hidden',border:'0.5px solid #e5e7eb'}}>
-          {STAGE_META.map((meta, i) => {
-            const s = stages[i];
-            const notch = 16;
-            const clip = i === STAGE_META.length - 1
-              ? `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${notch}px 50%)`
-              : (i === 0
-                ? `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%)`
-                : `polygon(0 0, calc(100% - ${notch}px) 0, 100% 50%, calc(100% - ${notch}px) 100%, 0 100%, ${notch}px 50%)`);
-            const done = s.na || s.done;
-            const w = WF_VARS[meta.group];
-            const bg = done ? w.bg : '#f3f4f6';
-            const fg = done ? w.c : '#9ca3af';
-            const val = s.na ? 'Not required' : s.done ? new Date(s.date).toLocaleDateString('en-GB') : 'Pending';
-            return (
-              <div key={meta.key} style={{position:'relative',flex:1,minWidth:0,marginLeft:i===0?0:-notch}}>
-                <div style={{position:'absolute',inset:0,clipPath:clip,background:done?w.c:'transparent'}}></div>
-                <div style={{position:'absolute',top:2,bottom:2,left:2,right:2,clipPath:clip,background:bg}}></div>
-                <div style={{position:'relative',color:fg,padding:'8px 10px 8px '+(i===0?10:(notch+10))+'px'}}>
-                  <div style={{fontSize:10,fontWeight:500,textTransform:'uppercase',letterSpacing:'0.03em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{meta.label}</div>
-                  <div style={{fontSize:11,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{val}</div>
-                  {s.done && s.by && <div style={{fontSize:9,opacity:0.85,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{s.by}</div>}
-                  {s.done && s.extra && <div style={{fontSize:9,fontWeight:700,opacity:0.95}}>{s.extra}</div>}
-                  {s.done && s.courier && (
-                    <span
-                      onClick={() => setTrackingModal(s.tracking || 'No tracking number entered')}
-                      style={{display:'inline-block',marginTop:2,fontSize:9,fontWeight:700,background:'rgba(255,255,255,0.25)',borderRadius:4,padding:'1px 6px',cursor:'pointer'}}
-                    >Courier ›</span>
-                  )}
-                </div>
-                {i > 0 && !s.na && s.delayDays !== null && s.delayDays !== undefined && (
-                  <div title={(s.done ? 'Took' : 'Waiting') + ' ' + s.delayDays + ' day' + (s.delayDays===1?'':'s')} style={{position:'absolute',bottom:2,right:i===STAGE_META.length-1?2:notch+2,fontSize:9,fontWeight:700,color:fg,opacity:0.85}}>{s.delayDays}d</div>
+  // Vertical timeline shown in the milestone tooltip -- one dot+line per
+  // stage, colored by its EHS/PM/SCM/Projects group, replacing the old
+  // click-to-expand chevron row underneath.
+  const milestoneTipContent = (r, stages) => (
+    <>
+      <div style={{fontSize:12,fontWeight:500,color:'#374151',marginBottom:2}}>{r.ppe_name}</div>
+      <div style={{fontSize:11,color:'#9ca3af',marginBottom:12}}>{r.employee_name}{r.project ? ' · ' + r.project : ''}</div>
+      <div style={{position:'relative',paddingLeft:20}}>
+        <div style={{position:'absolute',left:5,top:4,bottom:4,width:1,background:'#e5e7eb'}}></div>
+        {STAGE_META.map((meta, i) => {
+          const s = stages[i];
+          const w = WF_VARS[meta.group];
+          const done = s.done;
+          const dotStyle = s.na
+            ? {background:'#f3f4f6',border:'1px solid #e5e7eb'}
+            : done ? {background:w.c} : {background:'#fff',border:'2px solid #d1d5db'};
+          const labelColor = s.na ? '#9ca3af' : done ? w.c : '#9ca3af';
+          return (
+            <div key={meta.key} style={{position:'relative',paddingBottom:i===STAGE_META.length-1?0:14}}>
+              <div style={{position:'absolute',left:-20,top:2,width:11,height:11,borderRadius:'50%',...dotStyle}}></div>
+              <div style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                <div style={{fontSize:11,fontWeight:500,color:labelColor,textDecoration:s.na?'line-through':'none'}}>{meta.label}</div>
+                {!s.na && i > 0 && s.delayDays !== null && s.delayDays !== undefined && (
+                  <div style={{fontSize:10,fontWeight:500,color:'#9ca3af',flexShrink:0}}>{s.delayDays}d</div>
                 )}
               </div>
-            );
-          })}
-        </div>
+              <div style={{fontSize:11,color:'#6b7280'}}>
+                {s.na ? 'Not required'
+                  : done ? new Date(s.date).toLocaleDateString('en-GB') + (s.by ? ' · ' + s.by : '')
+                  : (s.delayDays !== null && s.delayDays !== undefined ? 'Waiting · ' + s.delayDays + 'd so far' : 'Pending')}
+              </div>
+              {done && s.extra && <div style={{fontSize:10,fontWeight:500,color:w.c,marginTop:1}}>{s.extra}</div>}
+              {done && s.courier && (
+                <span
+                  onClick={() => setTrackingModal(s.tracking || 'No tracking number entered')}
+                  style={{display:'inline-block',marginTop:3,fontSize:10,fontWeight:500,background:w.bg,color:w.c,borderRadius:5,padding:'2px 7px',cursor:'pointer'}}
+                >Courier · {s.tracking || 'no tracking #'}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
-    );
-  };
+    </>
+  );
 
   // Shared row renderer — used by the PO-grouped, employee-grouped, and
   // ungrouped table views so the columns only need to be defined once.
   const renderRow = (r) => {
     const highlight = bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : '';
     const stickyBg = highlight || '#fff';
-    const isOpen = expandedId === r.id;
     const stages = getStages(r);
-    return [
-    <tr key={r.id} style={{background: highlight, cursor:'pointer'}} onClick={() => setExpandedId(isOpen ? null : r.id)}>
+    return (
+    <tr key={r.id} style={{background: highlight}}>
       <td style={{background:stickyBg,width:150,minWidth:150}}>
         <div className="emp-name">{r.employee_name}</div>
         <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
@@ -315,7 +321,28 @@ export default function PPERequestTrackerPage() {
         {r.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{r.client}</div>}
         {r.location_name && <div style={{fontSize:10,color:'#9ca3af',marginTop:1}}>{r.location_name}</div>}
       </td>
-      <td style={{padding:'8px 10px'}}>{miniStepper(stages)}</td>
+      <td style={{padding:'8px 10px'}}>
+        <div
+          className="ppe-progress-trigger"
+          onMouseEnter={e => openTip(r.id, e.currentTarget)}
+          onMouseLeave={() => scheduleCloseTip(r.id)}
+          onClick={e => { e.stopPropagation(); togglePinTip(r.id, e.currentTarget); }}
+        >
+          {miniStepper(stages)}
+        </div>
+        {tip && tip.id === r.id && createPortal(
+          <div
+            className="ppe-milestone-tip"
+            style={{position:'fixed',top:tip.top,left:tip.left}}
+            onMouseEnter={() => { if (tipCloseTimer.current) { clearTimeout(tipCloseTimer.current); tipCloseTimer.current = null; } }}
+            onMouseLeave={() => scheduleCloseTip(r.id)}
+            onClick={e => e.stopPropagation()}
+          >
+            {milestoneTipContent(r, stages)}
+          </div>,
+          document.body
+        )}
+      </td>
       <td>{(() => {
         const isPdaPending = r.status === 'ehs_purchase_requested' && r.needs_pda;
         const key = isPdaPending ? 'pda_pending' : r.status;
@@ -333,9 +360,8 @@ export default function PPERequestTrackerPage() {
           )}
         </td>
       )}
-    </tr>,
-    isOpen && <tr key={r.id+'-detail'} style={{background: highlight}}><td colSpan={bulkTarget?7:6} style={{padding:'0 12px 14px'}}>{detailChevrons(r)}</td></tr>
-    ];
+    </tr>
+    );
   };
 
   // No client-side filtering anymore -- the server now returns already-filtered

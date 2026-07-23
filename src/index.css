@@ -149,6 +149,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 .pulse-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .pulse-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(15,23,42,0.08), 0 14px 28px rgba(15,23,42,0.12); }
+
+/* ── PPE Tracker milestone tooltip ──────────────────────────
+   Hover (or tap, on touch) the progress bar to pop the full stage
+   timeline instead of expanding the row. The tooltip itself is
+   portaled to <body> (see PPERequestTrackerPage.jsx) with its
+   position computed in JS, so it escapes the table's scroll
+   container instead of being clipped by its `overflow:auto`. */
+.ppe-progress-trigger { display: flex; align-items: center; cursor: pointer; padding: 6px; margin: -6px; border-radius: 6px; transition: background 0.12s ease; }
+.ppe-progress-trigger:hover { background: #f3f4f6; }
+.ppe-milestone-tip {
+  position: relative; width: 260px;
+  background: #fff; border: 0.5px solid var(--wf-border); border-radius: var(--wf-radius);
+  box-shadow: var(--wf-shadow-hover); padding: 14px 16px;
+  z-index: 1000;
+}
+.ppe-milestone-tip::before {
+  content: ''; position: absolute; top: -6px; left: 16px; width: 11px; height: 11px;
+  background: #fff; border-left: 0.5px solid var(--wf-border); border-top: 0.5px solid var(--wf-border);
+  transform: rotate(45deg);
+}
 .card-header { padding: 14px 18px; border-bottom: var(--border); display: flex; align-items: center; justify-content: space-between; }
 .card-title { font-size: 14px; font-weight: 500; }
 .card-body { padding: 16px 18px; }
