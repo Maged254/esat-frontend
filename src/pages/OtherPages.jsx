@@ -47,9 +47,9 @@ export function EmployeesPage() {
   const effectiveFilters = () => {
     const f = { ...filters };
     if (f.activeStat === 'active') { f.status = 'active'; f.resource_type = ''; }
-    else if (f.activeStat === 'inhouse') { f.status = ''; f.resource_type = 'inhouse'; }
-    else if (f.activeStat === 'outsource') { f.status = ''; f.resource_type = 'outsource'; }
-    else if (f.activeStat === 'intern') { f.status = ''; f.resource_type = 'intern'; }
+    else if (f.activeStat === 'inhouse') { f.status = 'active'; f.resource_type = 'inhouse'; }
+    else if (f.activeStat === 'outsource') { f.status = 'active'; f.resource_type = 'outsource'; }
+    else if (f.activeStat === 'intern') { f.status = 'active'; f.resource_type = 'intern'; }
     else if (f.activeStat === 'exit') { f.status = 'exit'; f.resource_type = ''; }
     delete f.activeStat;
     return f;
@@ -244,13 +244,13 @@ export function EmployeesPage() {
             <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
           </div>
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
-            <div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
+            <div className="stat-label">Active Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
           </div>
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
-            <div className="stat-label">Outsource</div><div className="stat-value">{stats.outsource}</div>
+            <div className="stat-label">Active Outsource</div><div className="stat-value">{stats.outsource}</div>
           </div>
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
-            <div className="stat-label">Intern</div><div className="stat-value warning">{stats.interns}</div>
+            <div className="stat-label">Active Intern</div><div className="stat-value warning">{stats.interns}</div>
           </div>
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
             <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
