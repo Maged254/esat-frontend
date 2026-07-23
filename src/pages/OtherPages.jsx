@@ -9,7 +9,11 @@ export function EmployeesPage() {
   const [allPpeItems, setAllPpeItems] = useState([]);
   const [assignedPpe, setAssignedPpe] = useState([]); // array of ppe_item ids
   const [ppeAssignSaving, setPpeAssignSaving] = useState(false);
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: '', job_title: '', audit_age: '' });
+  // Stat-card clicks (activeStat) and the status/resource dropdowns are
+  // mutually exclusive in the UI and collapse to canonical status/
+  // resource_type values for the backend -- same pattern as the NCR page's
+  // stat cards, so exactly one card (or neither) is ever highlighted.
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: '', job_title: '', audit_age: '', activeStat: 'active' });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
@@ -37,9 +41,23 @@ export function EmployeesPage() {
     setEmployees(prev => prev.filter(e => e.id !== emp.id));
   };
 
+  // Collapses activeStat to the status/resource_type pair the backend
+  // understands -- 'intern' isn't a real resource_type filter value from a
+  // dropdown's perspective, just a card shortcut resolved here.
+  const effectiveFilters = () => {
+    const f = { ...filters };
+    if (f.activeStat === 'active') { f.status = 'active'; f.resource_type = ''; }
+    else if (f.activeStat === 'inhouse') { f.status = ''; f.resource_type = 'inhouse'; }
+    else if (f.activeStat === 'outsource') { f.status = ''; f.resource_type = 'outsource'; }
+    else if (f.activeStat === 'intern') { f.status = ''; f.resource_type = 'intern'; }
+    else if (f.activeStat === 'exit') { f.status = 'exit'; f.resource_type = ''; }
+    delete f.activeStat;
+    return f;
+  };
+
   const filterParams = () => {
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    Object.entries(effectiveFilters()).forEach(([k, v]) => { if (v) params.append(k, v); });
     return params;
   };
 
@@ -187,11 +205,11 @@ export function EmployeesPage() {
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
               <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Filter</span>
               <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
                   <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
                 </select>
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
-                  <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value,activeStat:''}))}>
+                  <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
                 </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
                   <option value="">All Departments</option>
@@ -216,25 +234,25 @@ export function EmployeesPage() {
                   <option value="2months">1 - 2 Months</option>
                   <option value="over2months">More than 2 Months</option>
                 </select>
-                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:''})}>✕ Clear</button>
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
               </div>
             </div>
           </div>
         </div>
         <div className="stat-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:p.status==='active'?'':'active'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
             <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='inhouse'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='inhouse'?'':'inhouse'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
             <div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='outsource'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='outsource'?'':'outsource'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
             <div className="stat-label">Outsource</div><div className="stat-value">{stats.outsource}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='intern'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='intern'?'':'intern'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
             <div className="stat-label">Intern</div><div className="stat-value warning">{stats.interns}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:p.status==='exit'?'':'exit'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
             <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
           </div>
         </div>
