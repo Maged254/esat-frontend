@@ -173,7 +173,54 @@ export function EmployeesPage() {
           
         </div>
       </div>
-      <div className="content">
+      <div className="content graphs-content">
+        <div className="card" style={{marginBottom:24, position:'sticky', top:'var(--header-h)', zIndex:40}}>
+          <div className="card-body" style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Search</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Filter</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+                  <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
+                  <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
+                  <option value="">All Departments</option>
+                  {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                  <option value="">All Projects</option>
+                  {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
+                  <option value="">All Clients</option>
+                  {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.san} onChange={e=>setFilters(p=>({...p,san:e.target.value}))}>
+                  <option value="">All</option>
+                  <option value="yes">Safety Audit Needed</option>
+                  <option value="no">No Audit Needed</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.audit_age||''} onChange={e=>setFilters(p=>({...p,audit_age:e.target.value}))}>
+                  <option value="">All Last Audit</option>
+                  <option value="1month">Within 1 Month</option>
+                  <option value="2months">1 - 2 Months</option>
+                  <option value="over2months">More than 2 Months</option>
+                </select>
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:''})}>✕ Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="stat-grid">
           <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div></div>
           <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div></div>
@@ -181,43 +228,12 @@ export function EmployeesPage() {
           <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div></div>
         </div>
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">Employee list</span>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
-                <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
-                <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
-                <option value="">All Departments</option>
-                {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
-                <option value="">All Projects</option>
-                {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.client} onChange={e=>setFilters(p=>({...p,client:e.target.value}))}>
-                <option value="">All Clients</option>
-                {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.san} onChange={e=>setFilters(p=>({...p,san:e.target.value}))}>
-                <option value="">All</option>
-                <option value="yes">Safety Audit Needed</option>
-                <option value="no">No Audit Needed</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.audit_age||''} onChange={e=>setFilters(p=>({...p,audit_age:e.target.value}))}>
-                <option value="">All Last Audit</option>
-                <option value="1month">Within 1 Month</option>
-                <option value="2months">1 - 2 Months</option>
-                <option value="over2months">More than 2 Months</option>
-              </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:''})}>✕ Clear</button>
+          <div className="card-header" style={{alignItems:'flex-start',gap:16}}>
+            <div>
+              <div className="card-title" style={{fontSize:15,marginBottom:4}}>Employee list</div>
+              <div style={{color:'#6b7280',fontSize:12}}>All employees matching the current filters</div>
             </div>
+            <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
           <table>
             <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
