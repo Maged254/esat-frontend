@@ -13,7 +13,7 @@ export function EmployeesPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
-  const [stats, setStats] = useState({ total_active: 0, inhouse: 0, outsource: 0, exits: 0 });
+  const [stats, setStats] = useState({ total_active: 0, inhouse: 0, outsource: 0, interns: 0, exits: 0 });
   const [filterOptions, setFilterOptions] = useState({ departments: [], projects: [], clients: [] });
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
@@ -221,11 +221,22 @@ export function EmployeesPage() {
             </div>
           </div>
         </div>
-        <div className="stat-grid">
-          <div className="stat-card"><div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div></div>
-          <div className="stat-card"><div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div></div>
-          <div className="stat-card"><div className="stat-label">Outsource</div><div className="stat-value">{stats.outsource}</div></div>
-          <div className="stat-card"><div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div></div>
+        <div className="stat-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:p.status==='active'?'':'active'}))}>
+            <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
+          </div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='inhouse'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='inhouse'?'':'inhouse'}))}>
+            <div className="stat-label">Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
+          </div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='outsource'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='outsource'?'':'outsource'}))}>
+            <div className="stat-label">Outsource</div><div className="stat-value">{stats.outsource}</div>
+          </div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.resource_type==='intern'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,resource_type:p.resource_type==='intern'?'':'intern'}))}>
+            <div className="stat-label">Intern</div><div className="stat-value warning">{stats.interns}</div>
+          </div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:p.status==='exit'?'':'exit'}))}>
+            <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
+          </div>
         </div>
         <div className="card">
           <div className="card-header" style={{alignItems:'flex-start',gap:16}}>
