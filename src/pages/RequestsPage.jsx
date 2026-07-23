@@ -200,7 +200,7 @@ export default function RequestsPage() {
       </div>
       <div className="content graphs-content">
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
-        <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+        <div className="card" style={{ marginBottom: 16, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Client</span>
@@ -229,7 +229,7 @@ export default function RequestsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '7fr 3fr', gap: 24, marginBottom: 16 }}>
         <div className="card">
           <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
             <div>
@@ -269,7 +269,7 @@ export default function RequestsPage() {
                   );
                 })}
               </div>
-              <ResponsiveContainer width="100%" height={340}>
+              <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={stageDelayData} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
@@ -332,7 +332,7 @@ export default function RequestsPage() {
             {data.audits_by_month.length === 0 ? (
               <div style={{ color: '#6b7280', fontSize: 13, padding: '16px 0', textAlign: 'center' }}>No audit data</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={auditsChartData} margin={{ top: 30, right: 16, left: 4, bottom: 4 }}>
                   <defs>
                     {AUDITS_REQUESTS_SERIES.map(series => (
@@ -370,7 +370,7 @@ export default function RequestsPage() {
           </div>
         </div>
         </div>
-        <div className="card" style={{ marginBottom: 24 }}>
+        <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-header">
             <span className="card-title">Flagged PPE Requests by Employee</span>
             <span className="tag tag-amber">Top 20 · Avg: {data.ppe_average} items</span>
