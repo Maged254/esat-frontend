@@ -49,7 +49,7 @@ const ELIGIBLE_STATUSES = {
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'pending_scm', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '', warehouse: '' });
+  const [filters, setFilters] = useState({ status: 'pending_scm', search: '', national_id: '', job_title: '', ppe: '', resource_type: '', department: '', projects: [], clients: [], location: '', po_number: '', warehouse: '' });
   const [projDropOpen, setProjDropOpen] = useState(false);
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const projRef = React.useRef(null);
@@ -112,7 +112,7 @@ export default function PPERequestTrackerPage() {
   const [total, setTotal] = useState(0);
   const pageSize = 25;
   const [stats, setStats] = useState({ pending_ehs:0, pending_ehs_oldest:null, pending_pm:0, pending_pm_oldest:null, pending_scm:0, pending_scm_oldest:null, pending_suppliers:0, pending_suppliers_oldest:null, pending_projects:0, pending_projects_oldest:null });
-  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [], clients: [] });
+  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [], clients: [], departments: [] });
 
   useEffect(() => {
     try {
@@ -126,11 +126,13 @@ export default function PPERequestTrackerPage() {
     if (filters.status) params.append('status', filters.status);
     if (filters.search) params.append('search', filters.search);
     if (filters.national_id) params.append('national_id', filters.national_id);
+    if (filters.job_title) params.append('job_title', filters.job_title);
     if (filters.po_number) params.append('po_number', filters.po_number);
     if (filters.warehouse) params.append('warehouse', filters.warehouse);
     if (filters.location) params.append('location', filters.location);
     if (filters.ppe) params.append('ppe', filters.ppe);
-    if (filters.period) params.append('period', filters.period);
+    if (filters.resource_type) params.append('resource_type', filters.resource_type);
+    if (filters.department) params.append('department', filters.department);
     if (filters.projects.length) params.append('projects', filters.projects.join(','));
     if (filters.clients.length) params.append('clients', filters.clients.join(','));
     return params;
@@ -333,16 +335,15 @@ export default function PPERequestTrackerPage() {
   // ungrouped table views so the columns only need to be defined once.
   const renderRow = (r) => {
     const highlight = bulkTarget && isEligible(r) ? 'rgba(29,158,117,0.05)' : '';
-    const stickyBg = highlight || '#fff';
     const stages = getStages(r);
     return (
     <tr key={r.id} style={{background: highlight}}>
-      <td style={{background:stickyBg,width:150,minWidth:150}}>
+      <td style={{width:150,minWidth:150}}>
         <div className="emp-name">{r.employee_name}</div>
         <div className="emp-id">{r.employee_national_id||r.employee_number}</div>
         {r.job_title&&<div style={{fontSize:10,color:'#6b7280',marginTop:1}}>{r.job_title}</div>}
       </td>
-      <td style={{background:stickyBg,width:360,minWidth:360}}>
+      <td style={{width:360,minWidth:360}}>
         <div>{r.ppe_name}</div>
         {r.last_distributed ? (
           <span className="tag" style={{marginTop:2,fontWeight:400,fontSize:10,
@@ -502,6 +503,135 @@ export default function PPERequestTrackerPage() {
       </div>
       <div className="content">
         {successMsg && <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{successMsg}</div>}
+        <div className="card" style={{marginBottom:16, position:'sticky', top:'var(--header-h)', zIndex:40}}>
+          <div className="card-body" style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Search</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="PO number..." value={filters.po_number} onChange={e=>setFilters(p=>({...p,po_number:e.target.value}))} />
+                <div style={{position:'relative'}}>
+                  <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="All Locations"
+                    value={filters.location ? filters.location : locSearch}
+                    onChange={e=>{ setLocSearch(e.target.value); setFilters(p=>({...p,location:''})); setShowLocDrop(true); }}
+                    onFocus={()=>setShowLocDrop(true)}
+                    onBlur={()=>setTimeout(()=>setShowLocDrop(false),150)}
+                    autoComplete="off"
+                  />
+                  {showLocDrop && (
+                    <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:180,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:160}}>
+                      <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,location:''})); setLocSearch(''); setShowLocDrop(false); }}>All Locations</div>
+                      {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).map(l=>(
+                        <div key={l.id} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
+                          onMouseDown={()=>{ setFilters(p=>({...p,location:l.name})); setLocSearch(''); setShowLocDrop(false); }}
+                          onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
+                          onMouseLeave={e=>e.currentTarget.style.background='white'}
+                        >{l.name}</div>
+                      ))}
+                      {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).length===0 && (
+                        <div style={{padding:'6px 10px',fontSize:12,color:'#9ca3af'}}>No locations found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{position:'relative'}}>
+                  <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
+                    value={filters.ppe ? filters.ppe : ppeSearch}
+                    onChange={e=>{ setPpeSearch(e.target.value); setFilters(p=>({...p,ppe:''})); setShowPpeDrop(true); }}
+                    onFocus={()=>setShowPpeDrop(true)}
+                    onBlur={()=>setTimeout(()=>setShowPpeDrop(false),150)}
+                    autoComplete="off"
+                  />
+                  {showPpeDrop && (
+                    <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:220}}>
+                      <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,ppe:''})); setPpeSearch(''); setShowPpeDrop(false); }}>All PPE/Tool Items</div>
+                      {filterOptions.ppe_names
+                        .filter(p=>!ppeSearch||p.toLowerCase().includes(ppeSearch.toLowerCase()))
+                        .map(p=>(
+                          <div key={p} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
+                            onMouseDown={()=>{ setFilters(f=>({...f,ppe:p})); setPpeSearch(''); setShowPpeDrop(false); }}
+                            onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
+                            onMouseLeave={e=>e.currentTarget.style.background='white'}
+                          >{p}</div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Filter</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value}))}>
+                  <option value="">All Resources</option>
+                  <option value="inhouse">Inhouse</option>
+                  <option value="outsource">Outsource</option>
+                  <option value="casual">Casual</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
+                  <option value="">All Departments</option>
+                  {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                </select>
+                <div ref={clientRef} style={{position:'relative'}}>
+                  <button onClick={()=>setClientDropOpen(o=>!o)} style={{height:30,padding:'4px 10px',fontSize:12,border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer',minWidth:130,textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{filters.clients.length===0?'All Clients':filters.clients.length===1?filters.clients[0]:`${filters.clients.length} Clients`}</span>
+                    <span style={{fontSize:10}}>▾</span>
+                  </button>
+                  {clientDropOpen && (
+                    <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:160,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
+                      {filterOptions.clients.map(c=>(
+                        <label key={c} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
+                          <input type="checkbox" checked={filters.clients.includes(c)} onChange={()=>setFilters(f=>({...f,clients:f.clients.includes(c)?f.clients.filter(x=>x!==c):[...f.clients,c]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
+                          {c}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div ref={projRef} style={{position:'relative'}}>
+                  <button onClick={()=>setProjDropOpen(o=>!o)} style={{height:30,padding:'4px 10px',fontSize:12,border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer',minWidth:140,textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
+                    <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:110}}>{filters.projects.length===0?'All Projects':filters.projects.length===1?filters.projects[0]:`${filters.projects.length} Projects`}</span>
+                    <span style={{fontSize:10}}>▾</span>
+                  </button>
+                  {projDropOpen && (
+                    <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:180,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
+                      {filterOptions.projects.map(p=>(
+                        <label key={p} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
+                          <input type="checkbox" checked={filters.projects.includes(p)} onChange={()=>setFilters(f=>({...f,projects:f.projects.includes(p)?f.projects.filter(x=>x!==p):[...f.projects,p]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
+                          {p}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
+                  <option value="">All Status</option>
+                  <option value="pending">Flagged</option>
+                  <option value="pda_pending">Pending PM</option>
+                  <option value="ehs_purchase_requested">EHS Purchase Requested</option>
+                  <option value="pda_approved">Approved (PM)</option>
+                  <option value="scm_ordered">SCM Ordered</option>
+                  <option value="warehouse_available">Warehouse Available</option>
+                  <option value="warehouse_unavailable">Warehouse Unavailable</option>
+                  <option value="distributed">Distributed</option>
+                  <option value="canceled">Canceled</option>
+                  <option value="exit">Exit</option>
+                </select>
+                {canSeeWarehouse && (
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} value={filters.warehouse} onChange={e=>setFilters(p=>({...p,warehouse:e.target.value}))}>
+                    <option value="">All Warehouse</option>
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                    <option value="not_checked">Not Checked</option>
+                  </select>
+                )}
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',job_title:'',ppe:'',resource_type:'',department:'',projects:[],clients:[],location:'',po_number:'',warehouse:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div className="stat-grid" style={{marginBottom:16,gridTemplateColumns:'repeat(6,1fr)'}}>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',borderTopColor:'var(--eg-navy)',outline:!filters.status?'2px solid var(--eg-navy)':'',boxShadow:!filters.status?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:''})); setGroupMode('none');}}><div className="stat-label">Total Requested</div><div className="stat-value navy">{total}</div></div>
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-ehs)',background:filters.status==='pending'?'var(--wf-ehs-light)':'',outline:filters.status==='pending'?'2px solid var(--wf-ehs)':'',boxShadow:filters.status==='pending'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='pending'?'':'pending'})); setGroupMode('none');}}><div className="stat-label">Pending EHS</div><div className="stat-value" style={{color:'var(--wf-ehs)'}}>{stats.pending_ehs}</div>{delayBadge(stats.pending_ehs_oldest, 'var(--wf-ehs-light)', 'var(--wf-ehs)')}</div>
@@ -511,122 +641,15 @@ export default function PPERequestTrackerPage() {
           <div className="stat-card wf-stat-card" style={{cursor:'pointer',position:'relative',overflow:'hidden',borderTopColor:'var(--wf-projects)',background:filters.status==='warehouse_available'?'var(--wf-projects-light)':'',outline:filters.status==='warehouse_available'?'2px solid var(--wf-projects)':'',boxShadow:filters.status==='warehouse_available'?'var(--wf-shadow-hover)':''}} onClick={()=>{setFilters(p=>({...p,status:p.status==='warehouse_available'?'':'warehouse_available'})); setGroupMode('none');}}><div className="stat-label">Pending Projects</div><div className="stat-value" style={{color:'var(--wf-projects)'}}>{stats.pending_projects}</div>{delayBadge(stats.pending_projects_oldest, 'var(--wf-projects-light)', 'var(--wf-projects)')}</div>
         </div>
         <div className="card">
-          <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
-            <span className="card-title">PPE Request Tracker</span>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="National ID..." value={filters.national_id||''} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} placeholder="PO number..." value={filters.po_number} onChange={e=>setFilters(p=>({...p,po_number:e.target.value}))} />
-              <div style={{position:'relative'}}>
-                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="All Locations"
-                  value={filters.location ? filters.location : locSearch}
-                  onChange={e=>{ setLocSearch(e.target.value); setFilters(p=>({...p,location:''})); setShowLocDrop(true); }}
-                  onFocus={()=>setShowLocDrop(true)}
-                  onBlur={()=>setTimeout(()=>setShowLocDrop(false),150)}
-                  autoComplete="off"
-                />
-                {showLocDrop && (
-                  <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:180,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:160}}>
-                    <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,location:''})); setLocSearch(''); setShowLocDrop(false); }}>All Locations</div>
-                    {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).map(l=>(
-                      <div key={l.id} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
-                        onMouseDown={()=>{ setFilters(p=>({...p,location:l.name})); setLocSearch(''); setShowLocDrop(false); }}
-                        onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
-                        onMouseLeave={e=>e.currentTarget.style.background='white'}
-                      >{l.name}</div>
-                    ))}
-                    {locations.filter(l=>!locSearch||l.name.toLowerCase().includes(locSearch.toLowerCase())).length===0 && (
-                      <div style={{padding:'6px 10px',fontSize:12,color:'#9ca3af'}}>No locations found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value}))}>
-                <option value="">All Status</option>
-                <option value="pending">Flagged</option>
-                <option value="pda_pending">Pending PM</option>
-                <option value="ehs_purchase_requested">EHS Purchase Requested</option>
-                <option value="pda_approved">Approved (PM)</option>
-                <option value="scm_ordered">SCM Ordered</option>
-                <option value="warehouse_available">Warehouse Available</option>
-                <option value="warehouse_unavailable">Warehouse Unavailable</option>
-                <option value="distributed">Distributed</option>
-                <option value="canceled">Canceled</option>
-                <option value="exit">Exit</option>
-              </select>
-              {canSeeWarehouse && (
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} value={filters.warehouse} onChange={e=>setFilters(p=>({...p,warehouse:e.target.value}))}>
-                  <option value="">All Warehouse</option>
-                  <option value="available">Available</option>
-                  <option value="unavailable">Unavailable</option>
-                  <option value="not_checked">Not Checked</option>
-                </select>
-              )}
-              <div style={{position:'relative'}}>
-                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
-                  value={filters.ppe ? filters.ppe : ppeSearch}
-                  onChange={e=>{ setPpeSearch(e.target.value); setFilters(p=>({...p,ppe:''})); setShowPpeDrop(true); }}
-                  onFocus={()=>setShowPpeDrop(true)}
-                  onBlur={()=>setTimeout(()=>setShowPpeDrop(false),150)}
-                  autoComplete="off"
-                />
-                {showPpeDrop && (
-                  <div style={{position:'absolute',top:'100%',left:0,background:'white',border:'1px solid #e5e7eb',borderRadius:8,maxHeight:200,overflowY:'auto',zIndex:200,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',minWidth:220}}>
-                    <div style={{padding:'6px 10px',fontSize:12,cursor:'pointer',color:'#6b7280'}} onMouseDown={()=>{ setFilters(p=>({...p,ppe:''})); setPpeSearch(''); setShowPpeDrop(false); }}>All PPE/Tool Items</div>
-                    {filterOptions.ppe_names
-                      .filter(p=>!ppeSearch||p.toLowerCase().includes(ppeSearch.toLowerCase()))
-                      .map(p=>(
-                        <div key={p} style={{padding:'6px 10px',fontSize:12,cursor:'pointer'}}
-                          onMouseDown={()=>{ setFilters(f=>({...f,ppe:p})); setPpeSearch(''); setShowPpeDrop(false); }}
-                          onMouseEnter={e=>e.currentTarget.style.background='#f3f4f6'}
-                          onMouseLeave={e=>e.currentTarget.style.background='white'}
-                        >{p}</div>
-                      ))}
-                  </div>
-                )}
-              </div>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
-                <option value="">All Records</option>
-                <option value="current">Current Month</option>
-                <option value="previous">Previous Month</option>
-              </select>
-              <div ref={projRef} style={{position:'relative'}}>
-                <button onClick={()=>setProjDropOpen(o=>!o)} style={{height:30,padding:'4px 10px',fontSize:12,border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer',minWidth:140,textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:110}}>{filters.projects.length===0?'All Projects':filters.projects.length===1?filters.projects[0]:`${filters.projects.length} Projects`}</span>
-                  <span style={{fontSize:10}}>▾</span>
-                </button>
-                {projDropOpen && (
-                  <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:180,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
-                    {filterOptions.projects.map(p=>(
-                      <label key={p} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
-                        <input type="checkbox" checked={filters.projects.includes(p)} onChange={()=>setFilters(f=>({...f,projects:f.projects.includes(p)?f.projects.filter(x=>x!==p):[...f.projects,p]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
-                        {p}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div ref={clientRef} style={{position:'relative'}}>
-                <button onClick={()=>setClientDropOpen(o=>!o)} style={{height:30,padding:'4px 10px',fontSize:12,border:'1px solid #d1d5db',borderRadius:6,background:'#fff',cursor:'pointer',minWidth:130,textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',gap:6}}>
-                  <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:100}}>{filters.clients.length===0?'All Clients':filters.clients.length===1?filters.clients[0]:`${filters.clients.length} Clients`}</span>
-                  <span style={{fontSize:10}}>▾</span>
-                </button>
-                {clientDropOpen && (
-                  <div style={{position:'absolute',top:34,left:0,zIndex:100,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 16px rgba(0,0,0,0.1)',minWidth:160,maxHeight:260,overflowY:'auto',padding:'6px 0'}}>
-                    {filterOptions.clients.map(c=>(
-                      <label key={c} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',cursor:'pointer',fontSize:13,whiteSpace:'nowrap'}} onClick={e=>e.stopPropagation()}>
-                        <input type="checkbox" checked={filters.clients.includes(c)} onChange={()=>setFilters(f=>({...f,clients:f.clients.includes(c)?f.clients.filter(x=>x!==c):[...f.clients,c]}))} style={{accentColor:'var(--eg-green)',width:14,height:14}} />
-                        {c}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:'',po_number:'',warehouse:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+          <div className="card-header" style={{alignItems:'flex-start',gap:16}}>
+            <div>
+              <div className="card-title" style={{fontSize:15,marginBottom:4}}>PPE Request Tracker</div>
+              <div style={{color:'#6b7280',fontSize:12}}>All PPE/tool requests matching the current filters</div>
             </div>
+            <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} request{total===1?'':'s'}</span>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)',marginTop:0,borderTop:'1px solid transparent'}}>
-            <table style={{tableLayout:'fixed'}}>
+            <table className="table-hover-blue" style={{tableLayout:'fixed'}}>
               <colgroup>
                 <col style={{width:150}} />
                 <col style={{width:360}} />
