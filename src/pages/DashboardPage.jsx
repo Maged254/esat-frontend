@@ -128,9 +128,9 @@ export default function DashboardPage() {
                         title={it.ppe_name}
                         style={{
                           writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-                          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                          alignSelf: 'end', justifySelf: 'center',
                           fontSize: 12, fontWeight: 600, color: '#9ca3af',
-                          whiteSpace: 'nowrap', paddingBottom: 4, minWidth: 0,
+                          whiteSpace: 'nowrap', paddingBottom: 4,
                         }}
                       >
                         {it.ppe_name}
