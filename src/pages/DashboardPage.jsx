@@ -49,7 +49,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="content">
+      <div className="content" style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <div style={{ fontSize: 20, fontWeight: 500 }}>{greeting()}, {user?.name || "Safety Officer"}</div>
@@ -107,12 +107,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="card" style={{marginBottom:16}}>
+        <div className="card" style={{marginBottom:16, display:'flex', flexDirection:'column', flex:1}}>
           <div className="card-header">
             <span className="card-title">NCRs by PPE/Tool Item per Month</span>
             <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
           </div>
-          <div className="card-body">
+          <div className="card-body" style={{flex:1}}>
             {(() => {
               const months = data?.ncr?.heatmap?.months || [];
               const items = data?.ncr?.heatmap?.items || [];
@@ -127,9 +127,10 @@ export default function DashboardPage() {
                         key={it.ppe_name}
                         title={it.ppe_name}
                         style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
-                          fontSize: 11, fontWeight: 600, color: '#374151', lineHeight: 1.3,
-                          wordBreak: 'break-word', padding: '4px 2px', minWidth: 0,
+                          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+                          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 600, color: '#9ca3af',
+                          whiteSpace: 'nowrap', paddingBottom: 4, minWidth: 0,
                         }}
                       >
                         {it.ppe_name}
