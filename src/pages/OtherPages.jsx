@@ -170,9 +170,6 @@ export function EmployeesPage() {
 
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
-  const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-  const avatarClass = i => ['av-teal','av-navy','av-coral','av-purple'][i % 4];
-
   return (
     <>
       <div className="topbar">
@@ -267,9 +264,9 @@ export function EmployeesPage() {
           <table className="table-hover-blue">
             <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {employees.map((e, i) => (
+              {employees.map(e => (
                 <tr key={e.id}>
-                  <td><div className="emp-cell"><div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
+                  <td><div className="emp-cell"><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
                   <td>{e.organization||'—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td>
                   <td>
                     <div>{e.project||'—'}</div>

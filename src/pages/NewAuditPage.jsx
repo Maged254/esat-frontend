@@ -270,8 +270,6 @@ export default function NewAuditPage() {
 
   const empTotalPages = Math.max(Math.ceil(empTotal / empPageSize), 1);
 
-  const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-
   return (
     <>
       <div className="topbar">
@@ -357,13 +355,10 @@ export default function NewAuditPage() {
             <table className="table-hover-blue">
               <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Last Audit</th><th></th></tr></thead>
               <tbody>
-                {employees.map((e, i) => (
+                {employees.map(e => (
                   <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => selectEmployee(e)}>
                     <td>
                       <div className="emp-cell">
-                        <div className={`avatar ${['av-teal','av-navy','av-coral','av-purple'][i%4]}`}>
-                          {initials(e.full_name)}
-                        </div>
                         <div>
                           <div className="emp-name">{e.full_name}</div>
                           <div className="emp-id">{e.national_id||e.employee_number}</div>
@@ -411,9 +406,6 @@ export default function NewAuditPage() {
               background: '#f3f4f6', border: '0.5px solid #e5e7eb', borderRadius: 8,
               padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16
             }}>
-              <div className="avatar av-coral" style={{ width: 40, height: 40, fontSize: 14 }}>
-                {initials(selectedEmp.full_name)}
-              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500 }}>{selectedEmp.full_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>

@@ -178,8 +178,6 @@ export default function RequestPPEPage() {
     return true;
   });
 
-  const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-
   return (
     <>
       <div className="topbar">
@@ -283,11 +281,10 @@ export default function RequestPPEPage() {
               <table className="table-hover-blue">
                 <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
-                  {employees.map((e, i) => (
+                  {employees.map(e => (
                     <tr key={e.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(e, 'employee')}>
                       <td>
                         <div className="emp-cell">
-                          <div className={`avatar ${['av-teal', 'av-navy', 'av-coral', 'av-purple'][i % 4]}`}>{initials(e.full_name)}</div>
                           <div>
                             <div className="emp-name">{e.full_name}</div>
                             <div className="emp-id">{e.national_id || e.employee_number}</div>
@@ -325,11 +322,10 @@ export default function RequestPPEPage() {
               <table className="table-hover-blue">
                 <thead><tr><th>Casual</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
-                  {filteredCasuals.map((c, i) => (
+                  {filteredCasuals.map(c => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => selectPerson(c, 'casual')}>
                       <td>
                         <div className="emp-cell">
-                          <div className={`avatar ${['av-teal', 'av-navy', 'av-coral', 'av-purple'][i % 4]}`}>{initials(c.full_name)}</div>
                           <div>
                             <div className="emp-name">{c.full_name}</div>
                             <div className="emp-id">{c.national_id || '—'}</div>
@@ -354,7 +350,6 @@ export default function RequestPPEPage() {
         {step === 2 && selectedPerson && (
           <>
             <div style={{ background: '#f3f4f6', border: '0.5px solid #e5e7eb', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div className="avatar av-coral" style={{ width: 40, height: 40, fontSize: 14 }}>{initials(selectedPerson.full_name)}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 500 }}>{selectedPerson.full_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
