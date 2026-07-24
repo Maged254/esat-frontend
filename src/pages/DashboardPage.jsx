@@ -131,7 +131,7 @@ export default function DashboardPage() {
                           alignSelf: 'end', justifySelf: 'center',
                           fontSize: 12, fontWeight: 600, color: '#9ca3af',
                           whiteSpace: 'nowrap', paddingBottom: 4,
-                          maxHeight: 140, overflow: 'hidden', textOverflow: 'ellipsis',
+                          maxHeight: 340, overflow: 'hidden', textOverflow: 'ellipsis',
                         }}
                       >
                         {it.ppe_name}
