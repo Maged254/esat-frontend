@@ -120,17 +120,16 @@ export default function DashboardPage() {
               const maxCount = Math.max(1, ...items.flatMap(it => it.counts));
               return (
                 <div style={{ overflowX: 'auto' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: `110px repeat(${items.length}, minmax(40px, 1fr))`, gap: 4, minWidth: 'max-content' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `110px repeat(${items.length}, minmax(80px, 1fr))`, gap: 4 }}>
                     <div />
                     {items.map(it => (
                       <div
                         key={it.ppe_name}
                         title={it.ppe_name}
                         style={{
-                          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-                          height: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 600, color: '#374151',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingBottom: 4,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+                          fontSize: 11, fontWeight: 600, color: '#374151', lineHeight: 1.3,
+                          wordBreak: 'break-word', padding: '4px 2px', minWidth: 0,
                         }}
                       >
                         {it.ppe_name}
