@@ -57,7 +57,7 @@ export default function NewAuditPage() {
   const [empSearch, setEmpSearch] = useState('');
   const [empNationalId, setEmpNationalId] = useState('');
   const [empJobTitle, setEmpJobTitle] = useState('');
-  const [empFilters, setEmpFilters] = useState({ status: 'active', resource_type: '', department: '', project: '', client: '', san: 'yes', audit_age: '' });
+  const [empFilters, setEmpFilters] = useState({ resource_type: '', department: '', project: '', client: '', audit_age: '' });
 
   useEffect(() => {
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
@@ -84,15 +84,17 @@ export default function NewAuditPage() {
 
   const empFilterParams = () => {
     const params = new URLSearchParams();
+    // Always active + needing a safety audit -- this picker isn't for
+    // browsing employees generally, so those two aren't user-adjustable.
+    params.append('status', 'active');
+    params.append('san', 'yes');
     if (empSearch) params.append('search', empSearch);
     if (empNationalId) params.append('national_id', empNationalId);
     if (empJobTitle) params.append('job_title', empJobTitle);
-    if (empFilters.status) params.append('status', empFilters.status);
     if (empFilters.resource_type) params.append('resource_type', empFilters.resource_type);
     if (empFilters.department) params.append('department', empFilters.department);
     if (empFilters.project) params.append('project', empFilters.project);
     if (empFilters.client) params.append('client', empFilters.client);
-    if (empFilters.san) params.append('san', empFilters.san);
     if (empFilters.audit_age) params.append('audit_age', empFilters.audit_age);
     return params;
   };
@@ -322,9 +324,6 @@ export default function NewAuditPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={empFilters.status} onChange={e=>setEmpFilters(p=>({...p,status:e.target.value}))}>
-                    <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
-                  </select>
                   <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={empFilters.resource_type} onChange={e=>setEmpFilters(p=>({...p,resource_type:e.target.value}))}>
                     <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
                   </select>
@@ -340,18 +339,13 @@ export default function NewAuditPage() {
                     <option value="">All Clients</option>
                     {(empFilterOptions.clients||[]).map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
-                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={empFilters.san} onChange={e=>setEmpFilters(p=>({...p,san:e.target.value}))}>
-                    <option value="">All</option>
-                    <option value="yes">Safety Audit Needed</option>
-                    <option value="no">No Audit Needed</option>
-                  </select>
                   <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
                     <option value="">All Last Audit</option>
                     <option value="1month">Within 1 Month</option>
                     <option value="2months">1 - 2 Months</option>
                     <option value="over2months">More than 2 Months</option>
                   </select>
-                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{setEmpSearch('');setEmpNationalId('');setEmpJobTitle('');setEmpFilters({status:'active',resource_type:'',department:'',project:'',client:'',san:'yes',audit_age:''});}}>✕ Clear</button>
+                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{setEmpSearch('');setEmpNationalId('');setEmpJobTitle('');setEmpFilters({resource_type:'',department:'',project:'',client:'',audit_age:''});}}>✕ Clear</button>
                 </div>
               </div>
             </div>

@@ -40,7 +40,7 @@ export default function RequestPPEPage() {
   const [personSearch, setPersonSearch] = useState('');
   const [personNationalId, setPersonNationalId] = useState('');
   const [personJobTitle, setPersonJobTitle] = useState('');
-  const [personFilters, setPersonFilters] = useState({ status: 'active', resource_type: '', department: '', project: '', client: '', san: '', audit_age: '' });
+  const [personFilters, setPersonFilters] = useState({ resource_type: '', department: '', project: '', client: '', san: '' });
 
   const [validationErrors, setValidationErrors] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -60,16 +60,16 @@ export default function RequestPPEPage() {
 
   const empFilterParams = () => {
     const params = new URLSearchParams();
+    // Always active -- this picker isn't for browsing employees generally.
+    params.append('status', 'active');
     if (personSearch) params.append('search', personSearch);
     if (personNationalId) params.append('national_id', personNationalId);
     if (personJobTitle) params.append('job_title', personJobTitle);
-    if (personFilters.status) params.append('status', personFilters.status);
     if (personFilters.resource_type) params.append('resource_type', personFilters.resource_type);
     if (personFilters.department) params.append('department', personFilters.department);
     if (personFilters.project) params.append('project', personFilters.project);
     if (personFilters.client) params.append('client', personFilters.client);
     if (personFilters.san) params.append('san', personFilters.san);
-    if (personFilters.audit_age) params.append('audit_age', personFilters.audit_age);
     return params;
   };
 
@@ -169,8 +169,10 @@ export default function RequestPPEPage() {
   const empTotalPages = Math.max(Math.ceil(empTotal / empPageSize), 1);
 
   const filteredCasuals = casuals.filter(c => {
-    if (personFilters.status && c.employment_status !== personFilters.status) return false;
-    if (personSearch && !c.full_name.toLowerCase().includes(personSearch.toLowerCase()) && !(c.national_id || '').includes(personSearch)) return false;
+    // Always active -- this picker isn't for browsing casuals generally.
+    if (c.employment_status !== 'active') return false;
+    if (personSearch && !c.full_name.toLowerCase().includes(personSearch.toLowerCase())) return false;
+    if (personNationalId && !(c.national_id || '').includes(personNationalId)) return false;
     if (personFilters.project && c.project !== personFilters.project) return false;
     if (personFilters.client && c.client !== personFilters.client) return false;
     return true;
@@ -211,20 +213,15 @@ export default function RequestPPEPage() {
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Search</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   <input className="form-input" placeholder="Search name..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:150}} />
+                  <input className="form-input" placeholder="Search national ID..." value={personNationalId} onChange={e => setPersonNationalId(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
                   {personType === 'employee' && (
-                    <>
-                      <input className="form-input" placeholder="Search national ID..." value={personNationalId} onChange={e => setPersonNationalId(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
-                      <input className="form-input" placeholder="Search job title..." value={personJobTitle} onChange={e => setPersonJobTitle(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
-                    </>
+                    <input className="form-input" placeholder="Search job title..." value={personJobTitle} onChange={e => setPersonJobTitle(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
                   )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={personFilters.status} onChange={e => setPersonFilters(p => ({ ...p, status: e.target.value }))}>
-                    <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
-                  </select>
                   {personType === 'employee' && (
                     <>
                       <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={personFilters.resource_type} onChange={e => setPersonFilters(p => ({ ...p, resource_type: e.target.value }))}>
@@ -247,12 +244,6 @@ export default function RequestPPEPage() {
                         <option value="yes">Safety Audit Needed</option>
                         <option value="no">No Audit Needed</option>
                       </select>
-                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={personFilters.audit_age} onChange={e => setPersonFilters(p => ({ ...p, audit_age: e.target.value }))}>
-                        <option value="">All Last Audit</option>
-                        <option value="1month">Within 1 Month</option>
-                        <option value="2months">1 - 2 Months</option>
-                        <option value="over2months">More than 2 Months</option>
-                      </select>
                     </>
                   )}
                   {personType === 'casual' && (
@@ -267,7 +258,7 @@ export default function RequestPPEPage() {
                       </select>
                     </>
                   )}
-                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={() => { setPersonSearch(''); setPersonNationalId(''); setPersonJobTitle(''); setPersonFilters({ status: 'active', resource_type: '', department: '', project: '', client: '', san: '', audit_age: '' }); }}>✕ Clear</button>
+                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={() => { setPersonSearch(''); setPersonNationalId(''); setPersonJobTitle(''); setPersonFilters({ resource_type: '', department: '', project: '', client: '', san: '' }); }}>✕ Clear</button>
                 </div>
               </div>
             </div>

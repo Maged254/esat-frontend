@@ -7,7 +7,7 @@ export default function CasualsPage() {
   const [casuals, setCasuals] = useState([]);
   const [employeeProjects, setEmployeeProjects] = useState([]);
   const [employeeClients, setEmployeeClients] = useState([]);
-  const [filters, setFilters] = useState({ search: '', project: '', client: '', status: 'active' });
+  const [filters, setFilters] = useState({ search: '', national_id: '', project: '', client: '', status: 'active' });
   const [userRole, setUserRole] = useState('');
 
   const [batchModal, setBatchModal] = useState(false);
@@ -46,6 +46,7 @@ export default function CasualsPage() {
   const filtered = casuals.filter(c => {
     if (filters.status && c.employment_status !== filters.status) return false;
     if (filters.search && !c.full_name?.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    if (filters.national_id && !(c.national_id || '').includes(filters.national_id)) return false;
     if (filters.project && c.project !== filters.project) return false;
     if (filters.client && c.client !== filters.client) return false;
     return true;
@@ -192,6 +193,7 @@ export default function CasualsPage() {
             <span className="card-title">Casuals List</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <input className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} placeholder="Search name..." value={filters.search} onChange={e => setFilters(p => ({ ...p, search: e.target.value }))} />
+              <input className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} placeholder="Search national ID..." value={filters.national_id} onChange={e => setFilters(p => ({ ...p, national_id: e.target.value }))} />
               <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))}>
                 <option value="">All Status</option>
                 <option value="active">Active</option>
@@ -205,7 +207,7 @@ export default function CasualsPage() {
                 <option value="">All Clients</option>
                 {[...new Set(casuals.map(c => c.client).filter(Boolean))].sort().map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters({ search: '', project: '', client: '', status: 'active' })}>✕ Clear</button>
+              <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters({ search: '', national_id: '', project: '', client: '', status: 'active' })}>✕ Clear</button>
             </div>
           </div>
           <table className="table-hover-blue">
