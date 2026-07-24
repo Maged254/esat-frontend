@@ -8,6 +8,7 @@ const STATUS_LABELS = {
   pda_approved: 'Approved (PM)',
   scm_ordered: 'SCM Ordered',
   warehouse_available: 'Warehouse Available',
+  warehouse_unavailable: 'Warehouse Unavailable',
   distributed: 'Distributed',
   canceled: 'Canceled',
   exit: 'Exit',
@@ -19,6 +20,7 @@ const STATUS_COLORS = {
   pda_approved: 'tag-navy',
   scm_ordered: 'tag-navy',
   warehouse_available: 'tag-teal',
+  warehouse_unavailable: 'tag-red',
   distributed: 'tag-green',
   canceled: 'tag-red',
   exit: 'tag-gray',
@@ -37,8 +39,9 @@ const STATUS_ACCENT = {
 
 const ELIGIBLE_STATUSES = {
   scm_ordered: ['ehs_purchase_requested', 'pda_approved'],
-  warehouse_available: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered'],
-  distributed: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available'],
+  warehouse_available: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_unavailable'],
+  warehouse_unavailable: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available'],
+  distributed: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available', 'warehouse_unavailable'],
 };
 
 export default function PPERequestTrackerPage() {
@@ -232,7 +235,8 @@ export default function PPERequestTrackerPage() {
         : (r.date_purchase_requested ? { na: true } : { done: false }),
       { done: !!r.date_ordered, date: r.date_ordered, by: r.ordered_by_name, extra: r.po_number,
         delayDays: daysBetween(pmDate, r.date_ordered, ongoing) },
-      { done: !!r.date_available, date: r.date_available, by: r.available_by_name,
+      { done: !!r.date_available && r.status !== 'warehouse_unavailable', unavailable: r.status === 'warehouse_unavailable',
+        date: r.date_available, by: r.available_by_name,
         delayDays: daysBetween(r.date_ordered, r.date_available, ongoing) },
       { done: !!r.date_distributed, date: r.date_distributed, by: r.distributed_by_name, courier: r.distribution_method === 'courier', tracking: r.courier_tracking_number,
         delayDays: daysBetween(r.date_available, r.date_distributed, ongoing) },
@@ -245,24 +249,24 @@ export default function PPERequestTrackerPage() {
   // actionable stage gets a soft ring so it reads as "you are here" at a
   // glance, without needing to open the tooltip.
   const miniStepper = (stages, stopped) => {
-    const currentIdx = stopped ? -1 : stages.findIndex(s => !s.done && !s.na);
+    const currentIdx = stopped ? -1 : stages.findIndex(s => !s.done && !s.na && !s.unavailable);
     return (
       <div style={{display:'flex',alignItems:'center',width:'100%'}}>
         {STAGE_META.map((meta, i) => {
           const s = stages[i];
           const w = WF_VARS[meta.group];
-          const reached = s.done || s.na;
+          const reached = s.done || s.na || s.unavailable;
           const isCurrent = i === currentIdx;
           const size = isCurrent ? 9 : 7;
           return (
             <React.Fragment key={meta.key}>
               {i > 0 && (
                 <div style={{flex:1,height:2,minWidth:4,borderRadius:1,
-                  background: reached ? w.c : '#e5e7eb'}}></div>
+                  background: reached ? (s.unavailable ? '#A32D2D' : w.c) : '#e5e7eb'}}></div>
               )}
               <div style={{
                 width:size,height:size,borderRadius:'50%',flexShrink:0,
-                background: s.na ? '#e5e7eb' : reached ? w.c : '#fff',
+                background: s.unavailable ? '#A32D2D' : s.na ? '#e5e7eb' : reached ? w.c : '#fff',
                 border: reached ? 'none' : '1.5px solid #d1d5db',
                 boxShadow: isCurrent ? `0 0 0 3px ${w.bg}` : 'none',
               }}></div>
@@ -286,10 +290,12 @@ export default function PPERequestTrackerPage() {
           const s = stages[i];
           const w = WF_VARS[meta.group];
           const done = s.done;
-          const dotStyle = s.na
-            ? {background:'#f3f4f6',border:'1px solid #e5e7eb'}
-            : done ? {background:w.c} : {background:'#fff',border:'2px solid #d1d5db'};
-          const labelColor = s.na ? '#9ca3af' : done ? w.c : '#9ca3af';
+          const dotStyle = s.unavailable
+            ? {background:'#A32D2D'}
+            : s.na
+              ? {background:'#f3f4f6',border:'1px solid #e5e7eb'}
+              : done ? {background:w.c} : {background:'#fff',border:'2px solid #d1d5db'};
+          const labelColor = s.unavailable ? '#A32D2D' : s.na ? '#9ca3af' : done ? w.c : '#9ca3af';
           return (
             <div key={meta.key} style={{position:'relative',paddingBottom:i===STAGE_META.length-1?0:14}}>
               <div style={{position:'absolute',left:-20,top:2,width:11,height:11,borderRadius:'50%',...dotStyle}}></div>
@@ -299,8 +305,9 @@ export default function PPERequestTrackerPage() {
                   <div style={{fontSize:10,fontWeight:500,color:'#9ca3af',flexShrink:0}}>{s.delayDays}d</div>
                 )}
               </div>
-              <div style={{fontSize:11,color:'#6b7280'}}>
-                {s.na ? 'Not required'
+              <div style={{fontSize:11,color: s.unavailable ? '#A32D2D' : '#6b7280'}}>
+                {s.unavailable ? 'Not available' + (s.date ? ' · ' + new Date(s.date).toLocaleDateString('en-GB') : '') + (s.by ? ' · ' + s.by : '')
+                  : s.na ? 'Not required'
                   : done ? new Date(s.date).toLocaleDateString('en-GB') + (s.by ? ' · ' + s.by : '')
                   : (s.delayDays !== null && s.delayDays !== undefined ? 'Waiting · ' + s.delayDays + 'd so far' : 'Pending')}
               </div>
@@ -376,6 +383,13 @@ export default function PPERequestTrackerPage() {
           document.body
         )}
       </td>
+      <td style={{textAlign:'center'}}>
+        {r.status === 'warehouse_unavailable'
+          ? <i className="ti ti-circle-x" style={{fontSize:18,color:'#A32D2D'}} title="Not available"></i>
+          : (r.status === 'warehouse_available' || r.status === 'distributed')
+            ? <i className="ti ti-circle-check" style={{fontSize:18,color:'#1D9E75'}} title="Available"></i>
+            : <span style={{color:'#d1d5db',fontSize:13}}>—</span>}
+      </td>
       <td>{(() => {
         const isPdaPending = r.status === 'ehs_purchase_requested' && r.needs_pda;
         const key = isPdaPending ? 'pda_pending' : r.status;
@@ -445,7 +459,7 @@ export default function PPERequestTrackerPage() {
               <button className="btn btn-navy" onClick={()=>setShowMenu(p=>!p)}>⚡ Change Status ▾</button>
               {showMenu && (
                 <div style={{position:'absolute',right:0,top:'110%',background:'white',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 4px 12px rgba(0,0,0,0.1)',zIndex:100,minWidth:200}}>
-                  {['scm_ordered','warehouse_available'].map(s=>(
+                  {['scm_ordered','warehouse_available','warehouse_unavailable'].map(s=>(
                     <button key={s} onClick={()=>startBulk(s)} style={{display:'block',width:'100%',padding:'10px 16px',textAlign:'left',background:'none',border:'none',cursor:'pointer',fontSize:13,borderBottom:'1px solid #f3f4f6'}}>
                       {STATUS_LABELS[s]}
                     </button>
@@ -527,6 +541,7 @@ export default function PPERequestTrackerPage() {
                 <option value="pda_approved">Approved (PM)</option>
                 <option value="scm_ordered">SCM Ordered</option>
                 <option value="warehouse_available">Warehouse Available</option>
+                <option value="warehouse_unavailable">Warehouse Unavailable</option>
                 <option value="distributed">Distributed</option>
                 <option value="canceled">Canceled</option>
                 <option value="exit">Exit</option>
@@ -601,7 +616,8 @@ export default function PPERequestTrackerPage() {
                 <col style={{width:360}} />
                 <col style={{width:50}} />
                 <col style={{width:130}} />
-                <col style={{width:190}} />
+                <col style={{width:95}} />
+                <col style={{width:80}} />
                 <col style={{width:140}} />
                 {bulkTarget && <col style={{width:50}} />}
               </colgroup>
@@ -611,7 +627,8 @@ export default function PPERequestTrackerPage() {
                   <th style={{minWidth:360,width:360}}>PPE/Tool Item</th>
                   <th style={{minWidth:50}}>Qty</th>
                   <th style={{minWidth:130}}>Project / Client</th>
-                  <th style={{minWidth:190}}>Progress</th>
+                  <th style={{minWidth:95}}>Progress</th>
+                  <th style={{minWidth:80,textAlign:'center'}}>Warehouse</th>
                   <th>Status</th>
                   {bulkTarget && <th></th>}
                 </tr>
@@ -622,7 +639,7 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'client-'+client}><td colSpan={bulkTarget?7:6} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'client-'+client}><td colSpan={bulkTarget?8:7} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                     const projRows = clientRows.filter(r => (r.project || '—') === proj);
@@ -634,10 +651,10 @@ export default function PPERequestTrackerPage() {
                       itemGroups[key].qty += (r.quantity || 1);
                       itemGroups[key].rows.push(r);
                     });
-                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?7:6} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?8:7} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
-                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?4:3} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
+                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?5:4} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
                       g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
@@ -648,22 +665,22 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'ec-'+client}><td colSpan={bulkTarget?7:6} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'ec-'+client}><td colSpan={bulkTarget?8:7} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                       const projRows = clientRows.filter(r => (r.project || '—') === proj);
-                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={bulkTarget?7:6} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={bulkTarget?8:7} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                       const employees = [...new Set(projRows.map(r => r.employee_name || '—'))].sort();
                       employees.forEach(emp => {
                         const empRows = projRows.filter(r => (r.employee_name || '—') === emp);
-                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?7:6} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
+                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?8:7} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
                         empRows.forEach(r => rows.push(renderRow(r)));
                       });
                     });
                   });
                   return rows;
                 })() : filtered.map(r => renderRow(r)).flat()}
-                {!filtered.length && <tr><td colSpan={bulkTarget?7:6} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
+                {!filtered.length && <tr><td colSpan={bulkTarget?8:7} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
               </tbody>
             </table>
           </div>
