@@ -501,7 +501,7 @@ export default function PPERequestTrackerPage() {
           )}
         </div>
       </div>
-      <div className="content">
+      <div className="content graphs-content">
         {successMsg && <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>{successMsg}</div>}
         <div className="card" style={{marginBottom:16, position:'sticky', top:'var(--header-h)', zIndex:40}}>
           <div className="card-body" style={{display:'flex',flexDirection:'column',gap:14}}>
@@ -614,7 +614,6 @@ export default function PPERequestTrackerPage() {
                   <option value="pda_approved">Approved (PM)</option>
                   <option value="scm_ordered">SCM Ordered</option>
                   <option value="warehouse_available">Warehouse Available</option>
-                  <option value="warehouse_unavailable">Warehouse Unavailable</option>
                   <option value="distributed">Distributed</option>
                   <option value="canceled">Canceled</option>
                   <option value="exit">Exit</option>
