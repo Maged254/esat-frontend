@@ -55,7 +55,9 @@ export default function NewAuditPage() {
   const [auditorSearch, setAuditorSearch] = useState('');
   const [showAuditorDrop, setShowAuditorDrop] = useState(false);
   const [empSearch, setEmpSearch] = useState('');
-  const [empFilters, setEmpFilters] = useState({ project: '', department: '', audit_age: '' });
+  const [empNationalId, setEmpNationalId] = useState('');
+  const [empJobTitle, setEmpJobTitle] = useState('');
+  const [empFilters, setEmpFilters] = useState({ status: 'active', resource_type: '', department: '', project: '', client: '', san: 'yes', audit_age: '' });
 
   useEffect(() => {
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
@@ -82,11 +84,15 @@ export default function NewAuditPage() {
 
   const empFilterParams = () => {
     const params = new URLSearchParams();
-    params.append('status', 'active');
-    params.append('san', 'yes');
     if (empSearch) params.append('search', empSearch);
-    if (empFilters.project) params.append('project', empFilters.project);
+    if (empNationalId) params.append('national_id', empNationalId);
+    if (empJobTitle) params.append('job_title', empJobTitle);
+    if (empFilters.status) params.append('status', empFilters.status);
+    if (empFilters.resource_type) params.append('resource_type', empFilters.resource_type);
     if (empFilters.department) params.append('department', empFilters.department);
+    if (empFilters.project) params.append('project', empFilters.project);
+    if (empFilters.client) params.append('client', empFilters.client);
+    if (empFilters.san) params.append('san', empFilters.san);
     if (empFilters.audit_age) params.append('audit_age', empFilters.audit_age);
     return params;
   };
@@ -96,9 +102,9 @@ export default function NewAuditPage() {
     params.append('page', empPage);
     params.append('pageSize', empPageSize);
     api.get('/employees?' + params).then(r => { setEmployees(r.data.rows); setEmpTotal(r.data.total); }).catch(logError);
-  }, [empSearch, empFilters, empPage]);
+  }, [empSearch, empNationalId, empJobTitle, empFilters, empPage]);
 
-  useEffect(() => { setEmpPage(1); }, [empSearch, empFilters]);
+  useEffect(() => { setEmpPage(1); }, [empSearch, empNationalId, empJobTitle, empFilters]);
 
   const selectEmployee = async (emp) => {
     setSelectedEmp(emp);
@@ -308,27 +314,44 @@ export default function NewAuditPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Search</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  <input className="form-input" placeholder="Search by name or national ID..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:260}} />
+                  <input className="form-input" placeholder="Search name..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:150}} />
+                  <input className="form-input" placeholder="Search national ID..." value={empNationalId} onChange={e=>setEmpNationalId(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
+                  <input className="form-input" placeholder="Search job title..." value={empJobTitle} onChange={e=>setEmpJobTitle(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:140}} />
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={empFilters.status} onChange={e=>setEmpFilters(p=>({...p,status:e.target.value}))}>
+                    <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
+                  </select>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={empFilters.resource_type} onChange={e=>setEmpFilters(p=>({...p,resource_type:e.target.value}))}>
+                    <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
+                  </select>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
+                    <option value="">All Departments</option>
+                    {empFilterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
                   <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={empFilters.project} onChange={e=>setEmpFilters(p=>({...p,project:e.target.value}))}>
                     <option value="">All Projects</option>
                     {empFilterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
                   </select>
-                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
-                    <option value="">All Departments</option>
-                    {empFilterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={empFilters.client} onChange={e=>setEmpFilters(p=>({...p,client:e.target.value}))}>
+                    <option value="">All Clients</option>
+                    {(empFilterOptions.clients||[]).map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
-                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={empFilters.san} onChange={e=>setEmpFilters(p=>({...p,san:e.target.value}))}>
+                    <option value="">All</option>
+                    <option value="yes">Safety Audit Needed</option>
+                    <option value="no">No Audit Needed</option>
+                  </select>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
                     <option value="">All Last Audit</option>
                     <option value="1month">Within 1 Month</option>
                     <option value="2months">1 - 2 Months</option>
                     <option value="over2months">More than 2 Months</option>
                   </select>
-                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{setEmpSearch('');setEmpFilters({project:'',department:'',audit_age:''});}}>✕ Clear</button>
+                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{setEmpSearch('');setEmpNationalId('');setEmpJobTitle('');setEmpFilters({status:'active',resource_type:'',department:'',project:'',client:'',san:'yes',audit_age:''});}}>✕ Clear</button>
                 </div>
               </div>
             </div>
