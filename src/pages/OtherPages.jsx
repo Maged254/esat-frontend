@@ -237,19 +237,19 @@ export function EmployeesPage() {
           </div>
         </div>
         <div className="stat-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#E3F2FD':'#fff',outline:filters.activeStat==='active'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
             <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#E3F2FD':'#fff',outline:filters.activeStat==='inhouse'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
             <div className="stat-label">Active Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#E3F2FD':'#fff',outline:filters.activeStat==='outsource'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
             <div className="stat-label">Active Outsource</div><div className="stat-value">{stats.outsource}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#E3F2FD':'#fff',outline:filters.activeStat==='intern'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
             <div className="stat-label">Active Intern</div><div className="stat-value warning">{stats.interns}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#E3F2FD':'#fff'}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#E3F2FD':'#fff',outline:filters.activeStat==='exit'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
             <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
           </div>
         </div>
