@@ -49,7 +49,7 @@ const ELIGIBLE_STATUSES = {
 
 export default function PPERequestTrackerPage() {
   const [requests, setRequests] = useState([]);
-  const [filters, setFilters] = useState({ status: 'pending_scm', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '' });
+  const [filters, setFilters] = useState({ status: 'pending_scm', search: '', ppe: '', period: '', projects: [], clients: [], location: '', po_number: '', warehouse: '' });
   const [projDropOpen, setProjDropOpen] = useState(false);
   const [clientDropOpen, setClientDropOpen] = useState(false);
   const projRef = React.useRef(null);
@@ -127,6 +127,7 @@ export default function PPERequestTrackerPage() {
     if (filters.search) params.append('search', filters.search);
     if (filters.national_id) params.append('national_id', filters.national_id);
     if (filters.po_number) params.append('po_number', filters.po_number);
+    if (filters.warehouse) params.append('warehouse', filters.warehouse);
     if (filters.location) params.append('location', filters.location);
     if (filters.ppe) params.append('ppe', filters.ppe);
     if (filters.period) params.append('period', filters.period);
@@ -553,6 +554,14 @@ export default function PPERequestTrackerPage() {
                 <option value="canceled">Canceled</option>
                 <option value="exit">Exit</option>
               </select>
+              {canSeeWarehouse && (
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} value={filters.warehouse} onChange={e=>setFilters(p=>({...p,warehouse:e.target.value}))}>
+                  <option value="">All Warehouse</option>
+                  <option value="available">Available</option>
+                  <option value="unavailable">Unavailable</option>
+                  <option value="not_checked">Not Checked</option>
+                </select>
+              )}
               <div style={{position:'relative'}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} placeholder="All PPE/Tool Items"
                   value={filters.ppe ? filters.ppe : ppeSearch}
@@ -613,7 +622,7 @@ export default function PPERequestTrackerPage() {
                   </div>
                 )}
               </div>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:'',po_number:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
+              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{ setFilters({status:'',search:'',national_id:'',ppe:'',period:'',projects:[],clients:[],location:'',po_number:'',warehouse:''}); setLocSearch(''); setPpeSearch(''); }}>✕ Clear</button>
             </div>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)',marginTop:0,borderTop:'1px solid transparent'}}>
