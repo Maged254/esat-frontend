@@ -282,7 +282,7 @@ export default function NewAuditPage() {
         </div>
       </div>
 
-      <div className="content">
+      <div className="content graphs-content">
         <div className="steps">
           <div className={`step ${step === 1 ? 'active' : 'done'}`}>
             <div className="step-num">{step > 1 ? '✓' : '1'}</div>
@@ -302,31 +302,42 @@ export default function NewAuditPage() {
 
         {/* STEP 1 — Select Employee */}
         {step === 1 && (
+          <>
+          <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Search</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <input className="form-input" placeholder="Search by name or national ID..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:260}} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={empFilters.project} onChange={e=>setEmpFilters(p=>({...p,project:e.target.value}))}>
+                    <option value="">All Projects</option>
+                    {empFilterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
+                    <option value="">All Departments</option>
+                    {empFilterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:180}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
+                    <option value="">All Last Audit</option>
+                    <option value="1month">Within 1 Month</option>
+                    <option value="2months">1 - 2 Months</option>
+                    <option value="over2months">More than 2 Months</option>
+                  </select>
+                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>{setEmpSearch('');setEmpFilters({project:'',department:'',audit_age:''});}}>✕ Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="card">
             <div className="card-header">
               <span className="card-title">Select employee to audit</span>
             </div>
-            <div style={{ padding: 16 }}>
-              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
-                <input className="form-input" placeholder="Search by name or national ID..." value={empSearch} onChange={e=>setEmpSearch(e.target.value)} style={{flex:1,minWidth:200}} autoFocus />
-                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.project} onChange={e=>setEmpFilters(p=>({...p,project:e.target.value}))}>
-                  <option value="">All Projects</option>
-                  {empFilterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
-                </select>
-                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:150}} value={empFilters.department} onChange={e=>setEmpFilters(p=>({...p,department:e.target.value}))}>
-                  <option value="">All Departments</option>
-                  {empFilterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
-                <select className="form-select" style={{height:38,padding:'4px 8px',fontSize:13,width:180}} value={empFilters.audit_age} onChange={e=>setEmpFilters(p=>({...p,audit_age:e.target.value}))}>
-                  <option value="">All Last Audit</option>
-                  <option value="1month">Within 1 Month</option>
-                  <option value="2months">1 - 2 Months</option>
-                  <option value="over2months">More than 2 Months</option>
-                </select>
-                <button className="btn" style={{height:38,padding:'4px 12px',fontSize:13}} onClick={()=>{setEmpSearch('');setEmpFilters({project:'',department:'',audit_age:''});}}>✕ Clear</button>
-              </div>
-            </div>
-            <table>
+            <table className="table-hover-blue">
               <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Last Audit</th><th></th></tr></thead>
               <tbody>
                 {employees.map((e, i) => (
@@ -373,6 +384,7 @@ export default function NewAuditPage() {
               </div>
             )}
           </div>
+          </>
         )}
 
         {/* STEP 2 — PPE Checklist */}
