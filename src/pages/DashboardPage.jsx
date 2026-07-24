@@ -84,7 +84,7 @@ export default function DashboardPage() {
         </div>
 
         {/* PPE Delay Cards */}
-        <div className="stat-grid" style={{ marginTop: 16 }}>
+        <div className="stat-grid">
           <div className="stat-card">
             <div className="stat-label">EHS Delay</div>
             <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
@@ -131,6 +131,7 @@ export default function DashboardPage() {
                           alignSelf: 'end', justifySelf: 'center',
                           fontSize: 12, fontWeight: 600, color: '#9ca3af',
                           whiteSpace: 'nowrap', paddingBottom: 4,
+                          maxHeight: 140, overflow: 'hidden', textOverflow: 'ellipsis',
                         }}
                       >
                         {it.ppe_name}
