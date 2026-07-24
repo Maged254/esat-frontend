@@ -22,15 +22,10 @@ const luminance = (hex) => {
   const [r, g, b] = hexToRgb(hex);
   return 0.299 * r + 0.587 * g + 0.114 * b;
 };
-// Every rank gets a badge now (not just the top 3) -- sorted darkest-first
-// so #1 stands out and the color fades out toward the bottom of the list.
-const RANK_BLUES = [...BLUE_PALETTE].sort((a, b) => luminance(a) - luminance(b));
-const rankBlue = (i, total) => {
-  const t = total > 1 ? i / (total - 1) : 0;
-  const scaled = t * (RANK_BLUES.length - 1);
-  const idx = Math.min(RANK_BLUES.length - 2, Math.floor(scaled));
-  return mixHex(RANK_BLUES[idx], RANK_BLUES[idx + 1], scaled - idx);
-};
+// Every row gets the same rank-badge color now -- no more darkest-first fade.
+const RANK_BLUE = [...BLUE_PALETTE].sort((a, b) => luminance(a) - luminance(b))[0];
+// Flat row background shared by every line, replacing the old per-item pastel.
+const ROW_BLUE = '#F0F7FF';
 // Pastels are too pale to read as text/dot color on their own, so each pill's
 // accent is derived by darkening its own pastel toward slate -- keeps the
 // same hue family instead of needing a second hand-picked palette.
@@ -328,10 +323,10 @@ export default function RepeatRequestsPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
                 {visibleItems.map((row, i) => {
-                  const bg = itemColor(row.item);
+                  const bg = ROW_BLUE;
                   const ink = itemInk(row.item);
                   const barWidth = Math.max(4, (row.count / maxCount) * 100);
-                  const badgeColor = rankBlue(i, visibleItems.length);
+                  const badgeColor = RANK_BLUE;
                   const badgeText = luminance(badgeColor) > 190 ? '#1e3a6b' : '#fff';
                   const rowKey = row.employee + '::' + row.item;
                   const dates = row.flagged_dates || (row.last_flagged ? [row.last_flagged] : []);
