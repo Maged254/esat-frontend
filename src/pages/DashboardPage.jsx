@@ -130,8 +130,8 @@ export default function DashboardPage() {
                           writingMode: 'vertical-rl', transform: 'rotate(180deg)',
                           alignSelf: 'end', justifySelf: 'center',
                           fontSize: 12, fontWeight: 600, color: '#9ca3af',
-                          whiteSpace: 'nowrap', paddingBottom: 4,
-                          maxHeight: 340, overflow: 'hidden', textOverflow: 'ellipsis',
+                          paddingBottom: 4, wordBreak: 'break-word',
+                          width: 32, maxHeight: 220, overflow: 'hidden',
                         }}
                       >
                         {it.ppe_name}
