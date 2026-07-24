@@ -40,7 +40,10 @@ const STATUS_ACCENT = {
 const ELIGIBLE_STATUSES = {
   scm_ordered: ['ehs_purchase_requested', 'pda_approved'],
   warehouse_available: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_unavailable'],
-  warehouse_unavailable: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available'],
+  // Restricted vs. the other bulk targets: this is a pre-check flag applied
+  // before SCM even orders the item (see the Warehouse column note below),
+  // not a real pipeline transition, so it's only offered at the EHS/PM stage.
+  warehouse_unavailable: ['ehs_purchase_requested', 'pda_approved'],
   distributed: ['ehs_purchase_requested', 'pda_approved', 'scm_ordered', 'warehouse_available', 'warehouse_unavailable'],
 };
 
@@ -383,13 +386,15 @@ export default function PPERequestTrackerPage() {
           document.body
         )}
       </td>
-      <td style={{textAlign:'center'}}>
-        {r.status === 'warehouse_unavailable'
-          ? <i className="ti ti-circle-x" style={{fontSize:18,color:'#A32D2D'}} title="Not available"></i>
-          : (r.status === 'warehouse_available' || r.status === 'distributed')
-            ? <i className="ti ti-circle-check" style={{fontSize:18,color:'#1D9E75'}} title="Available"></i>
+      {canSeeWarehouse && <td style={{textAlign:'center'}}>
+        {/* Real pipeline outcomes take priority over the early pre-check flag below --
+            once SCM actually processes the item, that result is what counts. */}
+        {(r.status === 'warehouse_available' || r.status === 'distributed')
+          ? <i className="ti ti-circle-check" style={{fontSize:18,color:'#1D9E75'}} title="Available"></i>
+          : (r.status === 'warehouse_unavailable' || r.warehouse_unavailable_flagged_at)
+            ? <i className="ti ti-circle-x" style={{fontSize:18,color:'#A32D2D'}} title={r.status === 'warehouse_unavailable' ? 'Not available' : 'Flagged unavailable at pre-check'}></i>
             : <span style={{color:'#d1d5db',fontSize:13}}>—</span>}
-      </td>
+      </td>}
       <td>{(() => {
         const isPdaPending = r.status === 'ehs_purchase_requested' && r.needs_pda;
         const key = isPdaPending ? 'pda_pending' : r.status;
@@ -417,6 +422,8 @@ export default function PPERequestTrackerPage() {
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
 
   const canEdit = userRole === 'scm_officer' || userRole === 'admin';
+  const canSeeWarehouse = userRole === 'admin' || userRole === 'scm_officer';
+  const totalCols = 6 + (canSeeWarehouse ? 1 : 0) + (bulkTarget ? 1 : 0);
 
   const exportCSV = () => {
     const params = filterParams();
@@ -617,7 +624,7 @@ export default function PPERequestTrackerPage() {
                 <col style={{width:50}} />
                 <col style={{width:130}} />
                 <col style={{width:95}} />
-                <col style={{width:80}} />
+                {canSeeWarehouse && <col style={{width:80}} />}
                 <col style={{width:140}} />
                 {bulkTarget && <col style={{width:50}} />}
               </colgroup>
@@ -628,7 +635,7 @@ export default function PPERequestTrackerPage() {
                   <th style={{minWidth:50}}>Qty</th>
                   <th style={{minWidth:130}}>Project / Client</th>
                   <th style={{minWidth:95}}>Progress</th>
-                  <th style={{minWidth:80,textAlign:'center'}}>Warehouse</th>
+                  {canSeeWarehouse && <th style={{minWidth:80,textAlign:'center'}}>Warehouse</th>}
                   <th>Status</th>
                   {bulkTarget && <th></th>}
                 </tr>
@@ -639,7 +646,7 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'client-'+client}><td colSpan={bulkTarget?8:7} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'client-'+client}><td colSpan={totalCols} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                     const projRows = clientRows.filter(r => (r.project || '—') === proj);
@@ -651,10 +658,10 @@ export default function PPERequestTrackerPage() {
                       itemGroups[key].qty += (r.quantity || 1);
                       itemGroups[key].rows.push(r);
                     });
-                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={bulkTarget?8:7} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'proj-'+client+proj}><td colSpan={totalCols} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                     itemOrder.forEach(key => {
                       const g = itemGroups[key];
-                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={bulkTarget?5:4} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
+                      rows.push(<tr key={'grp-'+client+proj+key} style={{background:'#e6f1fb'}}><td colSpan={2} style={{padding:'7px 16px',fontSize:12,fontWeight:600,color:'#0c447c',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4',background:'#e6f1fb'}}>{g.ppe_name}</td><td style={{padding:'7px 12px',fontSize:13,fontWeight:700,color:'#0c447c',textAlign:'center',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{g.qty}<div style={{fontSize:11,fontWeight:500,color:'#185fa5',marginTop:2}}>{g.size_value||'—'}</div></td><td colSpan={totalCols-3} style={{borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}></td></tr>);
                       g.rows.forEach(r => rows.push(renderRow(r)));
                     });
                     });
@@ -665,22 +672,22 @@ export default function PPERequestTrackerPage() {
                   const rows = [];
                   clients.forEach(client => {
                     const clientRows = filtered.filter(r => (r.client || '—') === client);
-                    rows.push(<tr key={'ec-'+client}><td colSpan={bulkTarget?8:7} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
+                    rows.push(<tr key={'ec-'+client}><td colSpan={totalCols} style={{background:'#1a3a5c',color:'white',fontWeight:700,fontSize:13,padding:'10px 16px',letterSpacing:'0.04em'}}>{client} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({clientRows.length} items)</span></td></tr>);
                     const projects = [...new Set(clientRows.map(r => r.project || '—'))].sort();
                     projects.forEach(proj => {
                       const projRows = clientRows.filter(r => (r.project || '—') === proj);
-                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={bulkTarget?8:7} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
+                      rows.push(<tr key={'ep-'+client+proj}><td colSpan={totalCols} style={{background:'#0f2a4a',color:'white',fontWeight:600,fontSize:12,padding:'7px 24px',letterSpacing:'0.03em'}}>{proj} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({projRows.length} items)</span></td></tr>);
                       const employees = [...new Set(projRows.map(r => r.employee_name || '—'))].sort();
                       employees.forEach(emp => {
                         const empRows = projRows.filter(r => (r.employee_name || '—') === emp);
-                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={bulkTarget?8:7} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
+                        rows.push(<tr key={'ee-'+client+proj+emp}><td colSpan={totalCols} style={{background:'#bfdbfe',color:'#1e40af',fontWeight:600,fontSize:12,padding:'7px 32px',borderTop:'1px solid #b5d4f4',borderBottom:'1px solid #b5d4f4'}}>{emp} <span style={{fontWeight:400,opacity:0.7,fontSize:11}}>({empRows.length} items)</span></td></tr>);
                         empRows.forEach(r => rows.push(renderRow(r)));
                       });
                     });
                   });
                   return rows;
                 })() : filtered.map(r => renderRow(r)).flat()}
-                {!filtered.length && <tr><td colSpan={bulkTarget?8:7} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
+                {!filtered.length && <tr><td colSpan={totalCols} style={{textAlign:'center',color:'#6b7280',padding:32}}>No PPE requests found</td></tr>}
               </tbody>
             </table>
           </div>
