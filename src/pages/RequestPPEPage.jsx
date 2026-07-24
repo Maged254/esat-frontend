@@ -188,7 +188,7 @@ export default function RequestPPEPage() {
         </div>
       </div>
 
-      <div className="content">
+      <div className="content graphs-content">
         {successMsg && (
           <div style={{ background: '#EAF3DE', color: '#3B6D11', padding: '12px 16px', borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
             ✓ {successMsg}
@@ -196,6 +196,51 @@ export default function RequestPPEPage() {
         )}
 
         {step === 1 && (
+          <>
+          <div className="card" style={{ marginBottom: 24, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Search</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <input className="form-input" placeholder="Search by name or national ID..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} style={{height:30,padding:'4px 8px',fontSize:12,width:260}} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {personType === 'employee' && (
+                    <>
+                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
+                        <option value="">All Projects</option>
+                        {empFilterOptions.projects.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={personFilters.department} onChange={e => setPersonFilters(p => ({ ...p, department: e.target.value }))}>
+                        <option value="">All Departments</option>
+                        {empFilterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
+                        <option value="">All Clients</option>
+                        {empFilterOptions.clients.map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                      </select>
+                    </>
+                  )}
+                  {personType === 'casual' && (
+                    <>
+                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
+                        <option value="">All Projects</option>
+                        {[...new Set(casuals.map(c => c.project).filter(Boolean))].sort().map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
+                        <option value="">All Clients</option>
+                        {[...new Set(casuals.map(c => c.client).filter(Boolean))].sort().map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                      </select>
+                    </>
+                  )}
+                  <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={() => { setPersonSearch(''); setPersonFilters({ project: '', department: '', client: '' }); }}>✕ Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="card">
             <div className="card-header">
               <span className="card-title">Select person</span>
@@ -212,42 +257,8 @@ export default function RequestPPEPage() {
                 >Casual</button>
               </div>
             </div>
-            <div style={{ padding: 16 }}>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                <input className="form-input" placeholder="Search by name or national ID..." value={personSearch} onChange={e => setPersonSearch(e.target.value)} style={{ flex: 1, minWidth: 200 }} autoFocus />
-                {personType === 'employee' && (
-                  <>
-                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
-                      <option value="">All Projects</option>
-                      {empFilterOptions.projects.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.department} onChange={e => setPersonFilters(p => ({ ...p, department: e.target.value }))}>
-                      <option value="">All Departments</option>
-                      {empFilterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
-                      <option value="">All Clients</option>
-                      {empFilterOptions.clients.map(cl => <option key={cl} value={cl}>{cl}</option>)}
-                    </select>
-                  </>
-                )}
-                {personType === 'casual' && (
-                  <>
-                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.project} onChange={e => setPersonFilters(p => ({ ...p, project: e.target.value }))}>
-                      <option value="">All Projects</option>
-                      {[...new Set(casuals.map(c => c.project).filter(Boolean))].sort().map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 38, padding: '4px 8px', fontSize: 13, width: 150 }} value={personFilters.client} onChange={e => setPersonFilters(p => ({ ...p, client: e.target.value }))}>
-                      <option value="">All Clients</option>
-                      {[...new Set(casuals.map(c => c.client).filter(Boolean))].sort().map(cl => <option key={cl} value={cl}>{cl}</option>)}
-                    </select>
-                  </>
-                )}
-                <button className="btn" style={{ height: 38, padding: '4px 12px', fontSize: 13 }} onClick={() => { setPersonSearch(''); setPersonFilters({ project: '', department: '', client: '' }); }}>✕ Clear</button>
-              </div>
-            </div>
             {personType === 'employee' ? (
-              <table>
+              <table className="table-hover-blue">
                 <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {employees.map((e, i) => (
@@ -289,7 +300,7 @@ export default function RequestPPEPage() {
               </div>
             )}
             {personType === 'casual' && (
-              <table>
+              <table className="table-hover-blue">
                 <thead><tr><th>Casual</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {filteredCasuals.map((c, i) => (
@@ -315,6 +326,7 @@ export default function RequestPPEPage() {
               </table>
             )}
           </div>
+          </>
         )}
 
         {step === 2 && selectedPerson && (
