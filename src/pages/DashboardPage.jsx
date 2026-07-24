@@ -10,6 +10,18 @@ const STATUS_TAG = {
   non_compliant: <span className="tag tag-red">Non-compliant</span>,
 };
 
+// Sequential blue intensity scale for the NCR heat map -- zero cells stay
+// essentially blank, everything else scales against the grid-wide max so
+// cells are comparable across the whole heat map, not just within a row.
+const heatCell = (count, max) => {
+  if (!count) return { bg: '#f9fafb', text: '#d1d5db' };
+  const alpha = 0.16 + (count / max) * 0.74;
+  return { bg: `rgba(37,99,235,${alpha})`, text: alpha > 0.55 ? '#fff' : '#1e3a6b' };
+};
+// "Jul 2026" -> "Jul '26" -- keeps the month header compact enough for 6
+// columns to fit a dashboard-card width without wrapping.
+const shortMonth = (m) => m.replace(/(\w+) \d{2}(\d{2})/, "$1 '$2");
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [syncLog, setSyncLog] = useState(null);
@@ -153,25 +165,50 @@ export default function DashboardPage() {
               <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
             </div>
             <div className="card-body">
-              {(data?.ncr?.by_category || []).map((r, i) => {
-                const pct2 = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
-                const cls = pct2 >= 75 ? 'danger' : pct2 >= 40 ? 'warning' : 'navy';
-                const label = r.ppe_name;
-                const pct = Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))) > 0 ? Math.round((parseInt(r.count)/Math.max(...(data?.ncr?.by_category||[]).map(x=>parseInt(x.count))))*100) : 0;
+              {(() => {
+                const months = data?.ncr?.heatmap?.months || [];
+                const items = data?.ncr?.heatmap?.items || [];
+                if (!items.length) return <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No NCRs in the last 6 months</div>;
+                const maxCount = Math.max(1, ...items.flatMap(it => it.counts));
                 return (
-                  <div key={r.ppe_name} style={{ marginBottom: 14 }}>
-                    <div className="flex justify-between" style={{ fontSize: 12, marginBottom: 4 }}>
-                      <span>{label}</span>
-                      <span style={{ color: '#6b7280' }}>{r.count} items</span>
+                  <div>
+                    <div style={{ display: 'grid', gridTemplateColumns: `120px repeat(${months.length}, 1fr)`, gap: 4 }}>
+                      <div />
+                      {months.map(m => (
+                        <div key={m} style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textAlign: 'center' }}>{shortMonth(m)}</div>
+                      ))}
+                      {items.map(it => (
+                        <React.Fragment key={it.ppe_name}>
+                          <div style={{ fontSize: 12, color: '#374151', display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.ppe_name}>
+                            {it.ppe_name}
+                          </div>
+                          {it.counts.map((count, mi) => {
+                            const { bg, text } = heatCell(count, maxCount);
+                            return (
+                              <div
+                                key={mi}
+                                title={`${it.ppe_name} · ${months[mi]}: ${count} NCR${count === 1 ? '' : 's'}`}
+                                style={{
+                                  aspectRatio: '1.5', borderRadius: 5, background: bg, color: text,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 11, fontWeight: 600,
+                                }}
+                              >
+                                {count || ''}
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
                     </div>
-                    <div className="progress-bar">
-                      <div className={'progress-fill ' + cls} style={{ width: pct + '%' }}></div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af' }}>Fewer</span>
+                      <div style={{ width: 70, height: 6, borderRadius: 3, background: 'linear-gradient(90deg, rgba(37,99,235,0.16), rgba(37,99,235,0.9))' }} />
+                      <span style={{ fontSize: 10, color: '#9ca3af' }}>More</span>
                     </div>
                   </div>
                 );
-              })}
-              {(!data?.ncr?.by_category?.length) && <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No open NCRs</div>}
-
+              })()}
             </div>
           </div>
         </div>
