@@ -4,12 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 
-const STATUS_TAG = {
-  compliant:     <span className="tag tag-green">Compliant</span>,
-  partial:       <span className="tag tag-amber">Partial</span>,
-  non_compliant: <span className="tag tag-red">Non-compliant</span>,
-};
-
 // Sequential blue intensity scale for the NCR heat map -- zero cells stay
 // essentially blank, everything else scales against the grid-wide max so
 // cells are comparable across the whole heat map, not just within a row.
@@ -26,19 +20,12 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [syncLog, setSyncLog] = useState(null);
   const { user } = useAuth();
-  const [overdue, setOverdue] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/dashboard').then(r => setData(r.data)).catch(logError);
-    api.get('/employees/overdue').then(r => setOverdue(r.data)).catch(logError);
-    api.get('/audits/leaderboard').then(r => setLeaderboard(r.data)).catch(logError);
     api.get('/sync-log/latest').then(r => setSyncLog(r.data)).catch(logError);
   }, []);
-
-  const initials = name => name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-  const avatarClass = i => ['av-teal','av-navy','av-coral','av-purple'][i % 4];
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -120,158 +107,66 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="two-col">
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Overdue audits</span>
-              <span className="tag tag-red">{overdue.length} employees</span>
-            </div>
-            <table>
-              <thead>
-                <tr><th>Employee</th><th>Project</th><th>Last audit</th><th></th></tr>
-              </thead>
-              <tbody>
-                {overdue.slice(0, 5).map((e, i) => (
-                  <tr key={e.employee_id}>
-                    <td>
-                      <div className="emp-cell">
-                        <div className={`avatar ${avatarClass(i)}`}>{initials(e.full_name)}</div>
-                        <div>
-                          <div className="emp-name">{e.full_name}</div>
-                          <div className="emp-id">{e.national_id||e.employee_number}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{e.project || "—"}</td>
-                    <td>
-                      <span className={`dot ${e.days_since_audit > 45 ? 'dot-red' : 'dot-amber'}`}></span>
-                      {e.days_since_audit ? `${e.days_since_audit} days` : 'Never'}
-                    </td>
-                    <td></td>
-                  </tr>
-                ))}
-                {overdue.length === 0 && (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', color: '#6b7280', padding: 24 }}>
-                    All employees are up to date ✓
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
+        <div className="card" style={{marginBottom:16}}>
+          <div className="card-header">
+            <span className="card-title">NCRs by PPE/Tool Item per Month</span>
+            <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
           </div>
-
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">NCRs by PPE/Tool Item</span>
-              <button className="btn btn-sm" onClick={() => navigate('/ncr')}>View all</button>
-            </div>
-            <div className="card-body">
-              {(() => {
-                const months = data?.ncr?.heatmap?.months || [];
-                const items = data?.ncr?.heatmap?.items || [];
-                if (!items.length) return <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No NCRs in the last 6 months</div>;
-                const maxCount = Math.max(1, ...items.flatMap(it => it.counts));
-                return (
-                  <div>
-                    <div style={{ display: 'grid', gridTemplateColumns: `120px repeat(${months.length}, 1fr)`, gap: 4 }}>
-                      <div />
-                      {months.map(m => (
-                        <div key={m} style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', textAlign: 'center' }}>{shortMonth(m)}</div>
-                      ))}
-                      {items.map(it => (
-                        <React.Fragment key={it.ppe_name}>
-                          <div style={{ fontSize: 12, color: '#374151', display: 'flex', alignItems: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={it.ppe_name}>
-                            {it.ppe_name}
-                          </div>
-                          {it.counts.map((count, mi) => {
-                            const { bg, text } = heatCell(count, maxCount);
-                            return (
-                              <div
-                                key={mi}
-                                title={`${it.ppe_name} · ${months[mi]}: ${count} NCR${count === 1 ? '' : 's'}`}
-                                style={{
-                                  aspectRatio: '1.5', borderRadius: 5, background: bg, color: text,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: 11, fontWeight: 600,
-                                }}
-                              >
-                                {count || ''}
-                              </div>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
-                      <span style={{ fontSize: 10, color: '#9ca3af' }}>Fewer</span>
-                      <div style={{ width: 70, height: 6, borderRadius: 3, background: 'linear-gradient(90deg, rgba(37,99,235,0.16), rgba(37,99,235,0.9))' }} />
-                      <span style={{ fontSize: 10, color: '#9ca3af' }}>More</span>
-                    </div>
+          <div className="card-body">
+            {(() => {
+              const months = data?.ncr?.heatmap?.months || [];
+              const items = data?.ncr?.heatmap?.items || [];
+              if (!items.length) return <div style={{color:'#6b7280',fontSize:13,padding:'8px 0'}}>No NCRs in the last 6 months</div>;
+              const maxCount = Math.max(1, ...items.flatMap(it => it.counts));
+              return (
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `110px repeat(${items.length}, minmax(40px, 1fr))`, gap: 4, minWidth: 'max-content' }}>
+                    <div />
+                    {items.map(it => (
+                      <div
+                        key={it.ppe_name}
+                        title={it.ppe_name}
+                        style={{
+                          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
+                          height: 130, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 600, color: '#374151',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingBottom: 4,
+                        }}
+                      >
+                        {it.ppe_name}
+                      </div>
+                    ))}
+                    {months.map((m, mi) => (
+                      <React.Fragment key={m}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', display: 'flex', alignItems: 'center' }}>{shortMonth(m)}</div>
+                        {items.map(it => {
+                          const count = it.counts[mi];
+                          const { bg, text } = heatCell(count, maxCount);
+                          return (
+                            <div
+                              key={it.ppe_name + mi}
+                              title={`${it.ppe_name} · ${m}: ${count} NCR${count === 1 ? '' : 's'}`}
+                              style={{
+                                aspectRatio: '1.3', borderRadius: 5, background: bg, color: text,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 11, fontWeight: 600,
+                              }}
+                            >
+                              {count || ''}
+                            </div>
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
                   </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-
-        <div className="two-col" style={{marginBottom:16}}>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Auditor Performance</span>
-            </div>
-            <table>
-              <thead><tr><th>#</th><th>Auditor</th><th>Total Audits</th><th>This Month</th><th>Last Month</th></tr></thead>
-              <tbody>
-                {leaderboard.map((u, i) => (
-                  <tr key={u.id}>
-                    <td style={{fontWeight:600,color:'#6b7280',fontSize:13}}>{i+1}</td>
-                    <td><div className="emp-cell">{u.profile_picture ? <img src={u.profile_picture} alt={u.full_name} style={{width:32,height:32,borderRadius:'50%',objectFit:'cover',flexShrink:0}} /> : <div className={'avatar ' + avatarClass(i)}>{u.full_name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>}<div className="emp-name">{u.full_name}</div></div></td>
-                    <td style={{fontWeight:600}}>{u.total_audits}</td>
-                    <td style={{fontSize:12,color:'#6b7280'}}>{u.this_month} this month</td>
-                    <td style={{fontSize:12,color:'#6b7280'}}>{u.last_month} last month</td>
-                  </tr>
-                ))}
-                {!leaderboard.length && <tr><td colSpan={5} style={{textAlign:'center',color:'#6b7280',padding:24}}>No audits yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Recent audits</span>
-              <button className="btn btn-sm" onClick={() => navigate('/history')}>View all</button>
-            </div>
-          <table>
-            <thead>
-              <tr><th>Employee</th><th>Project</th><th>Audited by</th><th>Date</th><th>Items</th><th>Issues</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              {(data?.recent_audits || []).map((a, i) => (
-                <tr key={a.id}>
-                  <td>
-                    <div className="emp-cell">
-                      <div className={`avatar ${avatarClass(i)}`}>{initials(a.employee_name)}</div>
-                      <div>
-                        <div className="emp-name">{a.employee_name}</div>
-                        <div className="emp-id">{a.national_id||a.employee_number}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{a.project || '—'}</td>
-                  <td>{a.audited_by_name}</td>
-                  <td>{new Date(a.audit_date).toLocaleDateString('en-GB')}</td>
-                  <td>{a.total_items}</td>
-                  <td>
-                    <span className={`tag ${a.issues_count > 0 ? 'tag-red' : 'tag-green'}`}>
-                      {a.issues_count} {a.issues_count === 1 ? 'issue' : 'issues'}
-                    </span>
-                  </td>
-                  <td>{STATUS_TAG[a.overall_status]}</td>
-                </tr>
-              ))}
-              {!data?.recent_audits?.length && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: 24 }}>No audits yet</td></tr>
-              )}
-            </tbody>
-          </table>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginTop: 12 }}>
+                    <span style={{ fontSize: 10, color: '#9ca3af' }}>Fewer</span>
+                    <div style={{ width: 70, height: 6, borderRadius: 3, background: 'linear-gradient(90deg, rgba(37,99,235,0.16), rgba(37,99,235,0.9))' }} />
+                    <span style={{ fontSize: 10, color: '#9ca3af' }}>More</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
