@@ -40,22 +40,22 @@ export default function AuditCoveragePage() {
           <span className="topbar-title">Audit Coverage</span>
         </div>
       </div>
-      <div className="page-content">
+      <div className="content graphs-content">
         {/* Top stat row */}
         <div className="stat-grid">
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Total active employees</div>
             <div className="stat-value navy">{loading ? '—' : data?.total_active}</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN employees</div>
             <div className="stat-value navy">{loading ? '—' : data?.san_count}</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Non-SAN employees</div>
             <div className="stat-value" style={{ color: '#6b7280' }}>{loading ? '—' : data?.non_san_count}</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN due for visit (&gt;30 days)</div>
             <div className="stat-value" style={{ color: '#A32D2D' }}>{loading ? '—' : data?.overdue_total}</div>
           </div>
