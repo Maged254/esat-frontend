@@ -34,6 +34,10 @@ export default function AuditCoveragePage() {
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
   const [filters, setFilters] = useState({ projects: [], clients: [] });
+  const [projectSort, setProjectSort] = useState({ key: 'overdue', dir: 'desc' });
+
+  const toggleProjectSort = (key) => setProjectSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' });
+  const sortArrow = (key) => projectSort.key === key ? (projectSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
 
   const toggleFilter = (key, value) => setFilters(current => ({
     ...current,
@@ -72,6 +76,16 @@ export default function AuditCoveragePage() {
   ];
 
   const total = data ? BUCKETS.reduce((sum, b) => sum + (data[b.key] || 0), 0) : 0;
+
+  const byProjectRows = [...(data?.by_project || [])].sort((a, b) => {
+    const pctA = a.san_total > 0 ? a.overdue / a.san_total : 0;
+    const pctB = b.san_total > 0 ? b.overdue / b.san_total : 0;
+    const valA = projectSort.key === 'project' ? (a.project || '') : projectSort.key === 'pct' ? pctA : a[projectSort.key];
+    const valB = projectSort.key === 'project' ? (b.project || '') : projectSort.key === 'pct' ? pctB : b[projectSort.key];
+    if (valA < valB) return projectSort.dir === 'asc' ? -1 : 1;
+    if (valA > valB) return projectSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   return (
     <>
@@ -119,16 +133,22 @@ export default function AuditCoveragePage() {
         {/* Top stat row */}
         <div className="stat-grid">
           <div className="card" style={{ padding: '16px 18px' }}>
-            <div className="stat-label">Total active employees</div>
+            <div className="stat-label">Total Active Resources</div>
             <div className="stat-value navy">{loading ? '—' : data?.total_active}</div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
-            <div className="stat-label">SAN employees</div>
-            <div className="stat-value navy">{loading ? '—' : data?.san_count}</div>
+            <div className="stat-label">SAN Resources</div>
+            <div className="stat-value navy">
+              {loading ? '—' : data?.san_count}
+              {!loading && <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>{data?.san_inhouse ?? 0} IH · {data?.san_outsource ?? 0} OS</span>}
+            </div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
-            <div className="stat-label">Non-SAN employees</div>
-            <div className="stat-value" style={{ color: '#6b7280' }}>{loading ? '—' : data?.non_san_count}</div>
+            <div className="stat-label">Non-SAN Resources</div>
+            <div className="stat-value" style={{ color: '#6b7280' }}>
+              {loading ? '—' : data?.non_san_count}
+              {!loading && <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>{data?.non_san_inhouse ?? 0} IH · {data?.non_san_outsource ?? 0} OS</span>}
+            </div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN due for visit (&gt;30 days)</div>
@@ -201,15 +221,27 @@ export default function AuditCoveragePage() {
             <span className="card-title">By project</span>
           </div>
           <table>
-            <thead><tr><th>Project</th><th>SAN Total</th><th>Overdue (&gt;30d)</th><th></th></tr></thead>
+            <thead>
+              <tr>
+                <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('project')}>Project{sortArrow('project')}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('san_total')}>SAN Total{sortArrow('san_total')}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('overdue')}>Overdue (&gt;30d){sortArrow('overdue')}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('pct')}>% Overdue{sortArrow('pct')}</th>
+              </tr>
+            </thead>
             <tbody>
-              {!loading && data?.by_project?.map(row => {
+              {!loading && byProjectRows.map(row => {
                 const pct = row.san_total > 0 ? Math.round((row.overdue / row.san_total) * 100) : 0;
                 return (
-                  <tr key={row.project}>
-                    <td>{row.project || '—'}</td>
+                  <tr key={row.project + '::' + row.client}>
+                    <td>
+                      <div>{row.project || '—'}</div>
+                      {row.client && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>{row.client}</div>}
+                    </td>
                     <td>{row.san_total}</td>
-                    <td style={{ color: row.overdue > 0 ? '#A32D2D' : '#111827', fontWeight: row.overdue > 0 ? 700 : 400 }}>{row.overdue}</td>
+                    <td style={{ color: row.overdue > 0 ? '#A32D2D' : '#111827', fontWeight: row.overdue > 0 ? 700 : 400 }}>
+                      {row.overdue} <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>({pct}%)</span>
+                    </td>
                     <td style={{ width: 160 }}>
                       <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: pct + '%', background: pct > 50 ? '#A32D2D' : pct > 0 ? '#D97706' : '#1D9E75' }} />
@@ -218,7 +250,7 @@ export default function AuditCoveragePage() {
                   </tr>
                 );
               })}
-              {!loading && (!data?.by_project || data.by_project.length === 0) && (
+              {!loading && byProjectRows.length === 0 && (
                 <tr><td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af', padding: 20 }}>No data for the current filters.</td></tr>
               )}
             </tbody>
