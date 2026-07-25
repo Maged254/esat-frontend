@@ -181,10 +181,10 @@ export default function CasualsPage() {
       </div>
       <div className="content graphs-content">
         <div className="stat-grid">
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#E3F2FD':'#fff'}} onClick={() => setFilters(p => ({ ...p, status: p.status==='active'?'':'active' }))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#E3F2FD':'#fff',outline:filters.status==='active'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='active'?'':'active' }))}>
             <div className="stat-label">Total Active</div><div className="stat-value green">{casuals.filter(c => c.employment_status === 'active').length}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#E3F2FD':'#fff'}} onClick={() => setFilters(p => ({ ...p, status: p.status==='exit'?'':'exit' }))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#E3F2FD':'#fff',outline:filters.status==='exit'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='exit'?'':'exit' }))}>
             <div className="stat-label">Exits</div><div className="stat-value">{casuals.filter(c => c.employment_status === 'exit').length}</div>
           </div>
         </div>
