@@ -49,7 +49,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="content" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="content graphs-content" style={{ display: 'flex', flexDirection: 'column' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <div style={{ fontSize: 20, fontWeight: 500 }}>{greeting()}, {user?.name || "Safety Officer"}</div>
@@ -60,21 +60,21 @@ export default function DashboardPage() {
         </div>
 
         <div className="stat-grid">
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Total Active Project Members</div>
             <div className="stat-value navy">{data?.employees.active ?? '—'}</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Overdue (&gt;30 days)</div>
             <div className="stat-value danger">{data?.overdue ?? '—'}</div>
             <div className="stat-sub">Need immediate audit</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Open NCRs</div>
             <div className="stat-value warning">{data?.ncr.open ?? '—'}</div>
             <div className="stat-sub">Pending resolution</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Compliance rate</div>
             <div className="stat-value green">
               {data?.compliance_rate != null ? `${data.compliance_rate}%` : '—'}
@@ -85,22 +85,22 @@ export default function DashboardPage() {
 
         {/* PPE Delay Cards */}
         <div className="stat-grid">
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">EHS Delay</div>
             <div className="stat-value warning">{data?.delays?.ehs ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
             <div className="stat-sub">Oldest request awaiting EHS approval</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SCM Delay</div>
             <div className="stat-value warning">{data?.delays?.scm ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
             <div className="stat-sub">Oldest request awaiting SCM ordering</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Suppliers Delay</div>
             <div className="stat-value warning">{data?.delays?.suppliers ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
             <div className="stat-sub">Oldest order awaiting warehouse delivery</div>
           </div>
-          <div className="stat-card">
+          <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Projects Delay</div>
             <div className="stat-value warning">{data?.delays?.projects ?? '—'}<span style={{fontSize:13,fontWeight:400}}> Days</span></div>
             <div className="stat-sub">Oldest item awaiting project distribution</div>
