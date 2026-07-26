@@ -239,7 +239,7 @@ export default function AuditCoveragePage() {
           <div className="card-header">
             <span className="card-title">By project</span>
           </div>
-          <table>
+          <table className="table-hover-soft">
             <thead>
               <tr>
                 <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('project')}>Project{sortArrow('project')}</th>

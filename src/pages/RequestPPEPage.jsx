@@ -278,7 +278,7 @@ export default function RequestPPEPage() {
               </div>
             </div>
             {personType === 'employee' ? (
-              <table className="table-hover-blue">
+              <table className="table-hover-soft">
                 <thead><tr><th>Employee</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {employees.map(e => (
@@ -319,7 +319,7 @@ export default function RequestPPEPage() {
               </div>
             )}
             {personType === 'casual' && (
-              <table className="table-hover-blue">
+              <table className="table-hover-soft">
                 <thead><tr><th>Casual</th><th>Job Title</th><th>Department</th><th>Project</th><th>Client</th><th></th></tr></thead>
                 <tbody>
                   {filteredCasuals.map(c => (

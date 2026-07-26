@@ -352,7 +352,7 @@ export default function NewAuditPage() {
             <div className="card-header">
               <span className="card-title">Select employee to audit</span>
             </div>
-            <table className="table-hover-blue">
+            <table className="table-hover-soft">
               <thead><tr><th>Employee</th><th>Department</th><th>Project</th><th>Last Audit</th><th></th></tr></thead>
               <tbody>
                 {employees.map(e => (

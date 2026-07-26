@@ -237,19 +237,19 @@ export function EmployeesPage() {
           </div>
         </div>
         <div className="stat-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#E3F2FD':'#fff',outline:filters.activeStat==='active'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#F0F7FF':'#fff',outline:filters.activeStat==='active'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
             <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#E3F2FD':'#fff',outline:filters.activeStat==='inhouse'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#F0F7FF':'#fff',outline:filters.activeStat==='inhouse'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
             <div className="stat-label">Active Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#E3F2FD':'#fff',outline:filters.activeStat==='outsource'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='outsource'?'#F0F7FF':'#fff',outline:filters.activeStat==='outsource'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='outsource'?'':'outsource'}))}>
             <div className="stat-label">Active Outsource</div><div className="stat-value">{stats.outsource}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#E3F2FD':'#fff',outline:filters.activeStat==='intern'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#F0F7FF':'#fff',outline:filters.activeStat==='intern'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
             <div className="stat-label">Active Intern</div><div className="stat-value warning">{stats.interns}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#E3F2FD':'#fff',outline:filters.activeStat==='exit'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#F0F7FF':'#fff',outline:filters.activeStat==='exit'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
             <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export function EmployeesPage() {
             </div>
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
-          <table className="table-hover-blue">
+          <table className="table-hover-soft">
             <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {employees.map(e => (

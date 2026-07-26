@@ -181,10 +181,10 @@ export default function CasualsPage() {
       </div>
       <div className="content graphs-content">
         <div className="stat-grid">
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#E3F2FD':'#fff',outline:filters.status==='active'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='active'?'':'active' }))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='active'?'#F0F7FF':'#fff',outline:filters.status==='active'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='active'?'':'active' }))}>
             <div className="stat-label">Total Active</div><div className="stat-value green">{casuals.filter(c => c.employment_status === 'active').length}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#E3F2FD':'#fff',outline:filters.status==='exit'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='exit'?'':'exit' }))}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.status==='exit'?'#F0F7FF':'#fff',outline:filters.status==='exit'?'2px solid #042C53':''}} onClick={() => setFilters(p => ({ ...p, status: p.status==='exit'?'':'exit' }))}>
             <div className="stat-label">Exits</div><div className="stat-value">{casuals.filter(c => c.employment_status === 'exit').length}</div>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function CasualsPage() {
               <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters({ search: '', national_id: '', project: '', client: '', status: 'active' })}>✕ Clear</button>
             </div>
           </div>
-          <table className="table-hover-blue">
+          <table className="table-hover-soft">
             <thead><tr><th>Name</th><th>National ID</th><th>Job Title</th><th>Project</th><th>Client</th><th>Status</th><th>Last Edited</th><th></th></tr></thead>
             <tbody>
               {filtered.map(c => (
