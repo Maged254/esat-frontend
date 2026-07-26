@@ -670,7 +670,8 @@ export function NCRPage() {
     n.status==='scm_ordered'?'SCM Ordered':
     n.status==='warehouse_available'?'Warehouse Available':
     n.status==='distributed'?'Distributed':
-    n.status==='resolved'?'Resolved':'Canceled';
+    n.status==='resolved'?'Resolved':
+    n.status==='exit'?'Exit':'Canceled';
 
   const deleteNCR = async (id) => {
     if (!window.confirm('Delete this NCR item? The linked PPE request will also be deleted.')) return;
@@ -779,6 +780,7 @@ export function NCRPage() {
                   <option value="warehouse_available">Warehouse Available</option>
                   <option value="distributed">Distributed</option>
                   <option value="canceled">Canceled</option>
+                  <option value="exit">Exit</option>
                 </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
                   <option value="">All Projects</option>
@@ -838,7 +840,7 @@ export function NCRPage() {
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
                   </td>
-                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':'tag-red'}`}>{statusLabel(n)}</span></td>
+                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':n.status==='exit'?'tag-gray':'tag-red'}`}>{statusLabel(n)}</span></td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {selectingPda && <td style={{textAlign:'center'}}>{n.needs_pda && n.status==='ehs_purchase_requested' && <input type="checkbox" checked={selectedPda.includes(n.id)} onChange={()=>togglePdaSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {userRole === 'admin' && !selecting && !selectingPda && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
