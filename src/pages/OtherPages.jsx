@@ -749,45 +749,57 @@ export function NCRPage() {
           )}
         </div>
       </div>
-      <div className="content">
-        <div className="stat-grid">
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat===''?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:'',status:''}))}><div className="stat-label">Total Open</div><div className="stat-value danger">{stats.total_open}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pending'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pending'?'':'pending',status:''}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{stats.pending}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='pma'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pma'?'':'pma',status:''}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{stats.pending_pm}</div></div>
-          <div className="stat-card" style={{cursor:'pointer',outline:filters.activeStat==='distributed'?'2px solid var(--eg-green)':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='distributed'?'':'distributed',status:''}))}><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month}</div></div>
-        </div>
-        <div className="card">
-          <div className="card-header" style={{flexWrap:'wrap',gap:8}}>
-            <span className="card-title">Open NCR items</span>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
-              <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
-                <option value="">All Records</option>
-                <option value="current">Current Month</option>
-                <option value="previous">Previous Month</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
-                <option value="">All PPE/Tool Items</option>
-                {filterOptions.ppe_names.map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
-                <option value="">All Status</option>
-                <option value="pending">Flagged</option>
-                <option value="pda_pending">Pending PM</option>
-                <option value="ehs_purchase_requested">EHS Purchase Requested</option>
-                <option value="scm_ordered">SCM Ordered</option>
-                <option value="warehouse_available">Warehouse Available</option>
-                <option value="distributed">Distributed</option>
-                <option value="canceled">Canceled</option>
-              </select>
-              <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
-                <option value="">All Projects</option>
-                {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
-              </select>
-              <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:'',activeStat:''})}>✕ Clear</button>
+      <div className="content graphs-content">
+        <div className="card" style={{marginBottom:16, position:'sticky', top:'var(--header-h)', zIndex:40}}>
+          <div className="card-body" style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Search</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:200}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
+              <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Filter</span>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center'}}>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} value={filters.period} onChange={e=>setFilters(p=>({...p,period:e.target.value}))}>
+                  <option value="">All Records</option>
+                  <option value="current">Current Month</option>
+                  <option value="previous">Previous Month</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
+                  <option value="">All PPE/Tool Items</option>
+                  {filterOptions.ppe_names.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
+                  <option value="">All Status</option>
+                  <option value="pending">Flagged</option>
+                  <option value="pda_pending">Pending PM</option>
+                  <option value="ehs_purchase_requested">EHS Purchase Requested</option>
+                  <option value="scm_ordered">SCM Ordered</option>
+                  <option value="warehouse_available">Warehouse Available</option>
+                  <option value="distributed">Distributed</option>
+                  <option value="canceled">Canceled</option>
+                </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
+                  <option value="">All Projects</option>
+                  {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
+                </select>
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:'',activeStat:''})}>✕ Clear</button>
+              </div>
             </div>
           </div>
-          <table>
+        </div>
+        <div className="stat-grid">
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat===''?'#F0F7FF':'#fff',outline:filters.activeStat===''?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,activeStat:'',status:''}))}><div className="stat-label">Total Open</div><div className="stat-value danger">{stats.total_open}</div></div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='pending'?'#F0F7FF':'#fff',outline:filters.activeStat==='pending'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pending'?'':'pending',status:''}))}><div className="stat-label">Pending EHS</div><div className="stat-value warning">{stats.pending}</div></div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='pma'?'#F0F7FF':'#fff',outline:filters.activeStat==='pma'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='pma'?'':'pma',status:''}))}><div className="stat-label">Pending PM</div><div className="stat-value navy">{stats.pending_pm}</div></div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='distributed'?'#F0F7FF':'#fff',outline:filters.activeStat==='distributed'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,activeStat:p.activeStat==='distributed'?'':'distributed',status:''}))}><div className="stat-label">Distributed</div><div className="stat-value green">{stats.resolved_this_month}</div></div>
+        </div>
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Open NCR items</span>
+          </div>
+          <table className="table-hover-soft">
             <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Qty</th><th>Project / Client</th><th>Organization</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
             <tbody>
               {items.map(n=>(
