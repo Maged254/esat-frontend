@@ -648,7 +648,7 @@ export default function PPERequestTrackerPage() {
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} request{total===1?'':'s'}</span>
           </div>
           <div style={{overflow:'auto',maxHeight:'calc(100vh - 260px)',marginTop:0,borderTop:'1px solid transparent'}}>
-            <table className="table-hover-blue" style={{tableLayout:'fixed'}}>
+            <table className="table-hover-soft" style={{tableLayout:'fixed'}}>
               <colgroup>
                 <col style={{width:150}} />
                 <col style={{width:360}} />
