@@ -33,9 +33,17 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('esat_token', res.data.token);
-    localStorage.setItem('esat_user', JSON.stringify(res.data.user));
-    setUser(res.data.user);
-    return res.data.user;
+    // The login response omits some fields (e.g. profile_picture); pull the
+    // full profile from /auth/me so the sidebar avatar shows immediately
+    // instead of only after the next page refresh.
+    let userData = res.data.user;
+    try {
+      const me = await api.get('/auth/me');
+      userData = { ...res.data.user, ...me.data, name: me.data.full_name || me.data.name };
+    } catch { /* fall back to the login payload */ }
+    localStorage.setItem('esat_user', JSON.stringify(userData));
+    setUser(userData);
+    return userData;
   };
 
   const logout = useCallback(() => {
