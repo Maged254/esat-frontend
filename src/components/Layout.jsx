@@ -71,8 +71,8 @@ export default function Layout() {
         <div className="sidebar-footer">
           <div className="user-chip" style={{ flexDirection: 'column', gap: 8, textAlign: 'center' }} onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
             {user?.profile_picture
-              ? <img src={user.profile_picture} alt={user.name} style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-              : <div className="avatar av-green" style={{ width: 56, height: 56, fontSize: 18 }}>{initials}</div>
+              ? <img src={user.profile_picture} alt={user.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }} />
+              : <div className="avatar av-green" style={{ width: 64, height: 64, fontSize: 20, border: '2.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}>{initials}</div>
             }
             <div>
               <div className="user-name">{user?.name}</div>
