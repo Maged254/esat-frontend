@@ -137,7 +137,7 @@ export default function DashboardPage() {
                         {it.ppe_name}
                       </div>
                     ))}
-                    {months.map((m, mi) => (
+                    {months.map((m, mi) => ({ m, mi })).reverse().map(({ m, mi }) => (
                       <React.Fragment key={m}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: '#9ca3af', display: 'flex', alignItems: 'center' }}>{shortMonth(m)}</div>
                         {items.map(it => {
