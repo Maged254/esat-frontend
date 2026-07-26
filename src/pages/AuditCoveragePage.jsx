@@ -136,36 +136,40 @@ export default function AuditCoveragePage() {
         <div className="stat-grid">
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Total Active Resources</div>
-            <div className="stat-value navy">{loading ? '—' : data?.total_active}</div>
+            <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, color: 'var(--eg-navy)' }}>{loading ? '—' : data?.total_active}</div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN Resources</div>
-            <div className="stat-value navy">{loading ? '—' : data?.san_count}</div>
-            {!loading && (
-              <div style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginTop: 4, lineHeight: 1.4 }}>
-                <div>{data?.san_inhouse ?? 0} InHouse</div>
-                <div>{data?.san_outsource ?? 0} OutSourced</div>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+              <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, color: 'var(--eg-navy)' }}>{loading ? '—' : data?.san_count}</div>
+              {!loading && (
+                <div style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', lineHeight: 1.5, paddingBottom: 4 }}>
+                  <div>{data?.san_inhouse ?? 0} InHouse</div>
+                  <div>{data?.san_outsource ?? 0} OutSourced</div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Non-SAN Resources</div>
-            <div className="stat-value" style={{ color: '#6b7280' }}>{loading ? '—' : data?.non_san_count}</div>
-            {!loading && (
-              <div style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginTop: 4, lineHeight: 1.4 }}>
-                <div>{data?.non_san_inhouse ?? 0} InHouse</div>
-                <div>{data?.non_san_outsource ?? 0} OutSourced</div>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+              <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, color: '#6b7280' }}>{loading ? '—' : data?.non_san_count}</div>
+              {!loading && (
+                <div style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', lineHeight: 1.5, paddingBottom: 4 }}>
+                  <div>{data?.non_san_inhouse ?? 0} InHouse</div>
+                  <div>{data?.non_san_outsource ?? 0} OutSourced</div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN due for visit (&gt;30 days)</div>
-            <div className="stat-value" style={{ color: '#A32D2D' }}>
-              {loading ? '—' : data?.overdue_total}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+              <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, color: '#A32D2D' }}>{loading ? '—' : data?.overdue_total}</div>
               {!loading && data?.san_count > 0 && (
-                <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
-                  ({Math.round((data.overdue_total / data.san_count) * 100)}%)
-                </span>
+                <div style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', lineHeight: 1.5, paddingBottom: 4 }}>
+                  {Math.round((data.overdue_total / data.san_count) * 100)}% of SAN
+                </div>
               )}
             </div>
           </div>
