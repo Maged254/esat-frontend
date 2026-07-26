@@ -216,6 +216,8 @@ tr:hover td { background: #f9fafb; }
 /* Opt-in per table: same blue used for the Employees stat cards'
    active-filter highlight, instead of the app-wide gray row hover. */
 .table-hover-blue tr:hover td { background: #E3F2FD; }
+/* Softer blue row highlight (Audit/Request History). */
+.table-hover-soft tr:hover td { background: #F0F7FF; }
 
 /* ── Tags / Badges ───────────────────────────────────────── */
 .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
