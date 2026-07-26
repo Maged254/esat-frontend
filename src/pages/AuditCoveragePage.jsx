@@ -78,10 +78,12 @@ export default function AuditCoveragePage() {
   const total = data ? BUCKETS.reduce((sum, b) => sum + (data[b.key] || 0), 0) : 0;
 
   const byProjectRows = [...(data?.by_project || [])].sort((a, b) => {
-    const pctA = a.san_total > 0 ? a.overdue / a.san_total : 0;
-    const pctB = b.san_total > 0 ? b.overdue / b.san_total : 0;
-    const valA = projectSort.key === 'project' ? (a.project || '') : projectSort.key === 'pct' ? pctA : a[projectSort.key];
-    const valB = projectSort.key === 'project' ? (b.project || '') : projectSort.key === 'pct' ? pctB : b[projectSort.key];
+    const derived = (row, key) => key === 'project' ? (row.project || '')
+      : key === 'pct' ? (row.san_total > 0 ? row.overdue / row.san_total : 0)
+      : key === 'audited' ? (row.san_total - row.overdue)
+      : row[key];
+    const valA = derived(a, projectSort.key);
+    const valB = derived(b, projectSort.key);
     if (valA < valB) return projectSort.dir === 'asc' ? -1 : 1;
     if (valA > valB) return projectSort.dir === 'asc' ? 1 : -1;
     return 0;
@@ -138,21 +140,34 @@ export default function AuditCoveragePage() {
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN Resources</div>
-            <div className="stat-value navy">
-              {loading ? '—' : data?.san_count}
-              {!loading && <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>{data?.san_inhouse ?? 0} IH · {data?.san_outsource ?? 0} OS</span>}
-            </div>
+            <div className="stat-value navy">{loading ? '—' : data?.san_count}</div>
+            {!loading && (
+              <div style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginTop: 4, lineHeight: 1.4 }}>
+                <div>{data?.san_inhouse ?? 0} InHouse</div>
+                <div>{data?.san_outsource ?? 0} OutSourced</div>
+              </div>
+            )}
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">Non-SAN Resources</div>
-            <div className="stat-value" style={{ color: '#6b7280' }}>
-              {loading ? '—' : data?.non_san_count}
-              {!loading && <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>{data?.non_san_inhouse ?? 0} IH · {data?.non_san_outsource ?? 0} OS</span>}
-            </div>
+            <div className="stat-value" style={{ color: '#6b7280' }}>{loading ? '—' : data?.non_san_count}</div>
+            {!loading && (
+              <div style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginTop: 4, lineHeight: 1.4 }}>
+                <div>{data?.non_san_inhouse ?? 0} InHouse</div>
+                <div>{data?.non_san_outsource ?? 0} OutSourced</div>
+              </div>
+            )}
           </div>
           <div className="card" style={{ padding: '16px 18px' }}>
             <div className="stat-label">SAN due for visit (&gt;30 days)</div>
-            <div className="stat-value" style={{ color: '#A32D2D' }}>{loading ? '—' : data?.overdue_total}</div>
+            <div className="stat-value" style={{ color: '#A32D2D' }}>
+              {loading ? '—' : data?.overdue_total}
+              {!loading && data?.san_count > 0 && (
+                <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280', marginLeft: 8 }}>
+                  ({Math.round((data.overdue_total / data.san_count) * 100)}%)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -225,6 +240,7 @@ export default function AuditCoveragePage() {
               <tr>
                 <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('project')}>Project{sortArrow('project')}</th>
                 <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('san_total')}>SAN Total{sortArrow('san_total')}</th>
+                <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('audited')}>Audited (&le;30d){sortArrow('audited')}</th>
                 <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('overdue')}>Overdue (&gt;30d){sortArrow('overdue')}</th>
                 <th style={{ cursor: 'pointer' }} onClick={() => toggleProjectSort('pct')}>% Overdue{sortArrow('pct')}</th>
               </tr>
@@ -232,6 +248,8 @@ export default function AuditCoveragePage() {
             <tbody>
               {!loading && byProjectRows.map(row => {
                 const pct = row.san_total > 0 ? Math.round((row.overdue / row.san_total) * 100) : 0;
+                const audited = row.san_total - row.overdue;
+                const auditedPct = row.san_total > 0 ? Math.round((audited / row.san_total) * 100) : 0;
                 return (
                   <tr key={row.project + '::' + row.client}>
                     <td>
@@ -239,6 +257,9 @@ export default function AuditCoveragePage() {
                       {row.client && <div style={{ fontSize: 10, color: '#6b7280', marginTop: 2 }}>{row.client}</div>}
                     </td>
                     <td>{row.san_total}</td>
+                    <td style={{ color: audited > 0 ? '#1D9E75' : '#111827', fontWeight: audited > 0 ? 700 : 400 }}>
+                      {audited} <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>({auditedPct}%)</span>
+                    </td>
                     <td style={{ color: row.overdue > 0 ? '#A32D2D' : '#111827', fontWeight: row.overdue > 0 ? 700 : 400 }}>
                       {row.overdue} <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af' }}>({pct}%)</span>
                     </td>
@@ -251,7 +272,7 @@ export default function AuditCoveragePage() {
                 );
               })}
               {!loading && byProjectRows.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af', padding: 20 }}>No data for the current filters.</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: 20 }}>No data for the current filters.</td></tr>
               )}
             </tbody>
           </table>
