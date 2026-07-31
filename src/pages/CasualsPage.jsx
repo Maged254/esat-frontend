@@ -208,7 +208,7 @@ export default function CasualsPage() {
           <span className="topbar-title">Casuals</span>
         </div>
         <div className="topbar-right">
-          {canEdit && <button className="btn" onClick={openReactivate}>↻ Reactivate</button>}
+          {canEdit && filters.status === 'exit' && <button className="btn" onClick={openReactivate}>↻ Reactivate</button>}
           {canEdit && <button className="btn btn-primary" onClick={() => setBatchModal(true)}>+ Add Casuals</button>}
         </div>
       </div>
