@@ -23,6 +23,10 @@ export default function CasualsPage() {
   const [assignedPpe, setAssignedPpe] = useState([]);
   const [ppeSaving, setPpeSaving] = useState(false);
 
+  const [reactivateModal, setReactivateModal] = useState(false);
+  const [reactivateSelected, setReactivateSelected] = useState([]);
+  const [reactivateSaving, setReactivateSaving] = useState(false);
+
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
@@ -122,6 +126,34 @@ export default function CasualsPage() {
     load();
   };
 
+  // ── Reactivate ──────────────────────────────────────────────
+  const exitedCasuals = casuals.filter(c => c.employment_status === 'exit');
+
+  const openReactivate = () => { setReactivateSelected([]); setReactivateModal(true); };
+  const toggleReactivate = (id) => {
+    setReactivateSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const submitReactivate = async () => {
+    if (reactivateSelected.length === 0) { alert('Select at least one casual to reactivate.'); return; }
+    if (!window.confirm(`Reactivate ${reactivateSelected.length} casual(s)? They will be set back to Active.`)) return;
+    setReactivateSaving(true);
+    try {
+      const res = await api.post('/casuals/reactivate', { ids: reactivateSelected });
+      const { reactivated = [], skipped = [] } = res.data || {};
+      setReactivateModal(false);
+      setReactivateSelected([]);
+      load();
+      let msg = '';
+      if (reactivated.length) msg += `${reactivated.length} casual(s) reactivated. A notification email has been sent.`;
+      if (skipped.length) msg += `\n${skipped.length} skipped:\n` + skipped.map(s => `- ${s.full_name}: ${s.reason}`).join('\n');
+      if (msg) alert(msg.trim());
+    } catch (e) {
+      alert('Error: ' + (e.response?.data?.error || e.message));
+    }
+    setReactivateSaving(false);
+  };
+
   const deleteCasual = async (c) => {
     if (!window.confirm(`Delete ${c.full_name}? This will permanently delete the casual and all their audits, NCR items, and PPE requests.`)) return;
     try {
@@ -176,6 +208,7 @@ export default function CasualsPage() {
           <span className="topbar-title">Casuals</span>
         </div>
         <div className="topbar-right">
+          {canEdit && <button className="btn" onClick={openReactivate}>↻ Reactivate</button>}
           {canEdit && <button className="btn btn-primary" onClick={() => setBatchModal(true)}>+ Add Casuals</button>}
         </div>
       </div>
@@ -290,6 +323,36 @@ export default function CasualsPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
               <button className="btn" onClick={() => setBatchModal(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={submitBatch} disabled={batchSaving}>{batchSaving ? 'Saving...' : 'Save Casuals'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reactivateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 32, width: 640, maxHeight: '85vh', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Reactivate Casuals</div>
+              <button onClick={() => setReactivateModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#6b7280' }}>✕</button>
+            </div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Tick the exited casuals you want to set back to Active.</div>
+            <div style={{ overflowY: 'auto', maxHeight: '55vh', minHeight: 120, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {exitedCasuals.map(c => (
+                <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 6, cursor: 'pointer', background: reactivateSelected.includes(c.id) ? '#f0fdf4' : '#f9fafb' }}>
+                  <input type="checkbox" checked={reactivateSelected.includes(c.id)} onChange={() => toggleReactivate(c.id)} style={{ width: 16, height: 16, accentColor: '#1D9E75' }} />
+                  <span style={{ flex: 1, fontSize: 14 }}>{c.full_name}</span>
+                  <span style={{ fontSize: 12, color: '#6b7280' }}>{c.national_id || '—'}</span>
+                  <span style={{ fontSize: 12, color: '#6b7280', width: 160, textAlign: 'right' }}>{c.project || '—'} · {c.client || '—'}</span>
+                </label>
+              ))}
+              {!exitedCasuals.length && <div style={{ textAlign: 'center', color: '#6b7280', padding: 24 }}>No exited casuals to reactivate</div>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+              <span style={{ fontSize: 12, color: '#6b7280' }}>{reactivateSelected.length} selected</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" onClick={() => setReactivateModal(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={submitReactivate} disabled={reactivateSaving || !reactivateSelected.length}>{reactivateSaving ? 'Reactivating...' : 'Reactivate Selected'}</button>
+              </div>
             </div>
           </div>
         </div>
