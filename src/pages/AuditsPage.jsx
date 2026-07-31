@@ -318,7 +318,7 @@ export default function AuditsPage() {
             </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24, flex: 1, minHeight: 420 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr', gap: 24, marginBottom: 24, minHeight: 420 }}>
           <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <div className="card-header" style={{ alignItems: 'flex-start', gap: 16 }}>
               <div>
@@ -398,7 +398,7 @@ export default function AuditsPage() {
               </div>
               <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>This month vs. last</span>
             </div>
-            <div className="card-body" style={{ paddingTop: 20, flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', justifyContent: auditorPulse.length === 0 ? 'center' : 'flex-start' }}>
+            <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: auditorPulse.length === 0 ? 'center' : 'flex-start' }}>
               {auditorPulse.length === 0 ? (
                 <div style={{ color: '#6b7280', fontSize: 13, padding: '56px 0', textAlign: 'center' }}>No completed audits in this period</div>
               ) : (
