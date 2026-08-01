@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 
 const OPEN_STATUSES = 'requested,scheduled,pending';
+
+// Tabler icon per training type (SVG webfont, tinted to the theme navy). Matched
+// by exact course name; anything else (e.g. a new admin-added course) falls back
+// to a generic certificate icon.
+const COURSE_ICONS = {
+  'Defensive Driving': 'ti-car',
+  'Fall Arrest & Basic Rescue Technician': 'ti-parachute',
+  'Rope Rigging Technician': 'ti-mountain',
+  'General Safety and Pole Climbing': 'ti-ladder',
+  'Basic Competency and Safety in Power Systems': 'ti-bolt',
+  'Fire Fighting': 'ti-flame',
+  'First Aid': 'ti-first-aid-kit',
+  'Hazard Identification & Risk Assessment': 'ti-alert-triangle',
+};
+const courseIcon = (name) => COURSE_ICONS[name] || 'ti-certificate';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
@@ -24,6 +39,7 @@ export default function UpdateTrainingRecordsPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [hoveredId, setHoveredId] = useState(null);
 
   // Outcome modal
   const [modal, setModal] = useState(null); // the record being recorded
@@ -116,16 +132,42 @@ export default function UpdateTrainingRecordsPage() {
         {!selectedCourse && (
           <div className="card">
             <div className="card-header"><span className="card-title">Select a training type</span></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
-              {courses.map(c => (
-                <button key={c.id} className="table-hover-soft" onClick={() => selectCourse(c)}
-                  style={{ textAlign: 'left', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', background: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 14 }}>{c.name}</span>
-                  <span style={{ fontSize: 12, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
-                    {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
-                  </span>
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14, padding: 16 }}>
+              {courses.map(c => {
+                const hovered = hoveredId === c.id;
+                return (
+                  <button key={c.id}
+                    onClick={() => selectCourse(c)}
+                    onMouseEnter={() => setHoveredId(c.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    style={{
+                      textAlign: 'left', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '16px 18px', borderRadius: 14,
+                      border: `1.5px solid ${hovered ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                      background: hovered ? '#F0F7FF' : 'white',
+                      boxShadow: hovered ? '0 6px 18px rgba(4,44,83,0.12)' : '0 1px 2px rgba(0,0,0,0.04)',
+                      transform: hovered ? 'translateY(-2px)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}>
+                    <span style={{
+                      flexShrink: 0, width: 46, height: 46, borderRadius: 12,
+                      background: hovered ? 'var(--eg-navy)' : '#F0F7FF',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s ease',
+                    }}>
+                      <i className={`ti ${courseIcon(c.name)}`} style={{ fontSize: 24, color: hovered ? 'white' : 'var(--eg-navy)' }} aria-hidden="true"></i>
+                    </span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 14, lineHeight: 1.25 }}>{c.name}</span>
+                      <span style={{ fontSize: 12, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
+                        {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
+                      </span>
+                    </span>
+                    <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', fontSize: 18, color: hovered ? 'var(--eg-navy)' : '#cbd5e1', transition: 'all 0.15s ease' }} aria-hidden="true"></i>
+                  </button>
+                );
+              })}
               {courses.length === 0 && <div style={{ color: '#9ca3af', fontSize: 13 }}>No active training types.</div>}
             </div>
           </div>
