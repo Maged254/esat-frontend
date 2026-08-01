@@ -11,6 +11,7 @@ const ALL_PAGES = [
   { key: '/audit/new', label: 'New Audit' },
   { key: '/request-ppe', label: 'Request a PPE' },
   { key: '/training/request', label: 'Request a Training' },
+  { key: '/training/tracker', label: 'Trainings Tracker' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
