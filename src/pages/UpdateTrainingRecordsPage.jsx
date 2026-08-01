@@ -1,22 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
-import TRAINING_ICON_PATHS from '../trainingIcons';
+import TrainingIcon from '../components/TrainingIcon';
 
 const OPEN_STATUSES = 'requested,scheduled,pending';
-
-// The custom ETMS training icon for a course, drawn inline so it inherits
-// `color` (navy by default, white on hover). Falls back to a Tabler glyph for
-// any course without a bespoke icon (e.g. one added later in Admin).
-function TrainingIcon({ name, size = 40, color }) {
-  const icon = TRAINING_ICON_PATHS[name];
-  if (!icon) return <i className="ti ti-certificate" style={{ fontSize: size, color }} aria-hidden="true" />;
-  return (
-    <svg viewBox={icon.vb} width={size} height={size} style={{ color, display: 'block' }} aria-hidden="true" focusable="false">
-      <path fill="currentColor" fillRule="evenodd" d={icon.d} />
-    </svg>
-  );
-}
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
@@ -155,7 +142,7 @@ export default function UpdateTrainingRecordsPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
-                      <TrainingIcon name={c.name} size={70} color={hovered ? 'white' : 'var(--eg-navy)'} />
+                      <TrainingIcon iconKey={c.icon} name={c.name} size={70} color={hovered ? 'white' : 'var(--eg-navy)'} />
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
                       <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 17, lineHeight: 1.3 }}>{c.name}</span>

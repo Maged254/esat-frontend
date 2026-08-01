@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
 import PasswordInput from '../components/PasswordInput';
+import TrainingIcon, { TRAINING_ICON_LIST } from '../components/TrainingIcon';
 import { useAuth } from '../utils/AuthContext';
 
 
@@ -716,7 +717,7 @@ export default function AdminPage() {
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('training')}>
             <span className="card-title">Training Courses</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              {openSections.training && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingCourse('new'); setCourseForm({ name:'', validity_months:'', needs_certificate:true }); setCourseError(''); }}>+ Add Training</button>}
+              {openSections.training && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingCourse('new'); setCourseForm({ name:'', validity_months:'', needs_certificate:true, icon:'' }); setCourseError(''); }}>+ Add Training</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.training ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -740,7 +741,27 @@ export default function AdminPage() {
                   Requires certificate
                 </label>
                 <button className="btn btn-primary" style={{ fontSize:13 }} disabled={courseSaving} onClick={saveCourse}>{courseSaving ? 'Saving...' : 'Save'}</button>
-                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingCourse(null); setCourseForm({ name:'', validity_months:'', needs_certificate:true }); setCourseError(''); }}>Cancel</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingCourse(null); setCourseForm({ name:'', validity_months:'', needs_certificate:true, icon:'' }); setCourseError(''); }}>Cancel</button>
+              </div>
+              <div style={{ marginTop:14 }}>
+                <label className="form-label">Icon <span style={{ fontSize:11, color:'#6b7280', fontWeight:400 }}>— stays with the training even if you rename it</span></label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:6 }}>
+                  {TRAINING_ICON_LIST.map(opt => {
+                    const sel = courseForm.icon === opt.key;
+                    return (
+                      <button key={opt.key} type="button" title={opt.label}
+                        onClick={() => setCourseForm(f => ({ ...f, icon: sel ? '' : opt.key }))}
+                        style={{
+                          width:54, height:54, borderRadius:12, cursor:'pointer',
+                          border:`1.5px solid ${sel ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                          background: sel ? '#F0F7FF' : 'white',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                        }}>
+                        <TrainingIcon iconKey={opt.key} size={32} color="var(--eg-navy)" />
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -755,7 +776,14 @@ export default function AdminPage() {
             <tbody>
               {courses.filter(c => !courseSearch || c.name.toLowerCase().includes(courseSearch.toLowerCase())).map(c => (
                 <tr key={c.id}>
-                  <td style={{ fontWeight:500 }}>{c.name}</td>
+                  <td style={{ fontWeight:500 }}>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:10 }}>
+                      <span style={{ width:34, height:34, borderRadius:8, background:'#F0F7FF', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <TrainingIcon iconKey={c.icon} name={c.name} size={22} color="var(--eg-navy)" />
+                      </span>
+                      {c.name}
+                    </span>
+                  </td>
                   <td>{c.validity_months ? `${c.validity_months} mo` : <span style={{ color:'#9ca3af' }}>No expiry</span>}</td>
                   <td>{c.needs_certificate ? 'Required' : <span style={{ color:'#9ca3af' }}>—</span>}</td>
                   <td>{c.record_count > 0 ? c.record_count : <span style={{ color:'#9ca3af' }}>0</span>}</td>
