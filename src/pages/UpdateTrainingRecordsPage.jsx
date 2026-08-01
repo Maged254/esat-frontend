@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
+import TRAINING_ICON_PATHS from '../trainingIcons';
 
 const OPEN_STATUSES = 'requested,scheduled,pending';
 
-// Tabler icon per training type (SVG webfont, tinted to the theme navy). Matched
-// by exact course name; anything else (e.g. a new admin-added course) falls back
-// to a generic certificate icon.
-const COURSE_ICONS = {
-  'Defensive Driving': 'ti-car',
-  'Fall Arrest & Basic Rescue Technician': 'ti-parachute',
-  'Rope Rigging Technician': 'ti-mountain',
-  'General Safety and Pole Climbing': 'ti-ladder',
-  'Basic Competency and Safety in Power Systems': 'ti-bolt',
-  'Fire Fighting': 'ti-flame',
-  'First Aid': 'ti-first-aid-kit',
-  'Hazard Identification & Risk Assessment': 'ti-alert-triangle',
-};
-const courseIcon = (name) => COURSE_ICONS[name] || 'ti-certificate';
+// The custom ETMS training icon for a course, drawn inline so it inherits
+// `color` (navy by default, white on hover). Falls back to a Tabler glyph for
+// any course without a bespoke icon (e.g. one added later in Admin).
+function TrainingIcon({ name, size = 28, color }) {
+  const d = TRAINING_ICON_PATHS[name];
+  if (!d) return <i className="ti ti-certificate" style={{ fontSize: size, color }} aria-hidden="true" />;
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ color, display: 'block' }} aria-hidden="true" focusable="false">
+      <path fill="currentColor" fillRule="evenodd" d={d} />
+    </svg>
+  );
+}
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
@@ -156,7 +155,7 @@ export default function UpdateTrainingRecordsPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
-                      <i className={`ti ${courseIcon(c.name)}`} style={{ fontSize: 24, color: hovered ? 'white' : 'var(--eg-navy)' }} aria-hidden="true"></i>
+                      <TrainingIcon name={c.name} size={28} color={hovered ? 'white' : 'var(--eg-navy)'} />
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
                       <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 14, lineHeight: 1.25 }}>{c.name}</span>
