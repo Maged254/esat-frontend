@@ -51,7 +51,7 @@ export default function UpdateTrainingRecordsPage() {
   const openModal = (rec) => {
     setModal(rec);
     setOutcome('completed');
-    setForm({ completed_at: '', training_cost: '', partnership: '', pending_reason: '', scheduled_date: '', not_eligible_reason: '' });
+    setForm({ completed_at: '', pending_reason: '', scheduled_date: '', not_eligible_reason: '' });
     setError('');
   };
 
@@ -71,7 +71,7 @@ export default function UpdateTrainingRecordsPage() {
     if (!modal) return;
     setSaving(true); setError('');
     const payload = { status: outcome };
-    if (outcome === 'completed') { payload.completed_at = form.completed_at; payload.training_cost = form.training_cost; payload.partnership = form.partnership; }
+    if (outcome === 'completed') { payload.completed_at = form.completed_at; }
     else if (outcome === 'pending') payload.pending_reason = form.pending_reason;
     else if (outcome === 'scheduled') payload.scheduled_date = form.scheduled_date;
     else if (outcome === 'not_eligible') payload.not_eligible_reason = form.not_eligible_reason;
@@ -205,16 +205,6 @@ export default function UpdateTrainingRecordsPage() {
                   <label className="form-label">Completion Date <span style={{ color: '#e24b4a' }}>*</span></label>
                   <input className="form-input" type="date" value={form.completed_at} onChange={e => setForm(f => ({ ...f, completed_at: e.target.value }))} style={{ height: 38 }} />
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <div className="form-group" style={{ margin: 0, flex: 1 }}>
-                    <label className="form-label">Training Cost (KES)</label>
-                    <input className="form-input" type="number" min="0" value={form.training_cost} onChange={e => setForm(f => ({ ...f, training_cost: e.target.value }))} placeholder="optional" style={{ height: 38 }} />
-                  </div>
-                  <div className="form-group" style={{ margin: 0, flex: 1 }}>
-                    <label className="form-label">Partnership</label>
-                    <input className="form-input" value={form.partnership} onChange={e => setForm(f => ({ ...f, partnership: e.target.value }))} placeholder="optional" style={{ height: 38 }} />
-                  </div>
                 </div>
               </div>
             )}
