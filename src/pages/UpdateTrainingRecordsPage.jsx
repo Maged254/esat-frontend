@@ -131,7 +131,7 @@ export default function UpdateTrainingRecordsPage() {
         {!selectedCourse && (
           <div className="card">
             <div className="card-header"><span className="card-title">Select a training type</span></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 18, padding: 18 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18, padding: 20 }}>
               {courses.map(c => {
                 const hovered = hoveredId === c.id;
                 return (
@@ -140,30 +140,29 @@ export default function UpdateTrainingRecordsPage() {
                     onMouseEnter={() => setHoveredId(c.id)}
                     onMouseLeave={() => setHoveredId(null)}
                     style={{
-                      textAlign: 'left', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 18,
-                      padding: '22px 24px', borderRadius: 16,
+                      textAlign: 'center', cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                      padding: '32px 22px', borderRadius: 18,
                       border: `1.5px solid ${hovered ? 'var(--eg-navy)' : '#e5e7eb'}`,
                       background: hovered ? '#F0F7FF' : 'white',
-                      boxShadow: hovered ? '0 8px 22px rgba(4,44,83,0.14)' : '0 1px 2px rgba(0,0,0,0.04)',
-                      transform: hovered ? 'translateY(-2px)' : 'none',
+                      boxShadow: hovered ? '0 10px 26px rgba(4,44,83,0.16)' : '0 1px 2px rgba(0,0,0,0.04)',
+                      transform: hovered ? 'translateY(-3px)' : 'none',
                       transition: 'all 0.15s ease',
                     }}>
                     <span style={{
-                      flexShrink: 0, width: 76, height: 76, borderRadius: 18,
+                      flexShrink: 0, width: 112, height: 112, borderRadius: 28,
                       background: hovered ? 'var(--eg-navy)' : '#F0F7FF',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
-                      <TrainingIcon name={c.name} size={48} color={hovered ? 'white' : 'var(--eg-navy)'} />
+                      <TrainingIcon name={c.name} size={70} color={hovered ? 'white' : 'var(--eg-navy)'} />
                     </span>
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                      <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 16, lineHeight: 1.25 }}>{c.name}</span>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 17, lineHeight: 1.3 }}>{c.name}</span>
                       <span style={{ fontSize: 13, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
                         {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
                       </span>
                     </span>
-                    <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', fontSize: 20, color: hovered ? 'var(--eg-navy)' : '#cbd5e1', transition: 'all 0.15s ease' }} aria-hidden="true"></i>
                   </button>
                 );
               })}
