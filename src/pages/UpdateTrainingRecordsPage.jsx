@@ -8,12 +8,12 @@ const OPEN_STATUSES = 'requested,scheduled,pending';
 // The custom ETMS training icon for a course, drawn inline so it inherits
 // `color` (navy by default, white on hover). Falls back to a Tabler glyph for
 // any course without a bespoke icon (e.g. one added later in Admin).
-function TrainingIcon({ name, size = 28, color }) {
-  const d = TRAINING_ICON_PATHS[name];
-  if (!d) return <i className="ti ti-certificate" style={{ fontSize: size, color }} aria-hidden="true" />;
+function TrainingIcon({ name, size = 40, color }) {
+  const icon = TRAINING_ICON_PATHS[name];
+  if (!icon) return <i className="ti ti-certificate" style={{ fontSize: size, color }} aria-hidden="true" />;
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} style={{ color, display: 'block' }} aria-hidden="true" focusable="false">
-      <path fill="currentColor" fillRule="evenodd" d={d} />
+    <svg viewBox={icon.vb} width={size} height={size} style={{ color, display: 'block' }} aria-hidden="true" focusable="false">
+      <path fill="currentColor" fillRule="evenodd" d={icon.d} />
     </svg>
   );
 }
@@ -131,7 +131,7 @@ export default function UpdateTrainingRecordsPage() {
         {!selectedCourse && (
           <div className="card">
             <div className="card-header"><span className="card-title">Select a training type</span></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14, padding: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 18, padding: 18 }}>
               {courses.map(c => {
                 const hovered = hoveredId === c.id;
                 return (
@@ -141,29 +141,29 @@ export default function UpdateTrainingRecordsPage() {
                     onMouseLeave={() => setHoveredId(null)}
                     style={{
                       textAlign: 'left', cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      padding: '16px 18px', borderRadius: 14,
+                      display: 'flex', alignItems: 'center', gap: 18,
+                      padding: '22px 24px', borderRadius: 16,
                       border: `1.5px solid ${hovered ? 'var(--eg-navy)' : '#e5e7eb'}`,
                       background: hovered ? '#F0F7FF' : 'white',
-                      boxShadow: hovered ? '0 6px 18px rgba(4,44,83,0.12)' : '0 1px 2px rgba(0,0,0,0.04)',
+                      boxShadow: hovered ? '0 8px 22px rgba(4,44,83,0.14)' : '0 1px 2px rgba(0,0,0,0.04)',
                       transform: hovered ? 'translateY(-2px)' : 'none',
                       transition: 'all 0.15s ease',
                     }}>
                     <span style={{
-                      flexShrink: 0, width: 46, height: 46, borderRadius: 12,
+                      flexShrink: 0, width: 76, height: 76, borderRadius: 18,
                       background: hovered ? 'var(--eg-navy)' : '#F0F7FF',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.15s ease',
                     }}>
-                      <TrainingIcon name={c.name} size={28} color={hovered ? 'white' : 'var(--eg-navy)'} />
+                      <TrainingIcon name={c.name} size={48} color={hovered ? 'white' : 'var(--eg-navy)'} />
                     </span>
-                    <span style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
-                      <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 14, lineHeight: 1.25 }}>{c.name}</span>
-                      <span style={{ fontSize: 12, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
+                    <span style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                      <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 16, lineHeight: 1.25 }}>{c.name}</span>
+                      <span style={{ fontSize: 13, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
                         {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
                       </span>
                     </span>
-                    <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', fontSize: 18, color: hovered ? 'var(--eg-navy)' : '#cbd5e1', transition: 'all 0.15s ease' }} aria-hidden="true"></i>
+                    <i className="ti ti-chevron-right" style={{ marginLeft: 'auto', fontSize: 20, color: hovered ? 'var(--eg-navy)' : '#cbd5e1', transition: 'all 0.15s ease' }} aria-hidden="true"></i>
                   </button>
                 );
               })}
