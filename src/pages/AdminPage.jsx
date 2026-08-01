@@ -11,6 +11,7 @@ const ALL_PAGES = [
   { key: '/audit/new', label: 'New Audit' },
   { key: '/request-ppe', label: 'Request a PPE' },
   { key: '/training/request', label: 'Request a Training' },
+  { key: '/training/update', label: 'Update Training Records' },
   { key: '/training/tracker', label: 'Trainings Tracker' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
@@ -36,8 +37,31 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, reasons: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
+  // Pending reasons (admin-managed list used by the Update Training Records screen)
+  const [reasons, setReasons] = useState([]);
+  const [editingReason, setEditingReason] = useState(null); // id or 'new'
+  const [reasonForm, setReasonForm] = useState({ label: '' });
+  const [reasonSaving, setReasonSaving] = useState(false);
+  const [reasonError, setReasonError] = useState('');
+
+  const saveReason = async () => {
+    if (!reasonForm.label.trim()) { setReasonError('Reason is required'); return; }
+    setReasonSaving(true); setReasonError('');
+    try {
+      if (editingReason === 'new') {
+        const r = await api.post('/training-pending-reasons', { label: reasonForm.label.trim() });
+        setReasons(prev => [...prev, r.data]);
+      } else {
+        const r = await api.put('/training-pending-reasons/' + editingReason, { ...reasonForm, label: reasonForm.label.trim() });
+        setReasons(prev => prev.map(x => x.id === editingReason ? r.data : x));
+      }
+      setEditingReason(null); setReasonForm({ label: '' });
+    } catch(e) { setReasonError(e.response?.data?.error || 'Save failed'); }
+    setReasonSaving(false);
+  };
 
   // Training courses
   const [courses, setCourses] = useState([]);
@@ -154,6 +178,7 @@ export default function AdminPage() {
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
     api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
+    api.get('/training-pending-reasons?all=1').then(r => setReasons(r.data)).catch(logError);
   }, []);
 
   const handleImageChange = (e) => {
@@ -227,6 +252,7 @@ export default function AdminPage() {
     supervisor: <span className="tag tag-navy">Supervisor</span>,
     scm_officer: <span className="tag tag-gray">SCM Officer</span>,
     project_director: <span className="tag tag-purple">Project Director</span>,
+    hr: <span className="tag tag-green">HR</span>,
   };
 
   const Avatar = ({ user, size = 32 }) => {
@@ -302,6 +328,7 @@ export default function AdminPage() {
               <option value="supervisor">Supervisor</option>
               <option value="scm_officer">SCM Officer</option>
               <option value="project_director">Project Director</option>
+              <option value="hr">HR</option>
             </select>
             {(userSearch||userRoleFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setUserSearch('');setUserRoleFilter('');}}>✕ Clear</button>}
           </div>
@@ -350,6 +377,7 @@ export default function AdminPage() {
                     <option value="supervisor">Supervisor</option>
                     <option value="scm_officer">SCM Officer</option>
                     <option value="project_director">Project Director</option>
+                    <option value="hr">HR</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -756,6 +784,69 @@ export default function AdminPage() {
                 </tr>
               ))}
               {courses.length === 0 && <tr><td colSpan={6} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No trainings yet</td></tr>}
+            </tbody>
+          </table>
+          </>}
+        </div>
+
+        {/* Pending Reasons */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('reasons')}>
+            <span className="card-title">Training Pending Reasons</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.reasons && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingReason('new'); setReasonForm({ label:'' }); setReasonError(''); }}>+ Add Reason</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.reasons ? '▲' : '▼'}</span>
+            </div>
+          </div>
+
+          {openSections.reasons && <>
+          <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>Shown as a dropdown when HR marks a training request <b>Pending</b> on the Update Training Records screen.</div>
+          {editingReason && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingReason === 'new' ? 'New Reason' : 'Edit Reason'}</div>
+              {reasonError && <div style={{ background:'#FCEBEB', color:'#A32D2D', padding:'8px 12px', borderRadius:6, marginBottom:10, fontSize:13 }}>{reasonError}</div>}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
+                <div className="form-group" style={{ margin:0, flex:1 }}>
+                  <label className="form-label">Reason</label>
+                  <input className="form-input" value={reasonForm.label} onChange={e => setReasonForm(f => ({...f, label: e.target.value}))} placeholder="e.g. Awaiting training provider schedule" />
+                </div>
+                <button className="btn btn-primary" style={{ fontSize:13 }} disabled={reasonSaving} onClick={saveReason}>{reasonSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingReason(null); setReasonForm({ label:'' }); setReasonError(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <table>
+            <thead><tr><th>Reason</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {reasons.map(r => (
+                <tr key={r.id}>
+                  <td style={{ fontWeight:500 }}>{r.label}</td>
+                  <td><span className={`tag ${r.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={() => { setEditingReason(r.id); setReasonForm({ ...r }); setReasonError(''); }}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            const res = await api.put('/training-pending-reasons/' + r.id, { ...r, is_active: !r.is_active });
+                            setReasons(prev => prev.map(x => x.id === r.id ? res.data : x));
+                          } catch(e) { alert(e.response?.data?.error || 'Failed to update'); }
+                        }}>{r.is_active ? 'Deactivate' : 'Activate'}</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete "${r.label}"?`)) return;
+                          try {
+                            await api.delete('/training-pending-reasons/' + r.id);
+                            setReasons(prev => prev.filter(x => x.id !== r.id));
+                          } catch(e) { alert(e.response?.data?.error || 'Delete failed'); }
+                        }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {reasons.length === 0 && <tr><td colSpan={3} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No pending reasons yet</td></tr>}
             </tbody>
           </table>
           </>}

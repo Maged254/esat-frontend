@@ -16,6 +16,7 @@ const NAV = [
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/request-ppe', label: 'Request a PPE/Tool', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/training/request', label: 'Request a Training', icon: 'ti-certificate', roles: ['admin','ehs_manager'] },
+  { to: '/training/update', label: 'Update Training Records', icon: 'ti-clipboard-check', roles: ['admin','hr'] },
   { section: 'Trackers', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/history', label: 'Audit/Request History', icon: 'ti-history', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
