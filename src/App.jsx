@@ -21,6 +21,7 @@ import RepeatRequestsPage from './pages/RepeatRequestsPage';
 import AuditCoveragePage from './pages/AuditCoveragePage';
 import CasualsPage from './pages/CasualsPage';
 import RequestPPEPage from './pages/RequestPPEPage';
+import RequestTrainingPage from './pages/RequestTrainingPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
 
 function ProtectedRoute({ children, roles }) {
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="casuals" element={<PageGuard pageKey="/casuals"><CasualsPage /></PageGuard>} />
             <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="request-ppe" element={<PageGuard pageKey="/request-ppe"><RequestPPEPage /></PageGuard>} />
+            <Route path="training/request" element={<PageGuard pageKey="/training/request"><RequestTrainingPage /></PageGuard>} />
             <Route path="audit/new/:employeeId" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="history" element={<PageGuard pageKey="/history"><AuditHistoryPage /></PageGuard>} />
             <Route path="audit-coverage" element={<PageGuard pageKey="/audit-coverage"><AuditCoveragePage /></PageGuard>} />

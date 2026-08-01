@@ -10,6 +10,7 @@ const ALL_PAGES = [
   { key: '/casuals', label: 'Casuals' },
   { key: '/audit/new', label: 'New Audit' },
   { key: '/request-ppe', label: 'Request a PPE' },
+  { key: '/training/request', label: 'Request a Training' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
@@ -34,8 +35,37 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
+  // Training courses
+  const [courses, setCourses] = useState([]);
+  const [courseSearch, setCourseSearch] = useState('');
+  const [editingCourse, setEditingCourse] = useState(null); // id or 'new'
+  const [courseForm, setCourseForm] = useState({ name: '', validity_months: '', needs_certificate: true });
+  const [courseSaving, setCourseSaving] = useState(false);
+  const [courseError, setCourseError] = useState('');
+
+  const saveCourse = async () => {
+    if (!courseForm.name.trim()) { setCourseError('Training name is required'); return; }
+    setCourseSaving(true); setCourseError('');
+    // Blank validity = no expiry (NULL); otherwise a positive whole number.
+    const vm = courseForm.validity_months === '' || courseForm.validity_months === null
+      ? null : parseInt(courseForm.validity_months, 10);
+    if (vm !== null && (isNaN(vm) || vm <= 0)) { setCourseSaving(false); setCourseError('Validity must be a positive number of months, or blank'); return; }
+    const payload = { ...courseForm, name: courseForm.name.trim(), validity_months: vm };
+    try {
+      if (editingCourse === 'new') {
+        const r = await api.post('/training-courses', payload);
+        setCourses(prev => [...prev, r.data]);
+      } else {
+        const r = await api.put('/training-courses/' + editingCourse, payload);
+        setCourses(prev => prev.map(c => c.id === editingCourse ? r.data : c));
+      }
+      setEditingCourse(null); setCourseForm({ name: '', validity_months: '', needs_certificate: true });
+    } catch(e) { setCourseError(e.response?.data?.error || 'Save failed'); }
+    setCourseSaving(false);
+  };
 
   // Locations
   const [locations, setLocations] = useState([]);
@@ -122,6 +152,7 @@ export default function AdminPage() {
     }).catch(logError);
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
+    api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
   }, []);
 
   const handleImageChange = (e) => {
@@ -646,6 +677,84 @@ export default function AdminPage() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+          </>}
+        </div>
+
+        {/* Training Courses */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('training')}>
+            <span className="card-title">Training Courses</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.training && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingCourse('new'); setCourseForm({ name:'', validity_months:'', needs_certificate:true }); setCourseError(''); }}>+ Add Training</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.training ? '▲' : '▼'}</span>
+            </div>
+          </div>
+
+          {openSections.training && <>
+          {editingCourse && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingCourse === 'new' ? 'New Training' : 'Edit Training'}</div>
+              {courseError && <div style={{ background:'#FCEBEB', color:'#A32D2D', padding:'8px 12px', borderRadius:6, marginBottom:10, fontSize:13 }}>{courseError}</div>}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
+                <div className="form-group" style={{ margin:0, flex:'1 1 260px' }}>
+                  <label className="form-label">Training Name</label>
+                  <input className="form-input" value={courseForm.name} onChange={e => setCourseForm(f => ({...f, name: e.target.value}))} placeholder="e.g. Working at Heights" />
+                </div>
+                <div className="form-group" style={{ margin:0, width:170 }}>
+                  <label className="form-label">Validity (months)</label>
+                  <input className="form-input" type="number" min="1" value={courseForm.validity_months ?? ''} onChange={e => setCourseForm(f => ({...f, validity_months: e.target.value}))} placeholder="blank = no expiry" />
+                </div>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, height:38, whiteSpace:'nowrap' }}>
+                  <input type="checkbox" checked={courseForm.needs_certificate !== false} onChange={e => setCourseForm(f => ({...f, needs_certificate: e.target.checked}))} style={{ width:16, height:16, accentColor:'#1D9E75' }} />
+                  Requires certificate
+                </label>
+                <button className="btn btn-primary" style={{ fontSize:13 }} disabled={courseSaving} onClick={saveCourse}>{courseSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingCourse(null); setCourseForm({ name:'', validity_months:'', needs_certificate:true }); setCourseError(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginBottom:12 }}>
+            <input className="form-input" style={{ height:32, padding:'4px 10px', fontSize:13, width:220 }}
+              placeholder="Search trainings..." value={courseSearch} onChange={e => setCourseSearch(e.target.value)} />
+          </div>
+
+          <table>
+            <thead><tr><th>Training Name</th><th>Validity</th><th>Certificate</th><th>Records</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {courses.filter(c => !courseSearch || c.name.toLowerCase().includes(courseSearch.toLowerCase())).map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight:500 }}>{c.name}</td>
+                  <td>{c.validity_months ? `${c.validity_months} mo` : <span style={{ color:'#9ca3af' }}>No expiry</span>}</td>
+                  <td>{c.needs_certificate ? 'Required' : <span style={{ color:'#9ca3af' }}>—</span>}</td>
+                  <td>{c.record_count > 0 ? c.record_count : <span style={{ color:'#9ca3af' }}>0</span>}</td>
+                  <td><span className={`tag ${c.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{c.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={() => { setEditingCourse(c.id); setCourseForm({ ...c, validity_months: c.validity_months ?? '' }); setCourseError(''); }}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            const r = await api.put('/training-courses/' + c.id, { ...c, is_active: !c.is_active });
+                            setCourses(prev => prev.map(x => x.id === c.id ? r.data : x));
+                          } catch(e) { alert(e.response?.data?.error || 'Failed to update'); }
+                        }}>{c.is_active ? 'Deactivate' : 'Activate'}</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete "${c.name}"?`)) return;
+                          try {
+                            await api.delete('/training-courses/' + c.id);
+                            setCourses(prev => prev.filter(x => x.id !== c.id));
+                          } catch(e) { alert(e.response?.data?.error || 'Delete failed'); }
+                        }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {courses.length === 0 && <tr><td colSpan={6} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No trainings yet</td></tr>}
             </tbody>
           </table>
           </>}
