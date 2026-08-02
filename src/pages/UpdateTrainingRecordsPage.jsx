@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
+import DateInput from '../components/DateInput';
 
 const OPEN_STATUSES = 'requested,scheduled,pending';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
@@ -442,7 +443,7 @@ export default function UpdateTrainingRecordsPage() {
                 )}
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">{isRenew ? 'New Completion Date' : 'Completion Date'} <span style={{ color: '#e24b4a' }}>*</span></label>
-                  <input className="form-input" type="date" value={form.completed_at} onChange={e => setForm(f => ({ ...f, completed_at: e.target.value }))} style={{ height: 38 }} />
+                  <DateInput value={form.completed_at} onChange={v => setForm(f => ({ ...f, completed_at: v }))} style={{ height: 38 }} />
                   {renewDateInvalid &&
                     <div style={{ fontSize: 12, color: '#c0392b', marginTop: 6 }}>The renewal must be dated after the previous completion ({fmtDate(modal.completed_at)}).</div>}
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
@@ -464,7 +465,7 @@ export default function UpdateTrainingRecordsPage() {
             {outcome === 'scheduled' && (
               <div className="form-group" style={{ margin: 0 }}>
                 <label className="form-label">Scheduled Date <span style={{ color: '#e24b4a' }}>*</span></label>
-                <input className="form-input" type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} style={{ height: 38 }} />
+                <DateInput value={form.scheduled_date} onChange={v => setForm(f => ({ ...f, scheduled_date: v }))} style={{ height: 38 }} />
               </div>
             )}
 

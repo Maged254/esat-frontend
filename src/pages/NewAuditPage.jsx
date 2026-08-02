@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api, { logError } from '../utils/api';
+import DateInput from '../components/DateInput';
 
 const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'];
 const SHOE_SIZES = ['38','39','40','41','42','43','44','45','46'];
@@ -427,7 +428,7 @@ export default function NewAuditPage() {
             <div className="form-grid" style={{ borderBottom: '0.5px solid #e5e7eb' }}>
                 <div className="form-group">
                   <label className="form-label">Audit date</label>
-                  <input className="form-input" type="date" value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
+                  <DateInput value={auditDate} readOnly style={{background:"#f3f4f6",cursor:"not-allowed",color:"#6b7280",height:38}} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Audited by</label>
