@@ -325,7 +325,7 @@ export default function AdminPage() {
           <span className="topbar-title">Admin Panel</span>
         </div>
       </div>
-      <div className="content">
+      <div className="content admin-content">
 
         {/* User Management */}
         <div className="card" style={{ marginBottom: 24 }}>
