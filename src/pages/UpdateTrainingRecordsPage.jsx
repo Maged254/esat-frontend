@@ -137,8 +137,8 @@ export default function UpdateTrainingRecordsPage() {
         else if (sub === 'exited') base.employment_status = 'exit';
       }
     }
-    // Pending-reason filter (narrows to the matching pending records).
-    if (filters.pending_reason) base.pending_reason = filters.pending_reason;
+    // Pending-reason filter — only meaningful (and only shown) on All Records / All Pending.
+    if (filters.pending_reason && (filters.group === 'all' || filters.group === 'outstanding')) base.pending_reason = filters.pending_reason;
     return appendPeopleFilters(new URLSearchParams(base));
   };
 
@@ -396,10 +396,12 @@ export default function UpdateTrainingRecordsPage() {
                         <option value="archived:exited">Exited employee</option>
                       </optgroup>
                     </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.pending_reason} onChange={e => setFilters(p => ({ ...p, pending_reason: e.target.value }))} title="Pending reason">
-                      <option value="">All pending reasons</option>
-                      {reasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
-                    </select>
+                    {(filters.group === 'all' || filters.group === 'outstanding') && (
+                      <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.pending_reason} onChange={e => setFilters(p => ({ ...p, pending_reason: e.target.value }))} title="Pending reason">
+                        <option value="">All pending reasons</option>
+                        {reasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
+                      </select>
+                    )}
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
                   </div>
                 </div>
