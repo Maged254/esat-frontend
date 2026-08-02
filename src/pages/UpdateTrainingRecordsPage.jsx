@@ -293,7 +293,7 @@ export default function UpdateTrainingRecordsPage() {
                       {/* Snapshot: how many valid certificates, and how many still pending. */}
                       <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
                         {summary[c.id]?.valid > 0 && <span className="tag tag-green">{summary[c.id].valid} valid</span>}
-                        {summary[c.id]?.outstanding > 0 && <span className="tag tag-navy">{summary[c.id].outstanding} pending</span>}
+                        {summary[c.id]?.outstanding > 0 && <span className="tag tag-red">{summary[c.id].outstanding} pending</span>}
                       </span>
                     </span>
                   </button>
@@ -323,7 +323,7 @@ export default function UpdateTrainingRecordsPage() {
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {[
                     { key: 'valid', label: 'Valid', value: stats.grp_valid || 0, tag: 'tag-green' },
-                    { key: 'outstanding', label: 'Pending', value: stats.grp_outstanding || 0, tag: 'tag-navy' },
+                    { key: 'outstanding', label: 'Pending', value: stats.grp_outstanding || 0, tag: 'tag-red' },
                     { key: 'expiring', label: 'Expiring ≤60d', value: stats.grp_expiring || 0, tag: 'tag-amber' },
                   ].map(chip => (
                     <button key={chip.key} onClick={() => setFilters(p => ({ ...p, group: chip.key }))}
