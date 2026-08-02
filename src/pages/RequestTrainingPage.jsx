@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
+import TrainingIcon from '../components/TrainingIcon';
 
 // Statuses that count as an "open" request -- must match the partial unique
 // index on the backend (one_open_training_request_employee), so the list of
@@ -149,7 +150,7 @@ export default function RequestTrainingPage() {
         <div className="topbar-right">
           <button className="btn" onClick={() => navigate(-1)}>✕ Cancel</button>
           {step === 2 && (
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting || selectedCourseIds.length === 0}>
+            <button className={`btn ${selectedCourseIds.length > 0 ? 'btn-primary' : ''}`} onClick={handleSubmit} disabled={submitting || selectedCourseIds.length === 0} style={selectedCourseIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>
               ✓ {submitting ? 'Submitting...' : selectedCourseIds.length > 0 ? `Submit ${selectedCourseIds.length} Request${selectedCourseIds.length === 1 ? '' : 's'}` : 'Submit Request'}
             </button>
           )}
@@ -269,19 +270,23 @@ export default function RequestTrainingPage() {
               ) : openRequests.length === 0 ? (
                 <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>No open training requests for this employee.</div>
               ) : (
-                <table className="table-hover-soft">
-                  <thead><tr><th>Training Type</th><th>Status</th><th>Requested</th><th>Requested by</th></tr></thead>
-                  <tbody>
-                    {openRequests.map(r => (
-                      <tr key={r.id}>
-                        <td>{r.course_name}</td>
-                        <td><span className="tag" style={{ background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' }}>{r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : ''}</span></td>
-                        <td>{r.requested_at ? new Date(r.requested_at).toLocaleDateString('en-GB') : '—'}</td>
-                        <td>{r.requested_by_name || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
+                  {openRequests.map(r => (
+                    <div key={r.id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <TrainingIcon iconKey={courses.find(c => c.name === r.course_name)?.icon} name={r.course_name} size={36} color="var(--eg-navy)" />
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</span>
+                      </div>
+                      <span className="tag" style={{ alignSelf: 'flex-start', background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' }}>{r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : ''}</span>
+                      <div style={{ fontSize: 11, color: '#9ca3af', borderTop: '0.5px solid #f0f0f0', paddingTop: 8 }}>
+                        <div>Requested by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.requested_by_name || '—'}</b></div>
+                        <div style={{ marginTop: 2 }}>{r.requested_at ? new Date(r.requested_at).toLocaleDateString('en-GB') : '—'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -296,9 +301,9 @@ export default function RequestTrainingPage() {
                   {validationErrors.map((e, i) => <div key={i} style={{ color: '#c0392b', fontSize: 13, marginBottom: i < validationErrors.length - 1 ? 6 : 0 }}>⚠ {e}</div>)}
                 </div>
               )}
-              <div style={{ padding: '8px 0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, padding: 16 }}>
                 {courses.length === 0 && (
-                  <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>No training types available.</div>
+                  <div style={{ fontSize: 13, color: '#9ca3af' }}>No training types available.</div>
                 )}
                 {courses.map(c => {
                   const isOpen = openCourseIds.has(c.id);
@@ -306,12 +311,16 @@ export default function RequestTrainingPage() {
                   return (
                     <label
                       key={c.id}
-                      className={isOpen ? '' : 'table-hover-soft'}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '10px 16px', borderBottom: '0.5px solid #f0f0f0',
+                        position: 'relative',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                        textAlign: 'center', padding: '24px 14px 16px', borderRadius: 14,
+                        border: `1.5px solid ${checked ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                        background: checked ? '#F0F7FF' : 'white',
+                        boxShadow: checked ? 'var(--wf-shadow-hover)' : 'none',
                         cursor: isOpen ? 'not-allowed' : 'pointer',
                         opacity: isOpen ? 0.55 : 1,
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       <input
@@ -319,9 +328,12 @@ export default function RequestTrainingPage() {
                         checked={checked}
                         disabled={isOpen}
                         onChange={() => toggleCourse(c.id)}
-                        style={{ width: 18, height: 18, accentColor: '#1D9E75', flexShrink: 0, cursor: isOpen ? 'not-allowed' : 'pointer' }}
+                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: isOpen ? 'not-allowed' : 'pointer' }}
                       />
-                      <span style={{ fontSize: 14, color: '#0f2a4a', flex: 1 }}>{c.name}</span>
+                      <span style={{ flexShrink: 0, width: 62, height: 62, borderRadius: 16, background: checked ? 'var(--eg-navy)' : '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}>
+                        <TrainingIcon iconKey={c.icon} name={c.name} size={40} color={checked ? 'white' : 'var(--eg-navy)'} />
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{c.name}</span>
                       {c.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
                       {isOpen && <span className="tag" style={{ background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' }}>Already requested</span>}
                     </label>
