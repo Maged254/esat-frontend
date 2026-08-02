@@ -11,13 +11,13 @@ const STATUS_TAG = {
   completed: 'tag-green', cancelled: 'tag-red', cancel: 'tag-red', not_eligible: 'tag-gray', exit: 'tag-gray',
 };
 
-// Views that are really "completed" filtered by the derived expiry state, so the
-// dropdown can offer Valid / Expiring / Expired without inventing a status value.
-const EXPIRY_VIEWS = { valid: 'valid', expiring: 'expiring', expired: 'expired', superseded: 'superseded' };
+// Completed records narrowed by the derived expiry state. NB "expired" is NOT
+// here: it maps to the renewal REQUESTS, not completed certs (handled in rowParams).
+const EXPIRY_VIEWS = { valid: 'valid', expiring: 'expiring', superseded: 'superseded' };
 const VIEW_TITLE = {
   '': 'Employees with an open request', all: 'All records',
   valid: 'Valid certificates', expiring: 'Expiring within 60 days',
-  expired: 'Expired certificates', superseded: 'Previous certificates',
+  expired: 'Expired — renewal requested', superseded: 'Previous certificates',
   completed: 'Completed records',
 };
 
@@ -106,16 +106,22 @@ export default function UpdateTrainingRecordsPage() {
   };
 
   const rowParams = (courseId) => {
-    // No status picked → the open requests to action; otherwise the chosen status
-    // (e.g. Completed, so a valid certificate can be corrected). Expired/Expiring/
-    // Renewed are completed records narrowed by the derived expiry state.
     const cs = filters.current_status;
     const view = EXPIRY_VIEWS[cs];
     const base = { course_id: courseId, page: '1', pageSize: '100' };
-    // 'all' → no status filter (every record); an expiry view → completed + that
-    // bucket; '' → the open-request worklist; otherwise the literal status.
-    if (view) base.status = 'completed';
-    else if (cs !== 'all') base.status = cs || OPEN_STATUSES;
+    // Everywhere but "All records", the raw expired certificate line is hidden
+    // (its renewal request stands in for it in the working views).
+    if (cs !== 'all') base.hide_expired_cert = '1';
+    if (cs === 'expired') {
+      base.expiry = 'renewal_due';        // → the renewal requests (Status Requested + "Expired on")
+    } else if (view) {
+      base.status = 'completed';          // valid / expiring / superseded certs
+    } else if (cs === '') {
+      base.status = OPEN_STATUSES;        // default worklist = genuine new requests only
+      base.new_only = '1';
+    } else if (cs !== 'all') {
+      base.status = cs;                   // requested / scheduled / pending / not_eligible / cancelled
+    }
     const p = new URLSearchParams(base);
     if (view) p.append('expiry', view);
     if (filters.search) p.append('search', filters.search);
@@ -310,8 +316,8 @@ export default function UpdateTrainingRecordsPage() {
               {stats && (
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {[
-                    { key: '', label: 'Open requests', value: (stats.requested || 0) + (stats.scheduled || 0) + (stats.pending || 0), tag: 'tag-navy' },
-                    { key: 'expired', label: 'Expired', value: stats.expired || 0, tag: 'tag-red' },
+                    { key: '', label: 'Open requests', value: stats.open || 0, tag: 'tag-navy' },
+                    { key: 'expired', label: 'Expired', value: stats.renewal_due || 0, tag: 'tag-red' },
                     { key: 'expiring', label: 'Expiring ≤60d', value: stats.expiring || 0, tag: 'tag-amber' },
                   ].map(chip => (
                     <button key={chip.key || 'open'} onClick={() => setFilters(p => ({ ...p, current_status: chip.key }))}
@@ -424,9 +430,9 @@ export default function UpdateTrainingRecordsPage() {
                           // History: the renewal request / current cert is the row to act on.
                           ? <span style={{ fontSize: 11, color: '#9ca3af' }}>History</span>
                           : r.expiry_state === 'expired'
-                            // Expired certs auto-open a renewal request (recorded from the
-                            // Open-requests view); here only correction is offered.
-                            ? <button className="btn btn-sm" title="Correct this certificate" onClick={() => openModal(r)}>Edit</button>
+                            // Reference line (All records only). The renewal happens on its
+                            // auto-opened request under Expired, so no action here.
+                            ? <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
                             : r.expiry_state === 'expiring'
                               // Not expired yet: allow a proactive early renewal.
                               ? <>
