@@ -95,10 +95,25 @@ export default function UpdateTrainingRecordsPage() {
   const [error, setError] = useState('');
   const [certFile, setCertFile] = useState(null);   // certificate picked in the modal
   const [certHas, setCertHas] = useState(false);     // record already has a certificate
+  const [certPreview, setCertPreview] = useState(null); // record whose certificate is being viewed
 
   // Signed-download URL for a record's certificate (token as query param so a
-  // plain <a> works; the endpoint redirects to a short-lived Cloudinary URL).
-  const certUrl = (id) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
+  // plain <img>/<iframe> works; the endpoint redirects to a short-lived URL).
+  const certUrl = (id, preview) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?${preview ? 'preview=1&' : ''}token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
+  const isImageCert = (name) => !name || /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name);
+
+  // Download via blob so the filename is preserved (mirrors the audit-doc viewer).
+  const downloadCert = async (rec) => {
+    const token = localStorage.getItem('esat_token');
+    try {
+      const res = await fetch(certUrl(rec.id), { headers: { Authorization: 'Bearer ' + token } });
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = rec.original_filename || `certificate-${rec.id}`;
+      a.click(); window.URL.revokeObjectURL(url);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     // ?manage=1 → admin sees all; HR sees only the courses assigned to them.
@@ -470,7 +485,7 @@ export default function UpdateTrainingRecordsPage() {
                         {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                         {r.status === 'completed' && (r.has_certificate
-                          ? <a href={certUrl(r.id)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2 }}>📎 Certificate</a>
+                          ? <button type="button" onClick={() => setCertPreview(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
                           : (r.needs_certificate ? <div style={{ fontSize: 11, color: '#B26B00', marginTop: 2 }}>No certificate</div> : ''))}
                         {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
                         {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
@@ -503,6 +518,24 @@ export default function UpdateTrainingRecordsPage() {
           </>
         )}
       </div>
+
+      {/* Certificate preview (mirrors the audit-report viewer) */}
+      {certPreview && (
+        <div onClick={() => setCertPreview(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 20, maxWidth: '80vw', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f2a4a' }}>{selectedCourse?.name} — Certificate<div style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>{certPreview.employee_name}{certPreview.original_filename ? ` · ${certPreview.original_filename}` : ''}</div></div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button className="btn btn-sm" onClick={() => downloadCert(certPreview)}>↓ Download</button>
+                <button className="btn btn-sm" onClick={() => setCertPreview(null)}>✕ Close</button>
+              </div>
+            </div>
+            {isImageCert(certPreview.original_filename)
+              ? <img src={certUrl(certPreview.id, true)} alt="Certificate" style={{ maxWidth: '100%', maxHeight: '74vh', borderRadius: 8, display: 'block' }} />
+              : <iframe title="Certificate" src={certUrl(certPreview.id)} style={{ width: '78vw', height: '74vh', border: 'none', borderRadius: 8 }} />}
+          </div>
+        </div>
+      )}
 
       {/* Outcome modal */}
       {modal && (
@@ -548,7 +581,7 @@ export default function UpdateTrainingRecordsPage() {
                   <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
                   {certHas && !certFile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
-                      <a href={certUrl(modal.id)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--eg-navy)', fontWeight: 600 }}>📎 View current certificate</a>
+                      <button type="button" onClick={() => setCertPreview(modal)} style={{ color: 'var(--eg-navy)', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13 }}>📎 View current certificate</button>
                       <button type="button" className="btn btn-sm" style={{ color: '#c0392b' }} disabled={saving} onClick={removeCert}>Remove</button>
                     </div>
                   )}
