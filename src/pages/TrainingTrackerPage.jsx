@@ -85,13 +85,15 @@ export default function TrainingTrackerPage() {
   const renderExpiry = (r) => {
     if (r.status !== 'completed' || !r.expiry_date) return <span style={{ color: '#9ca3af' }}>—</span>;
     const state = r.expiry_state; // 'valid' | 'expiring' | 'expired' | 'superseded'
-    // A superseded record was renewed: it is history, so it counts as neither
-    // valid nor expired and carries no countdown.
+    // A superseded record was renewed over: it is history, so it counts as
+    // neither valid nor expired and carries no countdown -- but it keeps its own
+    // label (an expired cert stays "Expired"), just muted.
     if (state === 'superseded') {
+      const wasExpired = new Date(r.expiry_date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ color: '#9ca3af' }}>{fmtDate(r.expiry_date)}</span>
-          <span className="tag tag-gray" style={{ fontSize: 10, alignSelf: 'flex-start' }}>Renewed</span>
+          <span className="tag tag-gray" style={{ fontSize: 10, alignSelf: 'flex-start' }}>{wasExpired ? 'Expired · previous' : 'Previous'}</span>
         </div>
       );
     }

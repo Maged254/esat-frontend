@@ -12,31 +12,46 @@ const STATUS_TAG = {
 };
 
 // Views that are really "completed" filtered by the derived expiry state, so the
-// dropdown can offer Expired / Expiring without inventing a status value.
-const EXPIRY_VIEWS = { expired: 'expired', expiring: 'expiring', superseded: 'superseded' };
-const VIEW_TITLE = { expired: 'Expired certificates', expiring: 'Expiring within 60 days', superseded: 'Renewed (history)' };
+// dropdown can offer Valid / Expiring / Expired without inventing a status value.
+const EXPIRY_VIEWS = { valid: 'valid', expiring: 'expiring', expired: 'expired', superseded: 'superseded' };
+const VIEW_TITLE = {
+  '': 'Employees with an open request', all: 'All records',
+  valid: 'Valid certificates', expiring: 'Expiring within 60 days',
+  expired: 'Expired certificates', superseded: 'Previous certificates',
+  completed: 'Completed records',
+};
+
+// Was this certificate already past its expiry? A superseded record keeps its
+// real state ("Expired"), so we need this rather than the live expiry bucket
+// (which excludes superseded rows on purpose).
+const isPastExpiry = (r) => r.expiry_date && new Date(r.expiry_date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
 
 // A completed record is shown by its expiry state, not a flat green "Completed" --
-// an expired certificate must never read as fine at a glance.
+// an expired certificate must never read as fine at a glance. A superseded
+// (renewed-over) record is history: it keeps its own state, just muted.
 const rowTag = (r) => {
   if (r.status !== 'completed') return STATUS_TAG[r.status] || 'tag-gray';
+  if (r.expiry_state === 'superseded') return 'tag-gray';
   if (r.expiry_state === 'expired') return 'tag-red';
   if (r.expiry_state === 'expiring') return 'tag-amber';
-  if (r.expiry_state === 'superseded') return 'tag-gray';
   return 'tag-green';
 };
 const rowLabel = (r) => {
   if (r.status !== 'completed') return titleCase(r.status);
+  // History keeps the label it earned -- an expired cert stays "Expired", it is
+  // never relabelled "Renewed"; the renewal is the separate new record.
+  if (r.expiry_state === 'superseded') return isPastExpiry(r) ? 'Expired' : 'Previous';
   if (r.expiry_state === 'expired') return 'Expired';
   if (r.expiry_state === 'expiring') return 'Expiring Soon';
-  if (r.expiry_state === 'superseded') return 'Renewed';
   return 'Completed';
 };
 const rowExpiryNote = (r) => {
   if (r.status !== 'completed' || !r.expiry_date) return null;
+  if (r.expiry_state === 'superseded') return isPastExpiry(r)
+    ? { text: `Expired on ${fmtDate(r.expiry_date)}`, color: '#9ca3af' }
+    : { text: `Superseded · was valid to ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
   if (r.expiry_state === 'expired') return { text: `Expired ${fmtDate(r.expiry_date)}`, color: '#c0392b' };
   if (r.expiry_state === 'expiring') return { text: `Expires ${fmtDate(r.expiry_date)}`, color: '#B26B00' };
-  if (r.expiry_state === 'superseded') return { text: `Superseded — was valid to ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
   return { text: `Valid until ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
 };
 const toInputDate = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
@@ -94,8 +109,14 @@ export default function UpdateTrainingRecordsPage() {
     // No status picked → the open requests to action; otherwise the chosen status
     // (e.g. Completed, so a valid certificate can be corrected). Expired/Expiring/
     // Renewed are completed records narrowed by the derived expiry state.
-    const view = EXPIRY_VIEWS[filters.current_status];
-    const p = new URLSearchParams({ course_id: courseId, status: view ? 'completed' : (filters.current_status || OPEN_STATUSES), page: '1', pageSize: '100' });
+    const cs = filters.current_status;
+    const view = EXPIRY_VIEWS[cs];
+    const base = { course_id: courseId, page: '1', pageSize: '100' };
+    // 'all' → no status filter (every record); an expiry view → completed + that
+    // bucket; '' → the open-request worklist; otherwise the literal status.
+    if (view) base.status = 'completed';
+    else if (cs !== 'all') base.status = cs || OPEN_STATUSES;
+    const p = new URLSearchParams(base);
     if (view) p.append('expiry', view);
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
@@ -176,7 +197,7 @@ export default function UpdateTrainingRecordsPage() {
     try {
       if (isRenew) {
         await api.post(`/training-records/${modal.id}/renew`, { completed_at: form.completed_at });
-        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} renewed. The previous certificate is kept as history.`);
+        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} renewed. The previous (expired) certificate stays on file as history.`);
       } else {
         const payload = { status: outcome };
         if (outcome === 'completed') { payload.completed_at = form.completed_at; }
@@ -340,17 +361,25 @@ export default function UpdateTrainingRecordsPage() {
                       <option value="">All Clients</option>
                       {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
                     </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.current_status} onChange={e => setFilters(p => ({ ...p, current_status: e.target.value }))} title="Training status">
-                      <option value="">Open requests</option>
-                      <option value="requested">Requested</option>
-                      <option value="scheduled">Scheduled</option>
-                      <option value="pending">Pending</option>
-                      <option value="completed">Completed (all)</option>
-                      <option value="expired">⚠ Expired</option>
-                      <option value="expiring">Expiring ≤60 days</option>
-                      <option value="superseded">Renewed (history)</option>
-                      <option value="not_eligible">Not Eligible</option>
-                      <option value="cancelled">Cancelled</option>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 170 }} value={filters.current_status} onChange={e => setFilters(p => ({ ...p, current_status: e.target.value }))} title="Training status">
+                      <option value="all">All records</option>
+                      <optgroup label="Open requests">
+                        <option value="">All open requests</option>
+                        <option value="requested">Requested</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="pending">Pending</option>
+                      </optgroup>
+                      <optgroup label="Completed certificates">
+                        <option value="valid">Valid</option>
+                        <option value="expiring">Expiring soon (≤60d)</option>
+                        <option value="expired">Expired</option>
+                        <option value="superseded">Previous (renewed over)</option>
+                        <option value="completed">All completed</option>
+                      </optgroup>
+                      <optgroup label="Other outcomes">
+                        <option value="not_eligible">Not eligible</option>
+                        <option value="cancelled">Cancelled</option>
+                      </optgroup>
                     </select>
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
                   </div>
@@ -424,7 +453,7 @@ export default function UpdateTrainingRecordsPage() {
                 Previous certificate: completed <b>{fmtDate(modal.completed_at)}</b>,
                 {modal.expiry_state === 'expired' ? ' expired ' : ' expires '}
                 <b style={{ color: modal.expiry_state === 'expired' ? '#c0392b' : '#B26B00' }}>{fmtDate(modal.expiry_date)}</b>.
-                <div style={{ marginTop: 4, color: '#6b7280' }}>This creates a <b>new</b> record. The previous one is kept as history and marked Renewed.</div>
+                <div style={{ marginTop: 4, color: '#6b7280' }}>This creates a <b>new</b> record. The previous certificate stays on file as history, keeping its Expired status.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
