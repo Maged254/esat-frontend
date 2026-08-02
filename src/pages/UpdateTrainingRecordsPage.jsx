@@ -4,22 +4,26 @@ import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
 import DateInput from '../components/DateInput';
 
-const OPEN_STATUSES = 'requested,scheduled,pending';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
   completed: 'tag-green', cancelled: 'tag-red', cancel: 'tag-red', not_eligible: 'tag-gray', exit: 'tag-gray',
 };
 
-// Completed records narrowed by the derived expiry state. NB "expired" is NOT
-// here: it maps to the renewal REQUESTS, not completed certs (handled in rowParams).
-const EXPIRY_VIEWS = { valid: 'valid', expiring: 'expiring', superseded: 'superseded' };
+// The four certificate-lifecycle groups (see backend GROUP_SQL), plus the raw
+// "All records" dump. These are the only filter values now.
 const VIEW_TITLE = {
-  '': 'Employees with an open request', all: 'All records',
-  valid: 'Valid certificates', expiring: 'Expiring within 60 days',
-  expired: 'Expired — renewal requested', superseded: 'Previous certificates',
-  completed: 'Completed records',
+  all: 'All records',
+  valid: 'Valid certificates', outstanding: 'Outstanding certificates',
+  expiring: 'Certificates expiring soon', archived: 'Archived certificates',
 };
+
+// A record is Archived (a reference line, no action) when it belongs to an exited
+// employee, was cancelled, or is a completed cert that has expired or been
+// replaced. Mirrors GRP_ARCHIVED_SQL on the backend.
+const isArchivedRow = (r) =>
+  r.employment_status === 'exit' || r.status === 'cancelled' ||
+  (r.status === 'completed' && (r.expiry_state === 'expired' || r.expiry_state === 'superseded'));
 
 // Was this certificate already past its expiry? A superseded record keeps its
 // real state ("Expired"), so we need this rather than the live expiry bucket
@@ -57,8 +61,8 @@ const rowExpiryNote = (r) => {
 const toInputDate = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
-// Default to active employees (matches the Employees list default).
-const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', employment_status: 'active', resource_type: '', department: '', project: '', client: '', current_status: '' };
+// Land on the actionable bucket; employment status is baked into the groups now.
+const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', resource_type: '', department: '', project: '', client: '', group: 'outstanding' };
 
 // Add N whole months to a yyyy-mm-dd date string, returned as a Date.
 const addMonths = (dateStr, months) => {
@@ -106,28 +110,13 @@ export default function UpdateTrainingRecordsPage() {
   };
 
   const rowParams = (courseId) => {
-    const cs = filters.current_status;
-    const view = EXPIRY_VIEWS[cs];
     const base = { course_id: courseId, page: '1', pageSize: '100' };
-    // Everywhere but "All records", the raw expired certificate line is hidden
-    // (its renewal request stands in for it in the working views).
-    if (cs !== 'all') base.hide_expired_cert = '1';
-    if (cs === 'expired') {
-      base.expiry = 'renewal_due';        // → the renewal requests (Status Requested + "Expired on")
-    } else if (view) {
-      base.status = 'completed';          // valid / expiring / superseded certs
-    } else if (cs === '') {
-      base.status = OPEN_STATUSES;        // default worklist = genuine new requests only
-      base.new_only = '1';
-    } else if (cs !== 'all') {
-      base.status = cs;                   // requested / scheduled / pending / not_eligible / cancelled
-    }
+    // One certificate-lifecycle group, or everything for 'all'.
+    if (filters.group && filters.group !== 'all') base.group = filters.group;
     const p = new URLSearchParams(base);
-    if (view) p.append('expiry', view);
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
-    if (filters.employment_status) p.append('employment_status', filters.employment_status);
     if (filters.resource_type) p.append('resource_type', filters.resource_type);
     if (filters.department) p.append('department', filters.department);
     if (filters.project) p.append('projects', filters.project);
@@ -285,8 +274,7 @@ export default function UpdateTrainingRecordsPage() {
                       </span>
                       {/* What this training needs from HR right now. */}
                       <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
-                        {summary[c.id]?.open > 0 && <span className="tag tag-navy">{summary[c.id].open} open</span>}
-                        {summary[c.id]?.expired > 0 && <span className="tag tag-red">{summary[c.id].expired} expired</span>}
+                        {summary[c.id]?.outstanding > 0 && <span className="tag tag-navy">{summary[c.id].outstanding} outstanding</span>}
                         {summary[c.id]?.expiring > 0 && <span className="tag tag-amber">{summary[c.id].expiring} expiring</span>}
                       </span>
                     </span>
@@ -312,20 +300,21 @@ export default function UpdateTrainingRecordsPage() {
                     : '⚠ No validity period set — completion is blocked until you set one in Admin → Training Courses'}
                 </div>
               </div>
-              {/* Worklist: what needs actioning for this training. Each chip is a filter. */}
+              {/* The four certificate groups. Each chip is a filter. */}
               {stats && (
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {[
-                    { key: '', label: 'Open requests', value: stats.open || 0, tag: 'tag-navy' },
-                    { key: 'expired', label: 'Expired', value: stats.renewal_due || 0, tag: 'tag-red' },
-                    { key: 'expiring', label: 'Expiring ≤60d', value: stats.expiring || 0, tag: 'tag-amber' },
+                    { key: 'valid', label: 'Valid', value: stats.grp_valid || 0, tag: 'tag-green' },
+                    { key: 'outstanding', label: 'Outstanding', value: stats.grp_outstanding || 0, tag: 'tag-navy' },
+                    { key: 'expiring', label: 'Expiring ≤60d', value: stats.grp_expiring || 0, tag: 'tag-amber' },
+                    { key: 'archived', label: 'Archived', value: stats.grp_archived || 0, tag: 'tag-gray' },
                   ].map(chip => (
-                    <button key={chip.key || 'open'} onClick={() => setFilters(p => ({ ...p, current_status: chip.key }))}
+                    <button key={chip.key} onClick={() => setFilters(p => ({ ...p, group: chip.key }))}
                       title={`Show ${chip.label.toLowerCase()}`}
                       style={{
-                        cursor: 'pointer', textAlign: 'center', minWidth: 96, padding: '8px 12px', borderRadius: 10,
-                        background: 'white', border: `1.5px solid ${filters.current_status === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
-                        boxShadow: filters.current_status === chip.key ? 'var(--wf-shadow-hover)' : 'none',
+                        cursor: 'pointer', textAlign: 'center', minWidth: 92, padding: '8px 12px', borderRadius: 10,
+                        background: 'white', border: `1.5px solid ${filters.group === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                        boxShadow: filters.group === chip.key ? 'var(--wf-shadow-hover)' : 'none',
                       }}>
                       <div style={{ fontSize: 18, fontWeight: 700, color: '#0f2a4a' }}>{chip.value}</div>
                       <div style={{ marginTop: 2 }}><span className={`tag ${chip.tag}`}>{chip.label}</span></div>
@@ -349,9 +338,6 @@ export default function UpdateTrainingRecordsPage() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.employment_status} onChange={e => setFilters(p => ({ ...p, employment_status: e.target.value }))}>
-                      <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
-                    </select>
                     <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.resource_type} onChange={e => setFilters(p => ({ ...p, resource_type: e.target.value }))}>
                       <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
                     </select>
@@ -367,24 +353,13 @@ export default function UpdateTrainingRecordsPage() {
                       <option value="">All Clients</option>
                       {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
                     </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 170 }} value={filters.current_status} onChange={e => setFilters(p => ({ ...p, current_status: e.target.value }))} title="Training status">
-                      <option value="all">All records</option>
-                      <optgroup label="Open requests">
-                        <option value="">All open requests</option>
-                        <option value="requested">Requested</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="pending">Pending</option>
-                      </optgroup>
-                      <optgroup label="Completed certificates">
-                        <option value="valid">Valid</option>
-                        <option value="expiring">Expiring soon (≤60d)</option>
-                        <option value="expired">Expired</option>
-                        <option value="superseded">Previous (renewed over)</option>
-                        <option value="completed">All completed</option>
-                      </optgroup>
-                      <optgroup label="Other outcomes">
-                        <option value="not_eligible">Not eligible</option>
-                        <option value="cancelled">Cancelled</option>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 190 }} value={filters.group} onChange={e => setFilters(p => ({ ...p, group: e.target.value }))} title="Certificate group">
+                      <option value="all">All Records</option>
+                      <optgroup label="— by certificate —">
+                        <option value="valid">Valid Certificates</option>
+                        <option value="outstanding">Outstanding Certificates</option>
+                        <option value="expiring">Certificates Expiring Soon</option>
+                        <option value="archived">Archived Certificates</option>
                       </optgroup>
                     </select>
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
@@ -395,7 +370,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div className="card">
               <div className="card-header">
-                <span className="card-title">{VIEW_TITLE[filters.current_status] || (filters.current_status ? `${titleCase(filters.current_status)} records` : 'Employees with an open request')}</span>
+                <span className="card-title">{VIEW_TITLE[filters.group] || 'All records'}</span>
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
@@ -419,6 +394,8 @@ export default function UpdateTrainingRecordsPage() {
                         {/* Auto-opened renewal request: show which certificate expired. */}
                         {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
+                        {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
+                        {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
                       </td>
                       <td>
                         {r.recorded_at
@@ -426,24 +403,21 @@ export default function UpdateTrainingRecordsPage() {
                           : <span style={{ color: '#9ca3af' }}>—</span>}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        {r.expiry_state === 'superseded'
-                          // History: the renewal request / current cert is the row to act on.
-                          ? <span style={{ fontSize: 11, color: '#9ca3af' }}>History</span>
-                          : r.expiry_state === 'expired'
-                            // Reference line (All records only). The renewal happens on its
-                            // auto-opened request under Expired, so no action here.
-                            ? <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
-                            : r.expiry_state === 'expiring'
-                              // Not expired yet: allow a proactive early renewal.
-                              ? <>
-                                  <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
-                                  <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
-                                </>
-                              : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
+                        {isArchivedRow(r)
+                          // Archived = reference only (expired / replaced / cancelled / exited).
+                          // The renewal, if any, is its own Outstanding request.
+                          ? <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
+                          : r.expiry_state === 'expiring'
+                            // Not expired yet: allow a proactive early renewal.
+                            ? <>
+                                <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
+                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
+                              </>
+                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
                       </td>
                     </tr>
                   ))}
-                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {filters.current_status ? `${titleCase(filters.current_status).toLowerCase()} ` : 'open '}records for this training</td></tr>}
+                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {(VIEW_TITLE[filters.group] || 'records').toLowerCase()} for this training</td></tr>}
                   {loading && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
                 </tbody>
               </table>
