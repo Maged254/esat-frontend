@@ -10,6 +10,9 @@ const STATUS_TAG = {
 };
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
+// Default to active employees (matches the Employees list default).
+const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', employment_status: 'active', resource_type: '', department: '', project: '', client: '' };
+
 // Add N whole months to a yyyy-mm-dd date string, returned as a Date.
 const addMonths = (dateStr, months) => {
   const d = new Date(dateStr + 'T00:00:00');
@@ -27,6 +30,10 @@ export default function UpdateTrainingRecordsPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
 
+  // Filters for the open-request list (mirrors the Employees bar, minus SAN/Last Audit)
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filterOptions, setFilterOptions] = useState({ projects: [], departments: [], clients: [] });
+
   // Outcome modal
   const [modal, setModal] = useState(null); // the record being recorded
   const [outcome, setOutcome] = useState('completed');
@@ -37,16 +44,32 @@ export default function UpdateTrainingRecordsPage() {
   useEffect(() => {
     api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons').then(r => setReasons(r.data)).catch(logError);
+    api.get('/employees/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
   }, []);
+
+  const rowParams = (courseId) => {
+    const p = new URLSearchParams({ course_id: courseId, status: OPEN_STATUSES, page: '1', pageSize: '100' });
+    if (filters.search) p.append('search', filters.search);
+    if (filters.national_id) p.append('national_id', filters.national_id);
+    if (filters.job_title) p.append('job_title', filters.job_title);
+    if (filters.employment_status) p.append('employment_status', filters.employment_status);
+    if (filters.resource_type) p.append('resource_type', filters.resource_type);
+    if (filters.department) p.append('department', filters.department);
+    if (filters.project) p.append('projects', filters.project);
+    if (filters.client) p.append('clients', filters.client);
+    return p;
+  };
 
   const loadRows = (courseId) => {
     setLoading(true);
-    const p = new URLSearchParams({ course_id: courseId, status: OPEN_STATUSES, page: '1', pageSize: '100' });
-    api.get('/training-records/tracker?' + p)
+    api.get('/training-records/tracker?' + rowParams(courseId))
       .then(r => setRows(r.data.rows))
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
   };
+
+  // Re-query when a filter changes (only while a course is selected).
+  useEffect(() => { if (selectedCourse) loadRows(selectedCourse.id); /* eslint-disable-next-line */ }, [filters]);
 
   const selectCourse = (c) => { setSelectedCourse(c); loadRows(c.id); };
 
@@ -167,6 +190,44 @@ export default function UpdateTrainingRecordsPage() {
                   {selectedCourse.validity_months
                     ? `Validity ${selectedCourse.validity_months} months — completion auto-computes expiry`
                     : '⚠ No validity period set — completion is blocked until you set one in Admin → Training Courses'}
+                </div>
+              </div>
+            </div>
+
+            {/* Search + filter bar (Employees-style, minus SAN & Last Audit) */}
+            <div className="card" style={{ marginBottom: 16 }}>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Search</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <input className="form-input" placeholder="Search name..." value={filters.search} onChange={e => setFilters(p => ({ ...p, search: e.target.value }))} style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} />
+                    <input className="form-input" placeholder="Search national ID..." value={filters.national_id} onChange={e => setFilters(p => ({ ...p, national_id: e.target.value }))} style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} />
+                    <input className="form-input" placeholder="Search job title..." value={filters.job_title} onChange={e => setFilters(p => ({ ...p, job_title: e.target.value }))} style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.employment_status} onChange={e => setFilters(p => ({ ...p, employment_status: e.target.value }))}>
+                      <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
+                    </select>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.resource_type} onChange={e => setFilters(p => ({ ...p, resource_type: e.target.value }))}>
+                      <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
+                    </select>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 130 }} value={filters.department} onChange={e => setFilters(p => ({ ...p, department: e.target.value }))}>
+                      <option value="">All Departments</option>
+                      {filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.project} onChange={e => setFilters(p => ({ ...p, project: e.target.value }))}>
+                      <option value="">All Projects</option>
+                      {filterOptions.projects.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.client} onChange={e => setFilters(p => ({ ...p, client: e.target.value }))}>
+                      <option value="">All Clients</option>
+                      {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
+                    </select>
+                    <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
+                  </div>
                 </div>
               </div>
             </div>
