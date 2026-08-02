@@ -7,11 +7,13 @@ const OPEN_STATUSES = 'requested,scheduled,pending';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
+  completed: 'tag-green', cancelled: 'tag-red', cancel: 'tag-red', not_eligible: 'tag-gray', exit: 'tag-gray',
 };
+const toInputDate = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
 // Default to active employees (matches the Employees list default).
-const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', employment_status: 'active', resource_type: '', department: '', project: '', client: '' };
+const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', employment_status: 'active', resource_type: '', department: '', project: '', client: '', current_status: '' };
 
 // Add N whole months to a yyyy-mm-dd date string, returned as a Date.
 const addMonths = (dateStr, months) => {
@@ -48,7 +50,9 @@ export default function UpdateTrainingRecordsPage() {
   }, []);
 
   const rowParams = (courseId) => {
-    const p = new URLSearchParams({ course_id: courseId, status: OPEN_STATUSES, page: '1', pageSize: '100' });
+    // No status picked → the open requests to action; otherwise the chosen status
+    // (e.g. Completed, so a valid certificate can be corrected).
+    const p = new URLSearchParams({ course_id: courseId, status: filters.current_status || OPEN_STATUSES, page: '1', pageSize: '100' });
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
@@ -75,8 +79,16 @@ export default function UpdateTrainingRecordsPage() {
 
   const openModal = (rec) => {
     setModal(rec);
-    setOutcome('completed');
-    setForm({ completed_at: '', pending_reason: '', scheduled_date: '', not_eligible_reason: '' });
+    // Start on the record's own outcome so an already-recorded one (e.g. a valid
+    // certificate) opens with its current values, ready to correct.
+    const known = ['completed', 'pending', 'scheduled', 'not_eligible'];
+    setOutcome(known.includes(rec.status) ? rec.status : 'completed');
+    setForm({
+      completed_at: toInputDate(rec.completed_at),
+      pending_reason: rec.pending_reason || '',
+      scheduled_date: toInputDate(rec.scheduled_date),
+      not_eligible_reason: rec.not_eligible_reason || '',
+    });
     setError('');
   };
 
@@ -226,6 +238,15 @@ export default function UpdateTrainingRecordsPage() {
                       <option value="">All Clients</option>
                       {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
                     </select>
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.current_status} onChange={e => setFilters(p => ({ ...p, current_status: e.target.value }))} title="Training status">
+                      <option value="">Open requests</option>
+                      <option value="requested">Requested</option>
+                      <option value="scheduled">Scheduled</option>
+                      <option value="pending">Pending</option>
+                      <option value="completed">Completed</option>
+                      <option value="not_eligible">Not Eligible</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
                   </div>
                 </div>
@@ -234,7 +255,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div className="card">
               <div className="card-header">
-                <span className="card-title">Employees with an open request</span>
+                <span className="card-title">{filters.current_status ? `${titleCase(filters.current_status)} records` : 'Employees with an open request'}</span>
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
@@ -254,11 +275,12 @@ export default function UpdateTrainingRecordsPage() {
                         <span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{titleCase(r.status)}</span>
                         {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
+                        {r.status === 'completed' && r.expiry_date ? <div style={{ fontSize: 11, color: r.expiry_state === 'expired' ? '#c0392b' : '#9ca3af', marginTop: 2 }}>{r.expiry_state === 'expired' ? 'Expired' : 'Valid to'} {fmtDate(r.expiry_date)}</div> : ''}
                       </td>
-                      <td><button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Record →</button></td>
+                      <td><button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button></td>
                     </tr>
                   ))}
-                  {!loading && !rows.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No open requests for this training</td></tr>}
+                  {!loading && !rows.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {filters.current_status ? `${titleCase(filters.current_status).toLowerCase()} ` : 'open '}records for this training</td></tr>}
                   {loading && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
                 </tbody>
               </table>
