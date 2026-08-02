@@ -545,7 +545,7 @@ export default function UpdateTrainingRecordsPage() {
 
                 {/* Certificate (PDF or image). Optional; needs_certificate just nudges. */}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Certificate {selectedCourse?.needs_certificate ? <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image</span> : <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— optional</span>}</label>
+                  <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
                   {certHas && !certFile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
                       <a href={certUrl(modal.id)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--eg-navy)', fontWeight: 600 }}>📎 View current certificate</a>
