@@ -195,12 +195,15 @@ export default function UpdateTrainingRecordsPage() {
 
         {selectedCourse && (
           <>
-            <div style={{ background: '#f3f4f6', border: '0.5px solid #e5e7eb', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ background: '#F0F7FF', outline: '2px solid var(--eg-navy)', boxShadow: 'var(--wf-shadow-hover)', borderRadius: 12, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+              <span style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 14, background: 'var(--eg-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TrainingIcon iconKey={selectedCourse.icon} name={selectedCourse.name} size={36} color="white" />
+              </span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600 }}>{selectedCourse.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedCourse.name}</div>
                 <div style={{ fontSize: 12, color: selectedCourse.validity_months ? '#6b7280' : '#c0392b' }}>
                   {selectedCourse.validity_months
-                    ? `Validity ${selectedCourse.validity_months} months — completion auto-computes expiry`
+                    ? `Validity ${selectedCourse.validity_months} months`
                     : '⚠ No validity period set — completion is blocked until you set one in Admin → Training Courses'}
                 </div>
               </div>
