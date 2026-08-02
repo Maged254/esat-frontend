@@ -251,8 +251,19 @@ export default function RequestTrainingPage() {
             <div style={{ background: '#F0F7FF', outline: '2px solid var(--eg-navy)', boxShadow: 'var(--wf-shadow-hover)', borderRadius: 12, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedPerson.full_name}</div>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  {[selectedPerson.national_id || selectedPerson.employee_number, selectedPerson.job_title, selectedPerson.department, selectedPerson.client, selectedPerson.project].filter(Boolean).join(' · ')}
+                <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  {[
+                    ['National ID', selectedPerson.national_id || selectedPerson.employee_number],
+                    ['Job Title', selectedPerson.job_title],
+                    ['Department', selectedPerson.department],
+                    ['Client', selectedPerson.client],
+                    ['Project', selectedPerson.project],
+                  ].map(([label, value], i, arr) => (
+                    <React.Fragment key={label}>
+                      <span><span style={{ fontWeight: 600, color: '#374151' }}>{label}:</span> {value || '—'}</span>
+                      {i < arr.length - 1 && <span style={{ color: '#cbd5e1' }}>|</span>}
+                    </React.Fragment>
+                  ))}
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>Requested by <b style={{ fontWeight: 600, color: '#374151' }}>{currentUserName}</b></div>
               </div>
