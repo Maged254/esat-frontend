@@ -95,7 +95,8 @@ export default function UpdateTrainingRecordsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
+    // ?manage=1 → admin sees all; HR sees only the courses assigned to them.
+    api.get('/training-courses?manage=1').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons').then(r => setReasons(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
     loadSummary();
@@ -299,7 +300,7 @@ export default function UpdateTrainingRecordsPage() {
                   </button>
                 );
               })}
-              {courses.length === 0 && <div style={{ color: '#9ca3af', fontSize: 13 }}>No active training types.</div>}
+              {courses.length === 0 && <div style={{ color: '#6b7280', fontSize: 13, padding: '4px 2px' }}>No trainings are assigned to you. An admin can grant access in <b>Admin → Training Course Managers</b>.</div>}
             </div>
           </div>
         )}

@@ -38,7 +38,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, reasons: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Pending reasons (admin-managed list used by the Update Training Records screen)
@@ -181,6 +181,24 @@ export default function AdminPage() {
     api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons?all=1').then(r => setReasons(r.data)).catch(logError);
   }, []);
+
+  // Toggle whether an HR user manages a course (optimistic; the endpoint sets the
+  // course's full manager list, stored per user in training_course_access).
+  const toggleManager = async (courseId, userId) => {
+    const current = users.filter(u => u.role === 'hr' && (u.training_course_access || []).includes(courseId)).map(u => u.id);
+    const next = current.includes(userId) ? current.filter(x => x !== userId) : [...current, userId];
+    setUsers(prev => prev.map(u => {
+      if (u.role !== 'hr') return u;
+      const arr = (u.training_course_access || []).filter(x => x !== courseId);
+      return { ...u, training_course_access: next.includes(u.id) ? [...arr, courseId] : arr };
+    }));
+    try {
+      await api.put('/training-courses/' + courseId + '/managers', { user_ids: next });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to update managers');
+      api.get('/users').then(r => setUsers(r.data)).catch(logError);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -815,6 +833,63 @@ export default function AdminPage() {
             </tbody>
           </table>
           </>}
+        </div>
+
+        {/* Training Course Managers */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('managers')}>
+            <span className="card-title">Training Course Managers</span>
+            <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.managers ? '▲' : '▼'}</span>
+          </div>
+          {openSections.managers && (() => {
+            const hrUsers = users.filter(u => u.role === 'hr');
+            const activeCourses = courses.filter(c => c.is_active);
+            return <>
+              <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>
+                Pick which HR users can record/update outcomes on the <b>Update Training Records</b> page for each training. A training can have several managers, and one HR can manage several trainings. <b>An HR with none assigned sees no trainings there.</b> Admins always manage all.
+              </div>
+              {hrUsers.length === 0 && <div style={{ fontSize:13, color:'#c0392b', marginBottom:12 }}>No users have the <b>HR</b> role yet — add one in the Users section above, then assign trainings here.</div>}
+              {hrUsers.length > 0 && (
+                <table>
+                  <thead><tr><th>Training</th><th>Managed by (click to toggle)</th></tr></thead>
+                  <tbody>
+                    {activeCourses.map(c => {
+                      const mgrs = hrUsers.filter(u => (u.training_course_access || []).includes(c.id)).map(u => u.id);
+                      return (
+                        <tr key={c.id}>
+                          <td style={{ fontWeight:500 }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:10 }}>
+                              <span style={{ width:30, height:30, borderRadius:8, background:'#F0F7FF', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                <TrainingIcon iconKey={c.icon} name={c.name} size={20} color="var(--eg-navy)" />
+                              </span>
+                              {c.name}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                              {hrUsers.map(u => {
+                                const on = mgrs.includes(u.id);
+                                return (
+                                  <button key={u.id} type="button" onClick={() => toggleManager(c.id, u.id)}
+                                    style={{ cursor:'pointer', fontSize:12, padding:'4px 10px', borderRadius:14,
+                                      border:`1.5px solid ${on ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                                      background: on ? '#F0F7FF' : 'white', color: on ? '#0f2a4a' : '#6b7280', fontWeight: on ? 600 : 400 }}>
+                                    {on ? '✓ ' : ''}{u.full_name}
+                                  </button>
+                                );
+                              })}
+                              {mgrs.length === 0 && <span style={{ color:'#c0392b', fontSize:11 }}>no one assigned</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {activeCourses.length === 0 && <tr><td colSpan={2} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No active trainings</td></tr>}
+                  </tbody>
+                </table>
+              )}
+            </>;
+          })()}
         </div>
 
         {/* Pending Reasons */}
