@@ -262,7 +262,7 @@ export default function UpdateTrainingRecordsPage() {
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
-                <thead><tr><th>Employee</th><th>Project / Client</th><th>Requested</th><th>Current Status</th><th></th></tr></thead>
+                <thead><tr><th>Employee</th><th>Project / Client</th><th>Requested</th><th>Current Status</th><th>Last Update (HR)</th><th></th></tr></thead>
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id}>
@@ -281,11 +281,16 @@ export default function UpdateTrainingRecordsPage() {
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
                         {r.status === 'completed' && r.expiry_date ? <div style={{ fontSize: 11, color: r.expiry_state === 'expired' ? '#c0392b' : '#9ca3af', marginTop: 2 }}>{r.expiry_state === 'expired' ? 'Expired' : 'Valid until'} {fmtDate(r.expiry_date)}</div> : ''}
                       </td>
+                      <td>
+                        {r.recorded_at
+                          ? <>{fmtDate(r.recorded_at)}{r.recorded_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.recorded_by_name}</div> : ''}</>
+                          : <span style={{ color: '#9ca3af' }}>—</span>}
+                      </td>
                       <td><button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button></td>
                     </tr>
                   ))}
-                  {!loading && !rows.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {filters.current_status ? `${titleCase(filters.current_status).toLowerCase()} ` : 'open '}records for this training</td></tr>}
-                  {loading && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
+                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {filters.current_status ? `${titleCase(filters.current_status).toLowerCase()} ` : 'open '}records for this training</td></tr>}
+                  {loading && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
                 </tbody>
               </table>
             </div>
