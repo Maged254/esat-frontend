@@ -247,9 +247,12 @@ export default function RequestTrainingPage() {
 
         {step === 2 && selectedPerson && (
           <>
-            <div style={{ background: '#f3f4f6', border: '0.5px solid #e5e7eb', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>{selectedPerson.full_name}</div>
+            <div style={{ background: '#F0F7FF', outline: '2px solid var(--eg-navy)', boxShadow: 'var(--wf-shadow-hover)', borderRadius: 12, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+              <span style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 14, background: 'var(--eg-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="ti ti-user" style={{ fontSize: 30, color: 'white' }} aria-hidden="true"></i>
+              </span>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedPerson.full_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
                   {selectedPerson.national_id || selectedPerson.employee_number || '—'} · Employee · {selectedPerson.project || '—'}
                 </div>
