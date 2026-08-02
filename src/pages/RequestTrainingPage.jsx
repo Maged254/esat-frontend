@@ -248,51 +248,14 @@ export default function RequestTrainingPage() {
         {step === 2 && selectedPerson && (
           <>
             <div style={{ background: '#F0F7FF', outline: '2px solid var(--eg-navy)', boxShadow: 'var(--wf-shadow-hover)', borderRadius: 12, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-              <span style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 14, background: 'var(--eg-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="ti ti-user" style={{ fontSize: 30, color: 'white' }} aria-hidden="true"></i>
-              </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedPerson.full_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  {selectedPerson.national_id || selectedPerson.employee_number || '—'} · Employee · {selectedPerson.project || '—'}
+                  {[selectedPerson.national_id || selectedPerson.employee_number, selectedPerson.job_title, selectedPerson.department, selectedPerson.client, selectedPerson.project].filter(Boolean).join(' · ')}
                 </div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Requested by <b style={{ fontWeight: 600, color: '#374151' }}>{currentUserName}</b></div>
               </div>
               <button className="btn btn-sm" onClick={() => { setStep(1); setSelectedPerson(null); setOpenRequests([]); setSelectedCourseIds([]); setValidationErrors([]); }}>Change</button>
-            </div>
-
-            {/* ── Employee & project details ─────────────────────────── */}
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div className="card-header"><span className="card-title">Employee Details</span></div>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Requested by</label>
-                  <input className="form-input" value={currentUserName} readOnly style={{ background: '#f3f4f6', cursor: 'not-allowed', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Employee Number</label>
-                  <input className="form-input" value={selectedPerson.employee_number || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">National ID</label>
-                  <input className="form-input" value={selectedPerson.national_id || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Job Title</label>
-                  <input className="form-input" value={selectedPerson.job_title || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <input className="form-input" value={selectedPerson.department || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Client</label>
-                  <input className="form-input" value={selectedPerson.client || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Project</label>
-                  <input className="form-input" value={selectedPerson.project || '—'} readOnly style={{ background: '#f3f4f6', color: '#6b7280', height: 38 }} />
-                </div>
-              </div>
             </div>
 
             {/* ── Current requested trainings for THIS employee ──────── */}
