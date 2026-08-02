@@ -442,9 +442,9 @@ export default function UpdateTrainingRecordsPage() {
                             // Not expired yet: allow a proactive early renewal.
                             ? <>
                                 <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
-                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
+                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Update</button>
                               </>
-                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
+                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Update →</button>}
                       </td>
                     </tr>
                   ))}
