@@ -303,7 +303,7 @@ export default function UpdateTrainingRecordsPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setModal(null)}>
           <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>{selectedCourse.name}</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>{modal.employee_name} · {modal.national_id || modal.employee_number || '—'}</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>{modal.employee_name} · {modal.national_id || modal.employee_number || '—'}</div>
 
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
@@ -355,7 +355,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
               <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={submit} disabled={saving || !canSave()}>{saving ? 'Saving...' : 'Save outcome'}</button>
+              <button className="btn btn-primary" onClick={submit} disabled={saving || !canSave()}>{saving ? 'Saving...' : 'Save Record'}</button>
             </div>
           </div>
         </div>
