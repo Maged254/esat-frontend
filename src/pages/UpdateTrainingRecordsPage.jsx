@@ -266,16 +266,17 @@ export default function UpdateTrainingRecordsPage() {
                       <td>
                         <div className="emp-cell"><div>
                           <div className="emp-name">{r.employee_name}</div>
-                          <div className="emp-id">{r.national_id || r.employee_number || '—'}{r.job_title ? ` · ${r.job_title}` : ''}</div>
+                          <div className="emp-id">{r.national_id || r.employee_number || '—'}</div>
+                          {r.job_title ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.job_title}</div> : ''}
                         </div></div>
                       </td>
                       <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
-                      <td>{fmtDate(r.requested_at)}</td>
+                      <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.requested_by_name}</div> : ''}</td>
                       <td>
                         <span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{titleCase(r.status)}</span>
                         {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
-                        {r.status === 'completed' && r.expiry_date ? <div style={{ fontSize: 11, color: r.expiry_state === 'expired' ? '#c0392b' : '#9ca3af', marginTop: 2 }}>{r.expiry_state === 'expired' ? 'Expired' : 'Valid to'} {fmtDate(r.expiry_date)}</div> : ''}
+                        {r.status === 'completed' && r.expiry_date ? <div style={{ fontSize: 11, color: r.expiry_state === 'expired' ? '#c0392b' : '#9ca3af', marginTop: 2 }}>{r.expiry_state === 'expired' ? 'Expired' : 'Valid until'} {fmtDate(r.expiry_date)}</div> : ''}
                       </td>
                       <td><button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button></td>
                     </tr>
