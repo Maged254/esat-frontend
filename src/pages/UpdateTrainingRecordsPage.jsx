@@ -199,7 +199,7 @@ export default function UpdateTrainingRecordsPage() {
               <span style={{ flexShrink: 0, width: 56, height: 56, borderRadius: 14, background: 'var(--eg-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <TrainingIcon iconKey={selectedCourse.icon} name={selectedCourse.name} size={36} color="white" />
               </span>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedCourse.name}</div>
                 <div style={{ fontSize: 12, color: selectedCourse.validity_months ? '#6b7280' : '#c0392b' }}>
                   {selectedCourse.validity_months
