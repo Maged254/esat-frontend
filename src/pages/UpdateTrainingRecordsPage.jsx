@@ -9,6 +9,35 @@ const STATUS_TAG = {
   requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
   completed: 'tag-green', cancelled: 'tag-red', cancel: 'tag-red', not_eligible: 'tag-gray', exit: 'tag-gray',
 };
+
+// Views that are really "completed" filtered by the derived expiry state, so the
+// dropdown can offer Expired / Expiring without inventing a status value.
+const EXPIRY_VIEWS = { expired: 'expired', expiring: 'expiring', superseded: 'superseded' };
+const VIEW_TITLE = { expired: 'Expired certificates', expiring: 'Expiring within 60 days', superseded: 'Renewed (history)' };
+
+// A completed record is shown by its expiry state, not a flat green "Completed" --
+// an expired certificate must never read as fine at a glance.
+const rowTag = (r) => {
+  if (r.status !== 'completed') return STATUS_TAG[r.status] || 'tag-gray';
+  if (r.expiry_state === 'expired') return 'tag-red';
+  if (r.expiry_state === 'expiring') return 'tag-amber';
+  if (r.expiry_state === 'superseded') return 'tag-gray';
+  return 'tag-green';
+};
+const rowLabel = (r) => {
+  if (r.status !== 'completed') return titleCase(r.status);
+  if (r.expiry_state === 'expired') return 'Expired';
+  if (r.expiry_state === 'expiring') return 'Expiring Soon';
+  if (r.expiry_state === 'superseded') return 'Renewed';
+  return 'Completed';
+};
+const rowExpiryNote = (r) => {
+  if (r.status !== 'completed' || !r.expiry_date) return null;
+  if (r.expiry_state === 'expired') return { text: `Expired ${fmtDate(r.expiry_date)}`, color: '#c0392b' };
+  if (r.expiry_state === 'expiring') return { text: `Expires ${fmtDate(r.expiry_date)}`, color: '#B26B00' };
+  if (r.expiry_state === 'superseded') return { text: `Superseded — was valid to ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
+  return { text: `Valid until ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
+};
 const toInputDate = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
@@ -31,6 +60,8 @@ export default function UpdateTrainingRecordsPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
+  const [summary, setSummary] = useState({});   // per-course expired/expiring/open counts
+  const [stats, setStats] = useState(null);     // counts for the selected course
 
   // Filters for the open-request list (mirrors the Employees bar, minus SAN/Last Audit)
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -47,12 +78,24 @@ export default function UpdateTrainingRecordsPage() {
     api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons').then(r => setReasons(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
+    loadSummary();
   }, []);
+
+  // Per-course expired / expiring / open counts for the tile grid, so the renewal
+  // backlog is visible before a training is even picked.
+  const loadSummary = () => {
+    api.get('/training-records/expiry-summary')
+      .then(r => setSummary(Object.fromEntries(r.data.map(s => [s.course_id, s]))))
+      .catch(logError);
+  };
 
   const rowParams = (courseId) => {
     // No status picked → the open requests to action; otherwise the chosen status
-    // (e.g. Completed, so a valid certificate can be corrected).
-    const p = new URLSearchParams({ course_id: courseId, status: filters.current_status || OPEN_STATUSES, page: '1', pageSize: '100' });
+    // (e.g. Completed, so a valid certificate can be corrected). Expired/Expiring/
+    // Renewed are completed records narrowed by the derived expiry state.
+    const view = EXPIRY_VIEWS[filters.current_status];
+    const p = new URLSearchParams({ course_id: courseId, status: view ? 'completed' : (filters.current_status || OPEN_STATUSES), page: '1', pageSize: '100' });
+    if (view) p.append('expiry', view);
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
@@ -66,10 +109,14 @@ export default function UpdateTrainingRecordsPage() {
 
   const loadRows = (courseId) => {
     setLoading(true);
-    api.get('/training-records/tracker?' + rowParams(courseId))
+    const p = rowParams(courseId);
+    api.get('/training-records/tracker?' + p)
       .then(r => setRows(r.data.rows))
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
+    // /stats drops the status+expiry filters itself, so the same params give the
+    // full picture for this course under the current people-filters.
+    api.get('/training-records/stats?' + p).then(r => setStats(r.data)).catch(() => setStats(null));
   };
 
   // Re-query when a filter changes (only while a course is selected).
@@ -77,8 +124,16 @@ export default function UpdateTrainingRecordsPage() {
 
   const selectCourse = (c) => { setSelectedCourse(c); loadRows(c.id); };
 
-  const openModal = (rec) => {
-    setModal(rec);
+  // mode 'record' edits this record in place; mode 'renew' creates a NEW completed
+  // record and leaves this one as history (see POST /training-records/:id/renew).
+  const openModal = (rec, mode = 'record') => {
+    setModal({ ...rec, mode });
+    if (mode === 'renew') {
+      setOutcome('completed');
+      setForm({ completed_at: '', pending_reason: '', scheduled_date: '', not_eligible_reason: '' });
+      setError('');
+      return;
+    }
     // Start on the record's own outcome so an already-recorded one (e.g. a valid
     // certificate) opens with its current values, ready to correct.
     const known = ['completed', 'pending', 'scheduled', 'not_eligible'];
@@ -92,11 +147,21 @@ export default function UpdateTrainingRecordsPage() {
     setError('');
   };
 
+  const isRenew = modal?.mode === 'renew';
   const validity = selectedCourse?.validity_months;
-  const expiryPreview = (outcome === 'completed' && form.completed_at && validity)
+  // A renewal dated on/before the previous completion is rejected, so don't
+  // preview an expiry the save can't produce.
+  const renewDateInvalid = isRenew && !!form.completed_at && !!modal.completed_at &&
+    new Date(form.completed_at) <= new Date(modal.completed_at);
+  const expiryPreview = (outcome === 'completed' && form.completed_at && validity && !renewDateInvalid)
     ? addMonths(form.completed_at, validity).toLocaleDateString('en-GB') : null;
 
   const canSave = () => {
+    if (isRenew) {
+      if (!form.completed_at || validity == null) return false;
+      // The server enforces this too; checking here keeps the button honest.
+      return !modal.completed_at || new Date(form.completed_at) > new Date(modal.completed_at);
+    }
     if (outcome === 'completed') return !!form.completed_at && validity != null;
     if (outcome === 'pending') return !!form.pending_reason;
     if (outcome === 'scheduled') return !!form.scheduled_date;
@@ -107,17 +172,23 @@ export default function UpdateTrainingRecordsPage() {
   const submit = async () => {
     if (!modal) return;
     setSaving(true); setError('');
-    const payload = { status: outcome };
-    if (outcome === 'completed') { payload.completed_at = form.completed_at; }
-    else if (outcome === 'pending') payload.pending_reason = form.pending_reason;
-    else if (outcome === 'scheduled') payload.scheduled_date = form.scheduled_date;
-    else if (outcome === 'not_eligible') payload.not_eligible_reason = form.not_eligible_reason;
     try {
-      await api.put(`/training-records/${modal.id}/update`, payload);
-      setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} marked ${titleCase(outcome)}.`);
+      if (isRenew) {
+        await api.post(`/training-records/${modal.id}/renew`, { completed_at: form.completed_at });
+        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} renewed. The previous certificate is kept as history.`);
+      } else {
+        const payload = { status: outcome };
+        if (outcome === 'completed') { payload.completed_at = form.completed_at; }
+        else if (outcome === 'pending') payload.pending_reason = form.pending_reason;
+        else if (outcome === 'scheduled') payload.scheduled_date = form.scheduled_date;
+        else if (outcome === 'not_eligible') payload.not_eligible_reason = form.not_eligible_reason;
+        await api.put(`/training-records/${modal.id}/update`, payload);
+        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} marked ${titleCase(outcome)}.`);
+      }
       setTimeout(() => setSuccessMsg(''), 3500);
       setModal(null);
       loadRows(selectedCourse.id);
+      loadSummary();
     } catch (e) {
       setError(e.response?.data?.error || 'Failed to save');
     } finally {
@@ -184,6 +255,12 @@ export default function UpdateTrainingRecordsPage() {
                       <span style={{ fontSize: 13, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
                         {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
                       </span>
+                      {/* What this training needs from HR right now. */}
+                      <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
+                        {summary[c.id]?.open > 0 && <span className="tag tag-navy">{summary[c.id].open} open</span>}
+                        {summary[c.id]?.expired > 0 && <span className="tag tag-red">{summary[c.id].expired} expired</span>}
+                        {summary[c.id]?.expiring > 0 && <span className="tag tag-amber">{summary[c.id].expiring} expiring</span>}
+                      </span>
                     </span>
                   </button>
                 );
@@ -207,6 +284,27 @@ export default function UpdateTrainingRecordsPage() {
                     : '⚠ No validity period set — completion is blocked until you set one in Admin → Training Courses'}
                 </div>
               </div>
+              {/* Worklist: what needs actioning for this training. Each chip is a filter. */}
+              {stats && (
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  {[
+                    { key: '', label: 'Open requests', value: (stats.requested || 0) + (stats.scheduled || 0) + (stats.pending || 0), tag: 'tag-navy' },
+                    { key: 'expired', label: 'Expired', value: stats.expired || 0, tag: 'tag-red' },
+                    { key: 'expiring', label: 'Expiring ≤60d', value: stats.expiring || 0, tag: 'tag-amber' },
+                  ].map(chip => (
+                    <button key={chip.key || 'open'} onClick={() => setFilters(p => ({ ...p, current_status: chip.key }))}
+                      title={`Show ${chip.label.toLowerCase()}`}
+                      style={{
+                        cursor: 'pointer', textAlign: 'center', minWidth: 96, padding: '8px 12px', borderRadius: 10,
+                        background: 'white', border: `1.5px solid ${filters.current_status === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                        boxShadow: filters.current_status === chip.key ? 'var(--wf-shadow-hover)' : 'none',
+                      }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: '#0f2a4a' }}>{chip.value}</div>
+                      <div style={{ marginTop: 2 }}><span className={`tag ${chip.tag}`}>{chip.label}</span></div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Search + filter bar (Employees-style, minus SAN & Last Audit) */}
@@ -246,7 +344,10 @@ export default function UpdateTrainingRecordsPage() {
                       <option value="requested">Requested</option>
                       <option value="scheduled">Scheduled</option>
                       <option value="pending">Pending</option>
-                      <option value="completed">Completed</option>
+                      <option value="completed">Completed (all)</option>
+                      <option value="expired">⚠ Expired</option>
+                      <option value="expiring">Expiring ≤60 days</option>
+                      <option value="superseded">Renewed (history)</option>
                       <option value="not_eligible">Not Eligible</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
@@ -258,7 +359,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div className="card">
               <div className="card-header">
-                <span className="card-title">{filters.current_status ? `${titleCase(filters.current_status)} records` : 'Employees with an open request'}</span>
+                <span className="card-title">{VIEW_TITLE[filters.current_status] || (filters.current_status ? `${titleCase(filters.current_status)} records` : 'Employees with an open request')}</span>
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
@@ -276,17 +377,27 @@ export default function UpdateTrainingRecordsPage() {
                       <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
                       <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.requested_by_name}</div> : ''}</td>
                       <td>
-                        <span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{titleCase(r.status)}</span>
+                        <span className={`tag ${rowTag(r)}`}>{rowLabel(r)}</span>
                         {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
-                        {r.status === 'completed' && r.expiry_date ? <div style={{ fontSize: 11, color: r.expiry_state === 'expired' ? '#c0392b' : '#9ca3af', marginTop: 2 }}>{r.expiry_state === 'expired' ? 'Expired' : 'Valid until'} {fmtDate(r.expiry_date)}</div> : ''}
+                        {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                       </td>
                       <td>
                         {r.recorded_at
                           ? <>{fmtDate(r.recorded_at)}{r.recorded_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.recorded_by_name}</div> : ''}</>
                           : <span style={{ color: '#9ca3af' }}>—</span>}
                       </td>
-                      <td><button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button></td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {r.expiry_state === 'superseded'
+                          // History: the current certificate is the row to act on.
+                          ? <span style={{ fontSize: 11, color: '#9ca3af' }}>History</span>
+                          : ['expired', 'expiring'].includes(r.expiry_state)
+                            ? <>
+                                <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
+                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
+                              </>
+                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
+                      </td>
                     </tr>
                   ))}
                   {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {filters.current_status ? `${titleCase(filters.current_status).toLowerCase()} ` : 'open '}records for this training</td></tr>}
@@ -302,16 +413,25 @@ export default function UpdateTrainingRecordsPage() {
       {modal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setModal(null)}>
           <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>{selectedCourse.name}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>{isRenew ? `Renew — ${selectedCourse.name}` : selectedCourse.name}</div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>{modal.employee_name} · {modal.national_id || modal.employee_number || '—'}</div>
 
             {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-              {OUTCOMES.map(o => (
-                <button key={o.key} className={`btn btn-sm ${outcome === o.key ? 'btn-primary' : ''}`} onClick={() => { setOutcome(o.key); setError(''); }}>{o.label}</button>
-              ))}
-            </div>
+            {isRenew ? (
+              <div style={{ background: '#F0F7FF', border: '1px solid var(--eg-navy)', borderRadius: 8, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: '#0f2a4a' }}>
+                Previous certificate: completed <b>{fmtDate(modal.completed_at)}</b>,
+                {modal.expiry_state === 'expired' ? ' expired ' : ' expires '}
+                <b style={{ color: modal.expiry_state === 'expired' ? '#c0392b' : '#B26B00' }}>{fmtDate(modal.expiry_date)}</b>.
+                <div style={{ marginTop: 4, color: '#6b7280' }}>This creates a <b>new</b> record. The previous one is kept as history and marked Renewed.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+                {OUTCOMES.map(o => (
+                  <button key={o.key} className={`btn btn-sm ${outcome === o.key ? 'btn-primary' : ''}`} onClick={() => { setOutcome(o.key); setError(''); }}>{o.label}</button>
+                ))}
+              </div>
+            )}
 
             {outcome === 'completed' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -321,8 +441,10 @@ export default function UpdateTrainingRecordsPage() {
                   </div>
                 )}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Completion Date <span style={{ color: '#e24b4a' }}>*</span></label>
+                  <label className="form-label">{isRenew ? 'New Completion Date' : 'Completion Date'} <span style={{ color: '#e24b4a' }}>*</span></label>
                   <input className="form-input" type="date" value={form.completed_at} onChange={e => setForm(f => ({ ...f, completed_at: e.target.value }))} style={{ height: 38 }} />
+                  {renewDateInvalid &&
+                    <div style={{ fontSize: 12, color: '#c0392b', marginTop: 6 }}>The renewal must be dated after the previous completion ({fmtDate(modal.completed_at)}).</div>}
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
                 </div>
               </div>
@@ -355,7 +477,11 @@ export default function UpdateTrainingRecordsPage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
               <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={submit} disabled={saving || !canSave()}>{saving ? 'Saving...' : 'Save Record'}</button>
+              {/* The base .btn-primary gives no disabled affordance, so state it here. */}
+              <button className="btn btn-primary" onClick={submit} disabled={saving || !canSave()}
+                style={(saving || !canSave()) ? { opacity: 0.45, cursor: 'not-allowed' } : undefined}>
+                {saving ? 'Saving...' : isRenew ? 'Save Renewal' : 'Save Record'}
+              </button>
             </div>
           </div>
         </div>

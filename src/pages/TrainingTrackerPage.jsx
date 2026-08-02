@@ -84,7 +84,17 @@ export default function TrainingTrackerPage() {
 
   const renderExpiry = (r) => {
     if (r.status !== 'completed' || !r.expiry_date) return <span style={{ color: '#9ca3af' }}>—</span>;
-    const state = r.expiry_state; // 'valid' | 'expiring' | 'expired'
+    const state = r.expiry_state; // 'valid' | 'expiring' | 'expired' | 'superseded'
+    // A superseded record was renewed: it is history, so it counts as neither
+    // valid nor expired and carries no countdown.
+    if (state === 'superseded') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ color: '#9ca3af' }}>{fmtDate(r.expiry_date)}</span>
+          <span className="tag tag-gray" style={{ fontSize: 10, alignSelf: 'flex-start' }}>Renewed</span>
+        </div>
+      );
+    }
     const cls = state === 'expired' ? 'tag-red' : state === 'expiring' ? 'tag-amber' : 'tag-green';
     const days = r.days_to_expiry;
     const note = state === 'expired'
