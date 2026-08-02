@@ -312,14 +312,14 @@ export default function RequestTrainingPage() {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
                   {openRequests.map(r => (
-                    <div key={r.id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
+                    <div key={r.id} style={{ border: '1.5px solid var(--eg-navy)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={36} color="var(--eg-navy)" />
                         </span>
                         <span style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</span>
                       </div>
-                      <span className="tag" style={{ alignSelf: 'flex-start', background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' }}>{r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : ''}</span>
+                      <span className="tag" style={{ alignSelf: 'flex-start', background: '#EAF3DE', color: '#3B6D11' }}>{r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : ''}</span>
                       <div style={{ fontSize: 11, color: '#9ca3af', borderTop: '0.5px solid #f0f0f0', paddingTop: 8 }}>
                         <div>Requested by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.requested_by_name || '—'}</b></div>
                         <div style={{ marginTop: 2 }}>{r.requested_at ? new Date(r.requested_at).toLocaleDateString('en-GB') : '—'}</div>
@@ -365,7 +365,7 @@ export default function RequestTrainingPage() {
             <div className="card">
               <div className="card-header">
                 <span className="card-title">Request Training <span style={{ color: '#e24b4a' }}>*</span></span>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>Tick one or more — trainings with an open request aren't listed</span>
+                <span style={{ fontSize: 12, color: '#6b7280' }}>Tick one or more</span>
               </div>
               {validationErrors.length > 0 && (
                 <div style={{ background: '#fcebeb', border: '1px solid #e24b4a', borderRadius: 8, padding: '12px 16px', margin: '12px 16px 0' }}>
