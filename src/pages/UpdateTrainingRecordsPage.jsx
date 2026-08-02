@@ -14,7 +14,7 @@ const STATUS_TAG = {
 // "All records" dump. These are the only filter values now.
 const VIEW_TITLE = {
   all: 'All records',
-  valid: 'Valid certificates', outstanding: 'Outstanding certificates',
+  valid: 'Valid certificates', outstanding: 'Pending certificates',
   expiring: 'Certificates expiring soon', archived: 'Archived certificates',
 };
 
@@ -109,11 +109,8 @@ export default function UpdateTrainingRecordsPage() {
       .catch(logError);
   };
 
-  const rowParams = (courseId) => {
-    const base = { course_id: courseId, page: '1', pageSize: '100' };
-    // One certificate-lifecycle group, or everything for 'all'.
-    if (filters.group && filters.group !== 'all') base.group = filters.group;
-    const p = new URLSearchParams(base);
+  // People/scope filters shared by the list and the stat chips.
+  const appendPeopleFilters = (p) => {
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
@@ -124,16 +121,35 @@ export default function UpdateTrainingRecordsPage() {
     return p;
   };
 
+  const rowParams = (courseId) => {
+    // filters.group is either a group key ('valid'|'outstanding'|'expiring'|
+    // 'archived'|'all') or "group:substate" to narrow within a group.
+    const [grp, sub] = (filters.group || '').split(':');
+    const base = { course_id: courseId, page: '1', pageSize: '100' };
+    if (grp && grp !== 'all') base.group = grp;
+    // Sub-state = an extra AND on top of the group, via the existing params.
+    if (sub) {
+      if (grp === 'outstanding') base.status = sub;                 // requested / scheduled / pending / not_eligible
+      else if (grp === 'archived') {
+        if (sub === 'expired' || sub === 'superseded') base.expiry = sub;
+        else if (sub === 'cancelled') base.status = 'cancelled';
+        else if (sub === 'exited') base.employment_status = 'exit';
+      }
+    }
+    return appendPeopleFilters(new URLSearchParams(base));
+  };
+
+  // Chips always show the group totals for the current people-filters, so the
+  // stat query ignores the group/sub-state selection entirely.
+  const statParams = (courseId) => appendPeopleFilters(new URLSearchParams({ course_id: courseId }));
+
   const loadRows = (courseId) => {
     setLoading(true);
-    const p = rowParams(courseId);
-    api.get('/training-records/tracker?' + p)
+    api.get('/training-records/tracker?' + rowParams(courseId))
       .then(r => setRows(r.data.rows))
       .catch(() => setRows([]))
       .finally(() => setLoading(false));
-    // /stats drops the status+expiry filters itself, so the same params give the
-    // full picture for this course under the current people-filters.
-    api.get('/training-records/stats?' + p).then(r => setStats(r.data)).catch(() => setStats(null));
+    api.get('/training-records/stats?' + statParams(courseId)).then(r => setStats(r.data)).catch(() => setStats(null));
   };
 
   // Re-query when a filter changes (only while a course is selected).
@@ -165,6 +181,8 @@ export default function UpdateTrainingRecordsPage() {
   };
 
   const isRenew = modal?.mode === 'renew';
+  // The chosen group without any ":substate" suffix (drives chip highlight + title).
+  const baseGroup = (filters.group || 'all').split(':')[0];
   const validity = selectedCourse?.validity_months;
   // A renewal dated on/before the previous completion is rejected, so don't
   // preview an expiry the save can't produce.
@@ -272,10 +290,10 @@ export default function UpdateTrainingRecordsPage() {
                       <span style={{ fontSize: 13, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
                         {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
                       </span>
-                      {/* What this training needs from HR right now. */}
+                      {/* Snapshot: how many valid certificates, and how many still pending. */}
                       <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
-                        {summary[c.id]?.outstanding > 0 && <span className="tag tag-navy">{summary[c.id].outstanding} outstanding</span>}
-                        {summary[c.id]?.expiring > 0 && <span className="tag tag-amber">{summary[c.id].expiring} expiring</span>}
+                        {summary[c.id]?.valid > 0 && <span className="tag tag-green">{summary[c.id].valid} valid</span>}
+                        {summary[c.id]?.outstanding > 0 && <span className="tag tag-navy">{summary[c.id].outstanding} pending</span>}
                       </span>
                     </span>
                   </button>
@@ -305,16 +323,15 @@ export default function UpdateTrainingRecordsPage() {
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {[
                     { key: 'valid', label: 'Valid', value: stats.grp_valid || 0, tag: 'tag-green' },
-                    { key: 'outstanding', label: 'Outstanding', value: stats.grp_outstanding || 0, tag: 'tag-navy' },
+                    { key: 'outstanding', label: 'Pending', value: stats.grp_outstanding || 0, tag: 'tag-navy' },
                     { key: 'expiring', label: 'Expiring ≤60d', value: stats.grp_expiring || 0, tag: 'tag-amber' },
-                    { key: 'archived', label: 'Archived', value: stats.grp_archived || 0, tag: 'tag-gray' },
                   ].map(chip => (
                     <button key={chip.key} onClick={() => setFilters(p => ({ ...p, group: chip.key }))}
                       title={`Show ${chip.label.toLowerCase()}`}
                       style={{
                         cursor: 'pointer', textAlign: 'center', minWidth: 92, padding: '8px 12px', borderRadius: 10,
-                        background: 'white', border: `1.5px solid ${filters.group === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
-                        boxShadow: filters.group === chip.key ? 'var(--wf-shadow-hover)' : 'none',
+                        background: 'white', border: `1.5px solid ${baseGroup === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                        boxShadow: baseGroup === chip.key ? 'var(--wf-shadow-hover)' : 'none',
                       }}>
                       <div style={{ fontSize: 18, fontWeight: 700, color: '#0f2a4a' }}>{chip.value}</div>
                       <div style={{ marginTop: 2 }}><span className={`tag ${chip.tag}`}>{chip.label}</span></div>
@@ -353,13 +370,27 @@ export default function UpdateTrainingRecordsPage() {
                       <option value="">All Clients</option>
                       {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
                     </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 190 }} value={filters.group} onChange={e => setFilters(p => ({ ...p, group: e.target.value }))} title="Certificate group">
+                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.group} onChange={e => setFilters(p => ({ ...p, group: e.target.value }))} title="Certificate group">
                       <option value="all">All Records</option>
-                      <optgroup label="— by certificate —">
-                        <option value="valid">Valid Certificates</option>
-                        <option value="outstanding">Outstanding Certificates</option>
-                        <option value="expiring">Certificates Expiring Soon</option>
-                        <option value="archived">Archived Certificates</option>
+                      <optgroup label="Valid Certificates">
+                        <option value="valid">All Valid</option>
+                      </optgroup>
+                      <optgroup label="Pending Certificates">
+                        <option value="outstanding">All Pending</option>
+                        <option value="outstanding:requested">Requested</option>
+                        <option value="outstanding:scheduled">Scheduled</option>
+                        <option value="outstanding:pending">Pending</option>
+                        <option value="outstanding:not_eligible">Not eligible</option>
+                      </optgroup>
+                      <optgroup label="Certificates Expiring Soon">
+                        <option value="expiring">All Expiring soon</option>
+                      </optgroup>
+                      <optgroup label="Archived Certificates">
+                        <option value="archived">All Archived</option>
+                        <option value="archived:expired">Expired</option>
+                        <option value="archived:superseded">Renewed over</option>
+                        <option value="archived:cancelled">Cancelled</option>
+                        <option value="archived:exited">Exited employee</option>
                       </optgroup>
                     </select>
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
@@ -370,7 +401,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div className="card">
               <div className="card-header">
-                <span className="card-title">{VIEW_TITLE[filters.group] || 'All records'}</span>
+                <span className="card-title">{VIEW_TITLE[baseGroup] || 'All records'}</span>
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
@@ -417,7 +448,7 @@ export default function UpdateTrainingRecordsPage() {
                       </td>
                     </tr>
                   ))}
-                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {(VIEW_TITLE[filters.group] || 'records').toLowerCase()} for this training</td></tr>}
+                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {(VIEW_TITLE[baseGroup] || 'records').toLowerCase()} for this training</td></tr>}
                   {loading && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
                 </tbody>
               </table>
