@@ -20,7 +20,14 @@ export default function RequestTrainingPage() {
   const [courses, setCourses] = useState([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState([]); // multi-select
   const [openRequests, setOpenRequests] = useState([]);
+  const [cancelledRequests, setCancelledRequests] = useState([]);
   const [loadingOpen, setLoadingOpen] = useState(false);
+
+  // Remove-request modal
+  const [removeModal, setRemoveModal] = useState(null); // the request being removed
+  const [removeReason, setRemoveReason] = useState('');
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState('');
 
   const [personSearch, setPersonSearch] = useState('');
   const [personNationalId, setPersonNationalId] = useState('');
@@ -69,12 +76,32 @@ export default function RequestTrainingPage() {
   const loadOpenRequests = async (employeeId) => {
     setLoadingOpen(true);
     try {
-      const res = await api.get(`/training-records?employee_id=${employeeId}&status=${OPEN_STATUSES}`);
-      setOpenRequests(res.data);
+      const [openRes, cancelledRes] = await Promise.all([
+        api.get(`/training-records?employee_id=${employeeId}&status=${OPEN_STATUSES}`),
+        api.get(`/training-records?employee_id=${employeeId}&status=cancelled`),
+      ]);
+      setOpenRequests(openRes.data);
+      setCancelledRequests(cancelledRes.data);
     } catch {
       setOpenRequests([]);
+      setCancelledRequests([]);
     } finally {
       setLoadingOpen(false);
+    }
+  };
+
+  const openRemove = (r) => { setRemoveModal(r); setRemoveReason(''); setRemoveError(''); };
+  const confirmRemove = async () => {
+    if (!removeReason.trim()) { setRemoveError('A reason is required.'); return; }
+    setRemoving(true); setRemoveError('');
+    try {
+      await api.put(`/training-records/${removeModal.id}/cancel`, { cancel_reason: removeReason.trim() });
+      setRemoveModal(null);
+      await loadOpenRequests(selectedPerson.id);
+    } catch (e) {
+      setRemoveError(e.response?.data?.error || 'Failed to remove request');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -87,9 +114,11 @@ export default function RequestTrainingPage() {
     setStep(2);
   };
 
-  // Course ids the employee already has an open request for -- these can't be
-  // requested again, so they're shown ticked-off and disabled in the checklist.
+  // Course ids the employee already has an OPEN request for. These are dropped
+  // from the "Request Training" list entirely (a cancelled one isn't open, so it
+  // comes back and can be requested again).
   const openCourseIds = new Set(openRequests.map(r => r.course_id));
+  const availableCourses = courses.filter(c => !openCourseIds.has(c.id));
 
   const toggleCourse = (id) => {
     setValidationErrors([]);
@@ -143,7 +172,7 @@ export default function RequestTrainingPage() {
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span>
           <span className="topbar-sep">›</span>
-          <span className="topbar-title">Request a Training</span>
+          <span className="topbar-title">Request / Remove a Training</span>
         </div>
         <div className="topbar-right">
           {step === 2 && (
@@ -286,7 +315,7 @@ export default function RequestTrainingPage() {
                     <div key={r.id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <TrainingIcon iconKey={courses.find(c => c.name === r.course_name)?.icon} name={r.course_name} size={36} color="var(--eg-navy)" />
+                          <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={36} color="var(--eg-navy)" />
                         </span>
                         <span style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</span>
                       </div>
@@ -295,17 +324,48 @@ export default function RequestTrainingPage() {
                         <div>Requested by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.requested_by_name || '—'}</b></div>
                         <div style={{ marginTop: 2 }}>{r.requested_at ? new Date(r.requested_at).toLocaleDateString('en-GB') : '—'}</div>
                       </div>
+                      <button className="btn btn-sm" style={{ color: '#c0392b', borderColor: '#f0c9c6' }} onClick={() => openRemove(r)}>✕ Remove Request</button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            {/* ── Removed (cancelled) training requests ──────────────── */}
+            {cancelledRequests.length > 0 && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div className="card-header">
+                  <span className="card-title">Removed Training Requests</span>
+                  <span style={{ fontSize: 12, color: '#6b7280' }}>{cancelledRequests.length} removed</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
+                  {cancelledRequests.map(r => (
+                    <div key={r.id} style={{ border: '1px solid #f0dede', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#fdf7f7' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#fbeaea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={36} color="#c0392b" />
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#374151', borderTop: '0.5px solid #f0dede', paddingTop: 8 }}>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Reason</div>
+                        {r.cancel_reason || '—'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                        Removed by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.cancelled_by_name || '—'}</b>
+                        {r.cancelled_at ? ` · ${new Date(r.cancelled_at).toLocaleDateString('en-GB')}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* ── Pick one or more trainings to request ──────────────── */}
             <div className="card">
               <div className="card-header">
                 <span className="card-title">Request Training <span style={{ color: '#e24b4a' }}>*</span></span>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>Tick one or more — already-requested trainings are disabled</span>
+                <span style={{ fontSize: 12, color: '#6b7280' }}>Tick one or more — trainings with an open request aren't listed</span>
               </div>
               {validationErrors.length > 0 && (
                 <div style={{ background: '#fcebeb', border: '1px solid #e24b4a', borderRadius: 8, padding: '12px 16px', margin: '12px 16px 0' }}>
@@ -313,11 +373,11 @@ export default function RequestTrainingPage() {
                 </div>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, padding: 16 }}>
-                {courses.length === 0 && (
+                {courses.length === 0 ? (
                   <div style={{ fontSize: 13, color: '#9ca3af' }}>No training types available.</div>
-                )}
-                {courses.map(c => {
-                  const isOpen = openCourseIds.has(c.id);
+                ) : availableCourses.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#9ca3af' }}>All trainings already have an open request for this employee.</div>
+                ) : availableCourses.map(c => {
                   const checked = selectedCourseIds.includes(c.id);
                   return (
                     <label
@@ -329,24 +389,21 @@ export default function RequestTrainingPage() {
                         border: `1.5px solid ${checked ? 'var(--eg-navy)' : '#e5e7eb'}`,
                         background: checked ? '#F0F7FF' : 'white',
                         boxShadow: checked ? 'var(--wf-shadow-hover)' : 'none',
-                        cursor: isOpen ? 'not-allowed' : 'pointer',
-                        opacity: isOpen ? 0.55 : 1,
+                        cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
-                        disabled={isOpen}
                         onChange={() => toggleCourse(c.id)}
-                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: isOpen ? 'not-allowed' : 'pointer' }}
+                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: 'pointer' }}
                       />
                       <span style={{ flexShrink: 0, width: 62, height: 62, borderRadius: 16, background: checked ? 'var(--eg-navy)' : '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}>
                         <TrainingIcon iconKey={c.icon} name={c.name} size={40} color={checked ? 'white' : 'var(--eg-navy)'} />
                       </span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{c.name}</span>
                       {c.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
-                      {isOpen && <span className="tag" style={{ background: 'var(--wf-pm-light)', color: 'var(--wf-pm)' }}>Already requested</span>}
                     </label>
                   );
                 })}
@@ -365,6 +422,27 @@ export default function RequestTrainingPage() {
           </>
         )}
       </div>
+
+      {/* Remove-request modal */}
+      {removeModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setRemoveModal(null)}>
+          <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 440, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Remove training request</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>{removeModal.course_name} · {selectedPerson?.full_name}</div>
+            {removeError && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{removeError}</div>}
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Reason <span style={{ color: '#e24b4a' }}>*</span></label>
+              <input className="form-input" value={removeReason} onChange={e => { setRemoveReason(e.target.value); setRemoveError(''); }} placeholder="Why is this request being removed?" style={{ height: 38 }} autoFocus />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
+              <button className="btn btn-secondary" onClick={() => setRemoveModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmRemove} disabled={removing || !removeReason.trim()} style={{ background: removeReason.trim() ? '#c0392b' : '', borderColor: removeReason.trim() ? '#c0392b' : '' }}>
+                {removing ? 'Removing...' : 'Remove Request'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
