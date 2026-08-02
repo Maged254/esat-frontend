@@ -93,6 +93,12 @@ export default function UpdateTrainingRecordsPage() {
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [certFile, setCertFile] = useState(null);   // certificate picked in the modal
+  const [certHas, setCertHas] = useState(false);     // record already has a certificate
+
+  // Signed-download URL for a record's certificate (token as query param so a
+  // plain <a> works; the endpoint redirects to a short-lived Cloudinary URL).
+  const certUrl = (id) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
 
   useEffect(() => {
     // ?manage=1 → admin sees all; HR sees only the courses assigned to them.
@@ -164,6 +170,8 @@ export default function UpdateTrainingRecordsPage() {
   // record and leaves this one as history (see POST /training-records/:id/renew).
   const openModal = (rec, mode = 'record') => {
     setModal({ ...rec, mode });
+    setCertFile(null);
+    setCertHas(mode === 'record' && !!rec.has_certificate); // a renewal starts a fresh record
     if (mode === 'renew') {
       setOutcome('completed');
       setForm({ completed_at: '', pending_reason: '', scheduled_date: '', not_eligible_reason: '' });
@@ -211,8 +219,10 @@ export default function UpdateTrainingRecordsPage() {
     if (!modal) return;
     setSaving(true); setError('');
     try {
+      let targetId = modal.id; // where a picked certificate should attach
       if (isRenew) {
-        await api.post(`/training-records/${modal.id}/renew`, { completed_at: form.completed_at });
+        const r = await api.post(`/training-records/${modal.id}/renew`, { completed_at: form.completed_at });
+        targetId = r.data?.id || modal.id; // the new completed record
         setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} renewed. The previous (expired) certificate stays on file as history.`);
       } else {
         const payload = { status: outcome };
@@ -223,15 +233,40 @@ export default function UpdateTrainingRecordsPage() {
         await api.put(`/training-records/${modal.id}/update`, payload);
         setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} marked ${titleCase(outcome)}.`);
       }
+      // A certificate only makes sense on a completed record; upload it after.
+      if (certFile && (outcome === 'completed' || isRenew)) {
+        const fd = new FormData();
+        fd.append('file', certFile);
+        const resp = await fetch(`${api.defaults.baseURL}/training-records/${targetId}/certificate`, {
+          method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('esat_token')}` }, body: fd,
+        });
+        if (!resp.ok) {
+          const d = await resp.json().catch(() => ({}));
+          throw new Error(d.error || 'Certificate upload failed');
+        }
+      }
       setTimeout(() => setSuccessMsg(''), 3500);
       setModal(null);
       loadRows(selectedCourse.id);
       loadSummary();
     } catch (e) {
-      setError(e.response?.data?.error || 'Failed to save');
+      setError(e.response?.data?.error || e.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
+  };
+
+  // Remove the certificate from an already-completed record (from the modal).
+  const removeCert = async () => {
+    if (!modal) return;
+    setSaving(true); setError('');
+    try {
+      await api.delete(`/training-records/${modal.id}/certificate`);
+      setCertHas(false); setCertFile(null);
+      loadRows(selectedCourse.id);
+    } catch (e) {
+      setError(e.response?.data?.error || 'Failed to remove certificate');
+    } finally { setSaving(false); }
   };
 
   const OUTCOMES = [
@@ -434,6 +469,9 @@ export default function UpdateTrainingRecordsPage() {
                         {/* Auto-opened renewal request: show which certificate expired. */}
                         {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
+                        {r.status === 'completed' && (r.has_certificate
+                          ? <a href={certUrl(r.id)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2 }}>📎 Certificate</a>
+                          : (r.needs_certificate ? <div style={{ fontSize: 11, color: '#B26B00', marginTop: 2 }}>No certificate</div> : ''))}
                         {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
                         {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
                       </td>
@@ -503,6 +541,23 @@ export default function UpdateTrainingRecordsPage() {
                   {renewDateInvalid &&
                     <div style={{ fontSize: 12, color: '#c0392b', marginTop: 6 }}>The renewal must be dated after the previous completion ({fmtDate(modal.completed_at)}).</div>}
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
+                </div>
+
+                {/* Certificate (PDF or image). Optional; needs_certificate just nudges. */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Certificate {selectedCourse?.needs_certificate ? <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image</span> : <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— optional</span>}</label>
+                  {certHas && !certFile && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
+                      <a href={certUrl(modal.id)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--eg-navy)', fontWeight: 600 }}>📎 View current certificate</a>
+                      <button type="button" className="btn btn-sm" style={{ color: '#c0392b' }} disabled={saving} onClick={removeCert}>Remove</button>
+                    </div>
+                  )}
+                  <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                    onChange={e => setCertFile(e.target.files[0] || null)} style={{ fontSize: 13 }} />
+                  {certFile && <div style={{ fontSize: 11, color: '#3B6D11', marginTop: 4 }}>{certHas ? 'Will replace the current certificate' : 'Will be attached'}: {certFile.name}</div>}
+                  {selectedCourse?.needs_certificate && !certHas && !certFile && (
+                    <div style={{ fontSize: 11, color: '#B26B00', marginTop: 4 }}>This training normally has a certificate — attach one, or mark it Pending until it's ready.</div>
+                  )}
                 </div>
               </div>
             )}
