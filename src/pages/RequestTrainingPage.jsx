@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
 
@@ -9,7 +8,6 @@ import TrainingIcon from '../components/TrainingIcon';
 const OPEN_STATUSES = 'requested,scheduled,pending';
 
 export default function RequestTrainingPage() {
-  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   const [employees, setEmployees] = useState([]);
@@ -148,7 +146,9 @@ export default function RequestTrainingPage() {
           <span className="topbar-title">Request a Training</span>
         </div>
         <div className="topbar-right">
-          <button className="btn" onClick={() => navigate(-1)}>✕ Cancel</button>
+          {step === 2 && (
+            <button className="btn" onClick={() => { setStep(1); setSelectedPerson(null); setOpenRequests([]); setSelectedCourseIds([]); setValidationErrors([]); }}>✕ Cancel</button>
+          )}
           {step === 2 && (
             <button className={`btn ${selectedCourseIds.length > 0 ? 'btn-primary' : ''}`} onClick={handleSubmit} disabled={submitting || selectedCourseIds.length === 0} style={selectedCourseIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>
               ✓ {submitting ? 'Submitting...' : selectedCourseIds.length > 0 ? `Submit ${selectedCourseIds.length} Request${selectedCourseIds.length === 1 ? '' : 's'}` : 'Submit Request'}
