@@ -405,11 +405,13 @@ export default function UpdateTrainingRecordsPage() {
                         </div></div>
                       </td>
                       <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
-                      <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.requested_by_name}</div> : ''}</td>
+                      <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.requested_by_name}</div> : (r.prior_expiry_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Auto · on expiry</div> : '')}</td>
                       <td>
                         <span className={`tag ${rowTag(r)}`}>{rowLabel(r)}</span>
                         {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
+                        {/* Auto-opened renewal request: show which certificate expired. */}
+                        {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                       </td>
                       <td>
@@ -419,14 +421,19 @@ export default function UpdateTrainingRecordsPage() {
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {r.expiry_state === 'superseded'
-                          // History: the current certificate is the row to act on.
+                          // History: the renewal request / current cert is the row to act on.
                           ? <span style={{ fontSize: 11, color: '#9ca3af' }}>History</span>
-                          : ['expired', 'expiring'].includes(r.expiry_state)
-                            ? <>
-                                <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
-                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
-                              </>
-                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
+                          : r.expiry_state === 'expired'
+                            // Expired certs auto-open a renewal request (recorded from the
+                            // Open-requests view); here only correction is offered.
+                            ? <button className="btn btn-sm" title="Correct this certificate" onClick={() => openModal(r)}>Edit</button>
+                            : r.expiry_state === 'expiring'
+                              // Not expired yet: allow a proactive early renewal.
+                              ? <>
+                                  <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
+                                  <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Edit</button>
+                                </>
+                              : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>{['requested', 'scheduled', 'pending'].includes(r.status) ? 'Record →' : 'Edit →'}</button>}
                       </td>
                     </tr>
                   ))}
