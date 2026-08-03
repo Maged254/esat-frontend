@@ -64,10 +64,6 @@ export default function AdminPage() {
     setReasonSaving(false);
   };
 
-  // App settings
-  const [requireCert, setRequireCert] = useState(false);
-  const [savingSetting, setSavingSetting] = useState(false);
-
   // Training courses
   const [courses, setCourses] = useState([]);
   const [courseSearch, setCourseSearch] = useState('');
@@ -183,7 +179,6 @@ export default function AdminPage() {
     api.get('/ppe').then(r => setPpeItems(r.data)).catch(logError);
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
     api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
-    api.get('/app-settings').then(r => setRequireCert(!!r.data?.require_training_certificate)).catch(logError);
     api.get('/training-pending-reasons?all=1').then(r => setReasons(r.data)).catch(logError);
   }, []);
 
@@ -202,21 +197,6 @@ export default function AdminPage() {
     } catch (e) {
       alert(e.response?.data?.error || 'Failed to update managers');
       api.get('/users').then(r => setUsers(r.data)).catch(logError);
-    }
-  };
-
-  const toggleRequireCert = async (next) => {
-    setSavingSetting(true);
-    const prev = requireCert;
-    setRequireCert(next); // optimistic
-    try {
-      const r = await api.put('/app-settings', { require_training_certificate: next });
-      setRequireCert(!!r.data?.require_training_certificate);
-    } catch (e) {
-      setRequireCert(prev);
-      alert(e.response?.data?.error || 'Failed to update setting');
-    } finally {
-      setSavingSetting(false);
     }
   };
 
@@ -761,16 +741,6 @@ export default function AdminPage() {
           </div>
 
           {openSections.training && <>
-          {/* Global rule: certificate mandatory to complete a needs-certificate course. */}
-          <div style={{ display:'flex', alignItems:'flex-start', gap:12, background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:'12px 14px', marginBottom:16 }}>
-            <label style={{ display:'flex', alignItems:'center', gap:10, cursor: savingSetting ? 'wait' : 'pointer', flexShrink:0 }}>
-              <input type="checkbox" checked={requireCert} disabled={savingSetting} onChange={e => toggleRequireCert(e.target.checked)} style={{ width:16, height:16, accentColor:'#1D9E75' }} />
-              <span style={{ fontSize:13, fontWeight:600 }}>Require a certificate to mark a training Completed</span>
-            </label>
-            <span style={{ fontSize:12, color:'#6b7280' }}>
-              Applies only to trainings flagged <b>Requires certificate</b>. When off (e.g. during the certificate migration), a certificate is just a nudge. Turn it on afterwards to block completing those trainings without a PDF.
-            </span>
-          </div>
           {editingCourse && (
             <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
               <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingCourse === 'new' ? 'New Training' : 'Edit Training'}</div>
