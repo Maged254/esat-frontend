@@ -35,12 +35,6 @@ export function EmployeesPage() {
     setEmployees(prev => prev.map(e => e.id === emp.id ? {...e, san: newVal} : e));
   };
 
-  const deleteEmployee = async (emp) => {
-    if (!window.confirm(`Delete ${emp.full_name}? This will permanently delete the employee and all their audits, NCR items, and PPE requests.`)) return;
-    await api.delete('/employees/' + emp.id);
-    setEmployees(prev => prev.filter(e => e.id !== emp.id));
-  };
-
   // Collapses activeStat to the status/resource_type pair the backend
   // understands -- 'intern' isn't a real resource_type filter value from a
   // dropdown's perspective, just a card shortcut resolved here.
@@ -169,6 +163,7 @@ export function EmployeesPage() {
   };
 
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+  const canAssignPpe = ['admin','ehs_manager'].includes(userRole);
 
   return (
     <>
@@ -263,7 +258,7 @@ export function EmployeesPage() {
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
           <table className="table-hover-soft">
-            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title</th><th>Department</th><th>Project / Client</th><th>Resource</th><th>SAN</th><th>Last Audit</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title / Department</th><th>Project / Client</th><th>Resource / Status</th><th>SAN / Last Audit</th>{canAssignPpe && <th>PPE</th>}</tr></thead>
             <tbody>
               {employees.map(e => (
                 <tr key={e.id}>
@@ -272,24 +267,30 @@ export function EmployeesPage() {
                     <div>{e.organization||'—'}</div>
                     {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
                   </td>
-                  <td>{e.job_title||'—'}</td><td>{e.department||'—'}</td>
+                  <td>
+                    <div>{e.job_title||'—'}</div>
+                    {e.department && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.department}</div>}
+                  </td>
                   <td>
                     <div>{e.project||'—'}</div>
                     {e.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.client}</div>}
                   </td>
-                  <td><span className={`tag ${e.resource_type==='inhouse'?'tag-navy':'tag-gray'}`}>{e.resource_type ? e.resource_type.charAt(0).toUpperCase() + e.resource_type.slice(1) : '—'}</span></td>
-                  <td>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</td>
-                  <td>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</td>
-                  <td><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status}</span></td>
                   <td>
-                    <div style={{display:'flex',gap:6}}>
-                      {['admin','ehs_manager'].includes(userRole) && <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>}
-                      {userRole==='admin' && <button onClick={()=>deleteEmployee(e)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete Employee">🗑</button>}
-                    </div>
+                    <div>{e.resource_type ? e.resource_type.charAt(0).toUpperCase() + e.resource_type.slice(1) : '—'}</div>
+                    <div style={{marginTop:4}}><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status}</span></div>
                   </td>
+                  <td>
+                    <div>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</div>
+                    <div style={{marginTop:4,fontSize:11}}>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</div>
+                  </td>
+                  {canAssignPpe && <td>
+                    <div style={{display:'flex',gap:6}}>
+                      <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>🛡 PPE</button>
+                    </div>
+                  </td>}
                 </tr>
               ))}
-              {!employees.length && <tr><td colSpan={10} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
+              {!employees.length && <tr><td colSpan={canAssignPpe ? 7 : 6} style={{textAlign:'center',color:'#6b7280',padding:32}}>No employees found</td></tr>}
             </tbody>
           </table>
         </div>
