@@ -538,15 +538,9 @@ export default function UpdateTrainingRecordsPage() {
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {isArchivedRow(r)
                           // Archived = reference only (expired / replaced / cancelled / exited).
-                          // The renewal, if any, is its own Outstanding request.
+                          // The renewal, when a cert expires, is its own auto-opened request.
                           ? <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
-                          : r.expiry_state === 'expiring'
-                            // Not expired yet: allow a proactive early renewal.
-                            ? <>
-                                <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
-                                <button className="btn btn-sm" style={{ marginLeft: 6 }} title="Correct this certificate without replacing it" onClick={() => openModal(r)}>Update</button>
-                              </>
-                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Update →</button>}
+                          : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Update →</button>}
                       </td>
                     </tr>
                   ))}
