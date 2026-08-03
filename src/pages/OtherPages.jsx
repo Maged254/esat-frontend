@@ -193,15 +193,21 @@ export function EmployeesPage() {
     const changedKeys = Object.keys(editForm.edit).filter(k => editForm.edit[k]);
     if (!changedKeys.length) { alert('Tick at least one field to change.'); return; }
     if (editForm.edit.full_name && !editForm.after.full_name.trim()) { alert('Employee name cannot be empty'); return; }
+    // A ticked field whose new value equals the current one is not a change —
+    // block the save (nothing would be recorded) and keep the modal open.
+    const normv = (v) => (v === undefined || v === null) ? '' : String(v).trim();
+    const afterVal = (k) => k === 'full_name' ? editForm.after[k].trim() : editForm.after[k];
+    const actuallyChanged = changedKeys.filter(k => normv(afterVal(k)) !== normv(editModal[k]));
+    if (!actuallyChanged.length) { alert('No changes to save.'); return; }
     if (!editForm.reason.trim()) { alert('Please enter a reason for the update'); return; }
-    const val = (k) => editForm.edit[k] ? (typeof editForm.after[k] === 'string' ? editForm.after[k] : editForm.after[k]) : editModal[k];
+    const val = (k) => editForm.edit[k] ? editForm.after[k] : editModal[k];
     const payload = {
       full_name: (editForm.edit.full_name ? editForm.after.full_name.trim() : editModal.full_name),
       national_id: editModal.national_id,
       job_title: val('job_title'), department: val('department'), project: val('project'), client: val('client'),
       reason: editForm.reason.trim(),
     };
-    if (!window.confirm(`Update ${editModal.full_name}'s details (${changedKeys.map(fieldLabel).join(', ')})? This change will be recorded against your name.`)) return;
+    if (!window.confirm(`Update ${editModal.full_name}'s details (${actuallyChanged.map(fieldLabel).join(', ')})? This change will be recorded against your name.`)) return;
     setEditSaving(true);
     try {
       await api.put('/employees/' + editModal.id, payload);
