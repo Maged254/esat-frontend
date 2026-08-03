@@ -80,6 +80,7 @@ export default function UpdateTrainingRecordsPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
+  const [requireCert, setRequireCert] = useState(false); // global setting: cert mandatory to complete a needs-cert course
   const [summary, setSummary] = useState({});   // per-course expired/expiring/open counts
   const [stats, setStats] = useState(null);     // counts for the selected course
 
@@ -144,6 +145,7 @@ export default function UpdateTrainingRecordsPage() {
     api.get('/training-courses?manage=1').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons').then(r => setReasons(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
+    api.get('/app-settings').then(r => setRequireCert(!!r.data?.require_training_certificate)).catch(() => {});
     loadSummary();
   }, []);
 
@@ -263,6 +265,12 @@ export default function UpdateTrainingRecordsPage() {
       if (certFile.size > 1024 * 1024) { setError('Certificate must be 1MB or smaller.'); return; }
       const okType = /\.pdf$/i.test(certFile.name) || (certFile.type || '') === 'application/pdf';
       if (!okType) { setError('Certificate must be a PDF.'); return; }
+    }
+    // When the global setting is on, a needs-certificate course can't be completed
+    // without a certificate (existing one, or one being attached now).
+    if (requireCert && selectedCourse?.needs_certificate && (outcome === 'completed' || isRenew)) {
+      const hasCert = isRenew ? !!certFile : (certHas || !!certFile);
+      if (!hasCert) { setError('A certificate is required to complete this training. Attach the PDF, or mark it Pending until it’s ready.'); return; }
     }
     setSaving(true); setError('');
     try {
@@ -628,7 +636,11 @@ export default function UpdateTrainingRecordsPage() {
                     onChange={e => setCertFile(e.target.files[0] || null)} style={{ fontSize: 13 }} />
                   {certFile && <div style={{ fontSize: 11, color: '#3B6D11', marginTop: 4 }}>{certHas ? 'Will replace the current certificate' : 'Will be attached'}: {certFile.name}</div>}
                   {selectedCourse?.needs_certificate && !certHas && !certFile && (
-                    <div style={{ fontSize: 11, color: '#B26B00', marginTop: 4 }}>This training normally has a certificate — attach one, or mark it Pending until it's ready.</div>
+                    <div style={{ fontSize: 11, color: requireCert ? '#c0392b' : '#B26B00', marginTop: 4 }}>
+                      {requireCert
+                        ? 'A certificate is required to complete this training. Attach the PDF, or mark it Pending until it’s ready.'
+                        : 'This training normally has a certificate — attach one, or mark it Pending until it’s ready.'}
+                    </div>
                   )}
                 </div>
               </div>
