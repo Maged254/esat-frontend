@@ -102,17 +102,13 @@ export default function UpdateTrainingRecordsPage() {
   const certUrl = (id, preview) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?${preview ? 'preview=1&' : ''}token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
   const isImageCert = (name) => !name || /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name);
 
-  // Download via blob so the filename is preserved (mirrors the audit-doc viewer).
-  const downloadCert = async (rec) => {
-    const token = localStorage.getItem('esat_token');
-    try {
-      const res = await fetch(certUrl(rec.id), { headers: { Authorization: 'Bearer ' + token } });
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = rec.original_filename || `certificate-${rec.id}`;
-      a.click(); window.URL.revokeObjectURL(url);
-    } catch { /* ignore */ }
+  // Navigate to the endpoint; it 302s to a presigned R2 URL that carries an
+  // attachment Content-Disposition, so the browser downloads with the right
+  // filename — no cross-origin fetch (and so no R2 CORS setup) needed.
+  const downloadCert = (rec) => {
+    const a = document.createElement('a');
+    a.href = certUrl(rec.id); a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
   };
 
   useEffect(() => {
