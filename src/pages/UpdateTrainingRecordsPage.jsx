@@ -261,9 +261,8 @@ export default function UpdateTrainingRecordsPage() {
     // over 1MB) never leaves the status changed with the cert missing.
     if (wantsCert) {
       if (certFile.size > 1024 * 1024) { setError('Certificate must be 1MB or smaller.'); return; }
-      const okType = /\.(pdf|jpe?g|png|heic|heif)$/i.test(certFile.name) ||
-        /^(application\/pdf|image\/(jpeg|png|heic|heif))$/i.test(certFile.type || '');
-      if (!okType) { setError('Certificate must be a PDF or image (JPG, PNG, HEIC).'); return; }
+      const okType = /\.pdf$/i.test(certFile.name) || (certFile.type || '') === 'application/pdf';
+      if (!okType) { setError('Certificate must be a PDF.'); return; }
     }
     setSaving(true); setError('');
     try {
@@ -616,16 +615,16 @@ export default function UpdateTrainingRecordsPage() {
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
                 </div>
 
-                {/* Certificate (PDF or image). Optional; needs_certificate just nudges. */}
+                {/* Certificate (PDF only). Optional; needs_certificate just nudges. */}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
+                  <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
                   {certHas && !certFile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
                       <button type="button" onClick={() => openCert(modal)} style={{ color: 'var(--eg-navy)', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13 }}>📎 View current certificate</button>
                       <button type="button" className="btn btn-sm" style={{ color: '#c0392b' }} disabled={saving} onClick={removeCert}>Remove</button>
                     </div>
                   )}
-                  <input type="file" accept="application/pdf,image/jpeg,image/png,image/heic,image/heif"
+                  <input type="file" accept="application/pdf,.pdf"
                     onChange={e => setCertFile(e.target.files[0] || null)} style={{ fontSize: 13 }} />
                   {certFile && <div style={{ fontSize: 11, color: '#3B6D11', marginTop: 4 }}>{certHas ? 'Will replace the current certificate' : 'Will be attached'}: {certFile.name}</div>}
                   {selectedCourse?.needs_certificate && !certHas && !certFile && (
