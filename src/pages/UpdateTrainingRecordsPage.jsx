@@ -100,7 +100,16 @@ export default function UpdateTrainingRecordsPage() {
   // Signed-download URL for a record's certificate (token as query param so a
   // plain <img>/<iframe> works; the endpoint redirects to a short-lived URL).
   const certUrl = (id, preview) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?${preview ? 'preview=1&' : ''}token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
-  const isImageCert = (name) => !name || /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name);
+  // Only known image extensions get the inline modal; PDFs (and anything unknown)
+  // open in a new tab, since browsers won't render an attachment inside an iframe.
+  const isImageCert = (name) => /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name || '');
+
+  // View a certificate: images in the inline modal, PDFs in the browser's own
+  // PDF viewer (new tab) — reliable everywhere, unlike an embedded iframe.
+  const openCert = (rec) => {
+    if (isImageCert(rec.original_filename)) setCertPreview(rec);
+    else window.open(certUrl(rec.id, true), '_blank', 'noopener');
+  };
 
   // Navigate to the endpoint; it 302s to a presigned R2 URL that carries an
   // attachment Content-Disposition, so the browser downloads with the right
@@ -481,7 +490,7 @@ export default function UpdateTrainingRecordsPage() {
                         {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                         {r.status === 'completed' && (r.has_certificate
-                          ? <button type="button" onClick={() => setCertPreview(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
+                          ? <button type="button" onClick={() => openCert(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
                           : (r.needs_certificate ? <div style={{ fontSize: 11, color: '#B26B00', marginTop: 2 }}>No certificate</div> : ''))}
                         {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
                         {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
@@ -577,7 +586,7 @@ export default function UpdateTrainingRecordsPage() {
                   <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF or image, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
                   {certHas && !certFile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
-                      <button type="button" onClick={() => setCertPreview(modal)} style={{ color: 'var(--eg-navy)', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13 }}>📎 View current certificate</button>
+                      <button type="button" onClick={() => openCert(modal)} style={{ color: 'var(--eg-navy)', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13 }}>📎 View current certificate</button>
                       <button type="button" className="btn btn-sm" style={{ color: '#c0392b' }} disabled={saving} onClick={removeCert}>Remove</button>
                     </div>
                   )}
