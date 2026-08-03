@@ -96,27 +96,46 @@ export default function UpdateTrainingRecordsPage() {
   const [certFile, setCertFile] = useState(null);   // certificate picked in the modal
   const [certHas, setCertHas] = useState(false);     // record already has a certificate
   const [certPreview, setCertPreview] = useState(null); // record whose certificate is being viewed
+  const [certBlob, setCertBlob] = useState(null);       // object URL of the fetched file
+  const [certLoading, setCertLoading] = useState(false);
+  const [certViewError, setCertViewError] = useState('');
 
-  // Signed-download URL for a record's certificate (token as query param so a
-  // plain <img>/<iframe> works; the endpoint redirects to a short-lived URL).
-  const certUrl = (id, preview) => `${api.defaults.baseURL}/training-records/${id}/certificate/download?${preview ? 'preview=1&' : ''}token=${encodeURIComponent(localStorage.getItem('esat_token') || '')}`;
-  // Only known image extensions get the inline modal; PDFs (and anything unknown)
-  // open in a new tab, since browsers won't render an attachment inside an iframe.
   const isImageCert = (name) => /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name || '');
-
-  // View a certificate: images in the inline modal, PDFs in the browser's own
-  // PDF viewer (new tab) — reliable everywhere, unlike an embedded iframe.
-  const openCert = (rec) => {
-    if (isImageCert(rec.original_filename)) setCertPreview(rec);
-    else window.open(certUrl(rec.id, true), '_blank', 'noopener');
+  // The clean, SharePoint-style filename for downloads: "<Name> (<date>).<ext>".
+  const certFilename = (rec) => {
+    const ext = (String(rec.original_filename || '').split('.').pop() || 'pdf').toLowerCase();
+    const d = rec.completed_at ? new Date(rec.completed_at).toISOString().slice(0, 10) : '';
+    return `${rec.employee_name}${d ? ` (${d})` : ''}.${ext}`;
   };
 
-  // Navigate to the endpoint; it 302s to a presigned R2 URL that carries an
-  // attachment Content-Disposition, so the browser downloads with the right
-  // filename — no cross-origin fetch (and so no R2 CORS setup) needed.
+  // View a certificate WITHOUT ever putting a URL/token in the browser: fetch it
+  // with the token in a header, wrap the bytes in a local blob: URL, and render
+  // that in the modal. Works for images and PDFs alike; nothing is exposed.
+  const openCert = async (rec) => {
+    setCertPreview(rec); setCertBlob(null); setCertViewError(''); setCertLoading(true);
+    try {
+      const res = await fetch(`${api.defaults.baseURL}/training-records/${rec.id}/certificate/download?preview=1`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('esat_token')}` },
+      });
+      if (!res.ok) throw new Error();
+      setCertBlob(URL.createObjectURL(await res.blob()));
+    } catch {
+      setCertViewError('Could not load the certificate.');
+    } finally {
+      setCertLoading(false);
+    }
+  };
+
+  const closeCert = () => {
+    if (certBlob) URL.revokeObjectURL(certBlob);
+    setCertBlob(null); setCertPreview(null); setCertLoading(false); setCertViewError('');
+  };
+
+  // Save the already-fetched blob with the clean filename — no network URL.
   const downloadCert = (rec) => {
+    if (!certBlob) return;
     const a = document.createElement('a');
-    a.href = certUrl(rec.id); a.rel = 'noopener';
+    a.href = certBlob; a.download = certFilename(rec);
     document.body.appendChild(a); a.click(); a.remove();
   };
 
@@ -524,20 +543,25 @@ export default function UpdateTrainingRecordsPage() {
         )}
       </div>
 
-      {/* Certificate preview (mirrors the audit-report viewer) */}
+      {/* Certificate preview — rendered from a local blob: URL, so no link/token
+          is ever shown. Images and PDFs both display in-place. */}
       {certPreview && (
-        <div onClick={() => setCertPreview(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 20, maxWidth: '80vw', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div onClick={closeCert} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 20, maxWidth: '82vw', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f2a4a' }}>{selectedCourse?.name} — Certificate<div style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>{certPreview.employee_name}{certPreview.original_filename ? ` · ${certPreview.original_filename}` : ''}</div></div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f2a4a' }}>{selectedCourse?.name} — Certificate<div style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>{certPreview.employee_name}</div></div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <button className="btn btn-sm" onClick={() => downloadCert(certPreview)}>↓ Download</button>
-                <button className="btn btn-sm" onClick={() => setCertPreview(null)}>✕ Close</button>
+                <button className="btn btn-sm" onClick={() => downloadCert(certPreview)} disabled={!certBlob}>↓ Download</button>
+                <button className="btn btn-sm" onClick={closeCert}>✕ Close</button>
               </div>
             </div>
-            {isImageCert(certPreview.original_filename)
-              ? <img src={certUrl(certPreview.id, true)} alt="Certificate" style={{ maxWidth: '100%', maxHeight: '74vh', borderRadius: 8, display: 'block' }} />
-              : <iframe title="Certificate" src={certUrl(certPreview.id)} style={{ width: '78vw', height: '74vh', border: 'none', borderRadius: 8 }} />}
+            {certLoading
+              ? <div style={{ width: '78vw', maxWidth: 780, height: '74vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>Loading certificate…</div>
+              : certViewError
+                ? <div style={{ padding: 40, color: '#c0392b', fontSize: 14 }}>{certViewError}</div>
+                : certBlob && (isImageCert(certPreview.original_filename)
+                    ? <img src={certBlob} alt="Certificate" style={{ maxWidth: '100%', maxHeight: '78vh', borderRadius: 8, display: 'block' }} />
+                    : <iframe title="Certificate" src={certBlob} style={{ width: '78vw', maxWidth: 900, height: '78vh', border: 'none', borderRadius: 8 }} />)}
           </div>
         </div>
       )}
