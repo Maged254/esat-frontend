@@ -256,13 +256,21 @@ export default function UpdateTrainingRecordsPage() {
 
   const submit = async () => {
     if (!modal) return;
+    const wantsCert = certFile && (outcome === 'completed' || isRenew);
+    // Validate the certificate BEFORE recording the outcome, so a bad file (e.g.
+    // over 1MB) never leaves the status changed with the cert missing.
+    if (wantsCert) {
+      if (certFile.size > 1024 * 1024) { setError('Certificate must be 1MB or smaller.'); return; }
+      const okType = /\.(pdf|jpe?g|png|heic|heif)$/i.test(certFile.name) ||
+        /^(application\/pdf|image\/(jpeg|png|heic|heif))$/i.test(certFile.type || '');
+      if (!okType) { setError('Certificate must be a PDF or image (JPG, PNG, HEIC).'); return; }
+    }
     setSaving(true); setError('');
     try {
       let targetId = modal.id; // where a picked certificate should attach
       if (isRenew) {
         const r = await api.post(`/training-records/${modal.id}/renew`, { completed_at: form.completed_at });
         targetId = r.data?.id || modal.id; // the new completed record
-        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} renewed. The previous (expired) certificate stays on file as history.`);
       } else {
         const payload = { status: outcome };
         if (outcome === 'completed') { payload.completed_at = form.completed_at; }
@@ -270,10 +278,9 @@ export default function UpdateTrainingRecordsPage() {
         else if (outcome === 'scheduled') payload.scheduled_date = form.scheduled_date;
         else if (outcome === 'not_eligible') payload.not_eligible_reason = form.not_eligible_reason;
         await api.put(`/training-records/${modal.id}/update`, payload);
-        setSuccessMsg(`${modal.employee_name} — ${selectedCourse.name} marked ${titleCase(outcome)}.`);
       }
       // A certificate only makes sense on a completed record; upload it after.
-      if (certFile && (outcome === 'completed' || isRenew)) {
+      if (wantsCert) {
         const fd = new FormData();
         fd.append('file', certFile);
         const resp = await fetch(`${api.defaults.baseURL}/training-records/${targetId}/certificate`, {
@@ -284,6 +291,10 @@ export default function UpdateTrainingRecordsPage() {
           throw new Error(d.error || 'Certificate upload failed');
         }
       }
+      // Everything succeeded → only now announce it.
+      setSuccessMsg(isRenew
+        ? `${modal.employee_name} — ${selectedCourse.name} renewed. The previous (expired) certificate stays on file as history.`
+        : `${modal.employee_name} — ${selectedCourse.name} marked ${titleCase(outcome)}.`);
       setTimeout(() => setSuccessMsg(''), 3500);
       setModal(null);
       loadRows(selectedCourse.id);
