@@ -264,6 +264,12 @@ export default function UpdateTrainingRecordsPage() {
       const okType = /\.pdf$/i.test(certFile.name) || (certFile.type || '') === 'application/pdf';
       if (!okType) { setError('Certificate must be a PDF.'); return; }
     }
+    // A "Requires certificate" course can't be completed/renewed without a PDF
+    // (an existing one, or one being attached now).
+    if (selectedCourse?.needs_certificate && (outcome === 'completed' || isRenew)) {
+      const hasCert = isRenew ? !!certFile : (certHas || !!certFile);
+      if (!hasCert) { setError('A certificate is required to complete this training. Attach the PDF, or mark it Pending until it’s ready.'); return; }
+    }
     setSaving(true); setError('');
     try {
       let targetId = modal.id; // where a picked certificate should attach
@@ -627,8 +633,8 @@ export default function UpdateTrainingRecordsPage() {
                   <input type="file" accept="application/pdf,.pdf"
                     onChange={e => setCertFile(e.target.files[0] || null)} style={{ fontSize: 13 }} />
                   {certFile && <div style={{ fontSize: 11, color: '#3B6D11', marginTop: 4 }}>{certHas ? 'Will replace the current certificate' : 'Will be attached'}: {certFile.name}</div>}
-                  {selectedCourse?.needs_certificate && !certHas && !certFile && (
-                    <div style={{ fontSize: 11, color: '#B26B00', marginTop: 4 }}>This training normally has a certificate — attach one, or mark it Pending until it’s ready.</div>
+                  {selectedCourse?.needs_certificate && !certHas && !certFile && (outcome === 'completed' || isRenew) && (
+                    <div style={{ fontSize: 11, color: '#c0392b', marginTop: 4 }}>A certificate is required to complete this training. Attach the PDF, or mark it Pending until it’s ready.</div>
                   )}
                 </div>
               </div>
