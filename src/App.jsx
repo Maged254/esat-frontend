@@ -20,6 +20,7 @@ import RequestsPage from './pages/RequestsPage';
 import RepeatRequestsPage from './pages/RepeatRequestsPage';
 import AuditCoveragePage from './pages/AuditCoveragePage';
 import CasualsPage from './pages/CasualsPage';
+import ChangeHistoryPage from './pages/ChangeHistoryPage';
 import RequestPPEPage from './pages/RequestPPEPage';
 import RequestTrainingPage from './pages/RequestTrainingPage';
 import UpdateTrainingRecordsPage from './pages/UpdateTrainingRecordsPage';
@@ -58,6 +59,7 @@ export default function App() {
             <Route index element={<PageGuard pageKey="/"><DashboardPage /></PageGuard>} />
             <Route path="employees" element={<PageGuard pageKey="/employees"><EmployeesPage /></PageGuard>} />
             <Route path="casuals" element={<PageGuard pageKey="/casuals"><CasualsPage /></PageGuard>} />
+            <Route path="employees/change-log" element={<PageGuard pageKey="/employees/change-log"><ChangeHistoryPage /></PageGuard>} />
             <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="request-ppe" element={<PageGuard pageKey="/request-ppe"><RequestPPEPage /></PageGuard>} />
             <Route path="training/request" element={<PageGuard pageKey="/training/request"><RequestTrainingPage /></PageGuard>} />

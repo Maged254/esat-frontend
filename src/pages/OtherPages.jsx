@@ -170,17 +170,41 @@ export function EmployeesPage() {
   const canEditEmployee = ['admin','hr'].includes(userRole);
   const colCount = 6 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
+  // Fields the "Update Resource's Details" modal exposes as Before → After rows.
+  const editFields = [
+    { key: 'full_name', label: 'Employee Name', type: 'text' },
+    { key: 'department', label: 'Department', type: 'select', options: filterOptions.departments },
+    { key: 'project', label: 'Project', type: 'select', options: filterOptions.projects },
+    { key: 'client', label: 'Client', type: 'select', options: filterOptions.clients },
+    { key: 'job_title', label: 'Job Title', type: 'text' },
+  ];
+  const fieldLabel = (k) => (editFields.find(f => f.key === k) || {}).label || k;
   const openEdit = (emp) => {
     setEditModal(emp);
-    setEditForm({ full_name: emp.full_name||'', national_id: emp.national_id||'', department: emp.department||'', project: emp.project||'', client: emp.client||'', job_title: emp.job_title||'', reason: '' });
+    setEditForm({
+      edit: { full_name: false, department: false, project: false, client: false, job_title: false },
+      after: { full_name: emp.full_name || '', department: emp.department || '', project: emp.project || '', client: emp.client || '', job_title: emp.job_title || '' },
+      reason: '',
+    });
   };
+  const toggleField = (key) => setEditForm(f => ({ ...f, edit: { ...f.edit, [key]: !f.edit[key] } }));
+  const setAfter = (key, val) => setEditForm(f => ({ ...f, after: { ...f.after, [key]: val } }));
   const saveEdit = async () => {
-    if (!editForm.full_name.trim()) { alert('Employee name is required'); return; }
+    const changedKeys = Object.keys(editForm.edit).filter(k => editForm.edit[k]);
+    if (!changedKeys.length) { alert('Tick at least one field to change.'); return; }
+    if (editForm.edit.full_name && !editForm.after.full_name.trim()) { alert('Employee name cannot be empty'); return; }
     if (!editForm.reason.trim()) { alert('Please enter a reason for the update'); return; }
-    if (!window.confirm(`Update ${editModal.full_name}'s details? This change will be recorded against your name.`)) return;
+    const val = (k) => editForm.edit[k] ? (typeof editForm.after[k] === 'string' ? editForm.after[k] : editForm.after[k]) : editModal[k];
+    const payload = {
+      full_name: (editForm.edit.full_name ? editForm.after.full_name.trim() : editModal.full_name),
+      national_id: editModal.national_id,
+      job_title: val('job_title'), department: val('department'), project: val('project'), client: val('client'),
+      reason: editForm.reason.trim(),
+    };
+    if (!window.confirm(`Update ${editModal.full_name}'s details (${changedKeys.map(fieldLabel).join(', ')})? This change will be recorded against your name.`)) return;
     setEditSaving(true);
     try {
-      await api.put('/employees/' + editModal.id, editForm);
+      await api.put('/employees/' + editModal.id, payload);
       setEditModal(null);
       reload();
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Update failed'); }
@@ -367,36 +391,31 @@ export function EmployeesPage() {
               <span>Organization: <b style={{color:'#374151'}}>{editModal.organization||'—'}</b></span>
               <span>Status: <b style={{color:'#374151'}}>{editModal.employment_status}</b></span>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employee Name <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={editForm.full_name} onChange={ev=>setEditForm(f=>({...f,full_name:ev.target.value}))} />
+            <div style={{border:'1px solid #e5e7eb',borderRadius:8,overflow:'hidden'}}>
+              <div style={{display:'grid',gridTemplateColumns:'34px 140px 1fr 1fr',background:'#f3f4f6',padding:'8px 12px',fontSize:11,fontWeight:600,color:'#6b7280',textTransform:'uppercase',letterSpacing:.3}}>
+                <div></div><div>Field</div><div>Before</div><div>After</div>
               </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department</div>
-                <select className="form-input" value={editForm.department} onChange={ev=>setEditForm(f=>({...f,department:ev.target.value}))}>
-                  <option value="">—</option>
-                  {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client</div>
-                <select className="form-input" value={editForm.client} onChange={ev=>setEditForm(f=>({...f,client:ev.target.value}))}>
-                  <option value="">—</option>
-                  {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project</div>
-                <select className="form-input" value={editForm.project} onChange={ev=>setEditForm(f=>({...f,project:ev.target.value}))}>
-                  <option value="">—</option>
-                  {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title</div>
-                <input className="form-input" value={editForm.job_title} onChange={ev=>setEditForm(f=>({...f,job_title:ev.target.value}))} />
-              </div>
+              {editFields.map(f=>{
+                const on = editForm.edit[f.key];
+                const before = editModal[f.key] || '—';
+                return (
+                  <div key={f.key} style={{display:'grid',gridTemplateColumns:'34px 140px 1fr 1fr',gap:8,alignItems:'center',padding:'8px 12px',borderTop:'1px solid #f0f0f0',background:on?'#F8FBFF':'#fff'}}>
+                    <input type="checkbox" checked={on} onChange={()=>toggleField(f.key)} style={{cursor:'pointer',width:16,height:16}} title={on?'Will change':'Tick to change this field'} />
+                    <div style={{fontSize:13,fontWeight:600,color:'#374151'}}>{f.label}</div>
+                    <div style={{fontSize:13,color:on?'#9ca3af':'#374151',textDecoration:on?'line-through':'none'}}>{before}</div>
+                    <div>
+                      {!on
+                        ? <span style={{fontSize:12,color:'#c0c4cc'}}>—</span>
+                        : f.type==='text'
+                          ? <input className="form-input" style={{height:30,fontSize:13,padding:'4px 8px'}} value={editForm.after[f.key]} onChange={ev=>setAfter(f.key,ev.target.value)} autoFocus />
+                          : <select className="form-input" style={{height:30,fontSize:13,padding:'4px 8px'}} value={editForm.after[f.key]} onChange={ev=>setAfter(f.key,ev.target.value)}>
+                              <option value="">—</option>
+                              {f.options.map(o=><option key={o} value={o}>{o}</option>)}
+                            </select>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason for updating the resource's details <span style={{color:'#e24b4a'}}>*</span></div>

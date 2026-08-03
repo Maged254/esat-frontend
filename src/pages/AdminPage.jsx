@@ -9,6 +9,7 @@ const ALL_PAGES = [
   { key: '/', label: 'Dashboard' },
   { key: '/employees', label: 'Employees' },
   { key: '/casuals', label: 'Casuals' },
+  { key: '/employees/change-log', label: 'Employee Change History' },
   { key: '/audit/new', label: 'New Audit' },
   { key: '/request-ppe', label: 'Request a PPE' },
   { key: '/training/request', label: 'Request a Training' },
