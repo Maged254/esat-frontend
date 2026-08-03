@@ -13,7 +13,7 @@ export function EmployeesPage() {
   // mutually exclusive in the UI and collapse to canonical status/
   // resource_type values for the backend -- same pattern as the NCR page's
   // stat cards, so exactly one card (or neither) is ever highlighted.
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', project: '', client: '', san: '', job_title: '', audit_age: '', activeStat: 'active' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', employee_number: '', project: '', client: '', san: '', job_title: '', audit_age: '', activeStat: 'active' });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
@@ -196,6 +196,7 @@ export function EmployeesPage() {
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
+                {['admin','hr'].includes(userRole) && <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employment ID..." value={filters.employee_number} onChange={e=>setFilters(p=>({...p,employee_number:e.target.value}))} />}
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
               </div>
             </div>
@@ -231,7 +232,7 @@ export function EmployeesPage() {
                   <option value="2months">1 - 2 Months</option>
                   <option value="over2months">More than 2 Months</option>
                 </select>
-                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',employee_number:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
               </div>
             </div>
           </div>
@@ -267,7 +268,11 @@ export function EmployeesPage() {
               {employees.map(e => (
                 <tr key={e.id}>
                   <td><div className="emp-cell"><div><div className="emp-name">{e.full_name}</div><div className="emp-id">{e.national_id||e.employee_number}</div></div></div></td>
-                  <td>{e.organization||'—'}</td><td>{e.job_title||'—'}</td><td>{e.department||'—'}</td>
+                  <td>
+                    <div>{e.organization||'—'}</div>
+                    {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
+                  </td>
+                  <td>{e.job_title||'—'}</td><td>{e.department||'—'}</td>
                   <td>
                     <div>{e.project||'—'}</div>
                     {e.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.client}</div>}
