@@ -10,7 +10,7 @@ const NAV = [
   { to: '/requests', label: 'PPE Request Trends', icon: 'ti-chart-line', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/repeat-requests', label: 'Repeated Requests', icon: 'ti-repeat', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { section: 'Resources', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
-  { to: '/employees', label: 'Employees', icon: 'ti-users', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
+  { to: '/employees', label: 'Employees', icon: 'ti-users', exact: true, roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/casuals', label: 'Casuals', icon: 'ti-user-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/employees/change-log', label: 'Change History', icon: 'ti-list-details', roles: ['admin','hr'] },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },

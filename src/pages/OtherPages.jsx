@@ -12,6 +12,7 @@ export function EmployeesPage() {
   const [editModal, setEditModal] = useState(null); // employee being edited
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
+  const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
   // Stat-card clicks (activeStat) and the status/resource dropdowns are
   // mutually exclusive in the UI and collapse to canonical status/
   // resource_type values for the backend -- same pattern as the NCR page's
@@ -168,7 +169,7 @@ export function EmployeesPage() {
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
   const canAssignPpe = ['admin','ehs_manager'].includes(userRole);
   const canEditEmployee = ['admin','hr'].includes(userRole);
-  const colCount = 6 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
+  const colCount = 5 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
   const editFields = [
@@ -216,14 +217,18 @@ export function EmployeesPage() {
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Update failed'); }
     setEditSaving(false);
   };
-  const exitEmployee = async (emp) => {
-    if (emp.employment_status !== 'active') { alert('This employee is already exited.'); return; }
-    if (!window.confirm(`Exit ${emp.full_name}? This marks the employee as Exit and closes their open PPE requests and NCR items.`)) return;
+  // Exit uses a custom red confirmation dialog (not window.confirm, which can't
+  // be styled) since it's a destructive, cascading action.
+  const doExit = async () => {
+    if (!editModal || editModal.employment_status !== 'active') { setExitConfirm(false); return; }
+    setExitConfirm(false);
+    setEditSaving(true);
     try {
-      await api.put('/employees/' + emp.id + '/status', { employment_status: 'exit', exit_date: new Date().toISOString().slice(0, 10) });
+      await api.put('/employees/' + editModal.id + '/status', { employment_status: 'exit', exit_date: new Date().toISOString().slice(0, 10) });
       setEditModal(null);
       reload();
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Exit failed'); }
+    setEditSaving(false);
   };
 
   return (
@@ -319,7 +324,7 @@ export function EmployeesPage() {
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
           <table className="table-hover-soft">
-            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title / Department</th><th>Project / Client</th><th>Resource / Status</th><th>SAN / Last Audit</th>{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
+            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title / Department</th><th>Project / Client</th><th>SAN / Last Audit</th>{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
             <tbody>
               {employees.map(e => (
                 <tr key={e.id}>
@@ -327,6 +332,7 @@ export function EmployeesPage() {
                   <td>
                     <div>{e.organization||'—'}</div>
                     {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
+                    <div style={{marginTop:4}}><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status ? e.employment_status.charAt(0).toUpperCase() + e.employment_status.slice(1) : '—'}</span></div>
                   </td>
                   <td>
                     <div>{e.job_title||'—'}</div>
@@ -335,10 +341,6 @@ export function EmployeesPage() {
                   <td>
                     <div>{e.project||'—'}</div>
                     {e.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.client}</div>}
-                  </td>
-                  <td>
-                    <div>{e.resource_type ? e.resource_type.charAt(0).toUpperCase() + e.resource_type.slice(1) : '—'}</div>
-                    <div style={{marginTop:4}}><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status}</span></div>
                   </td>
                   <td>
                     <div>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</div>
@@ -385,17 +387,14 @@ export function EmployeesPage() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:12,padding:32,width:720,maxHeight:'88vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:16}}>Update Resource's Details</div>
-                <div style={{fontSize:13,color:'#6b7280'}}>{editModal.full_name} — {editModal.national_id || editModal.employee_number}</div>
-              </div>
+              <div style={{fontWeight:700,fontSize:16}}>Update Resource's Details</div>
               <button onClick={()=>setEditModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
             <div style={{display:'flex',gap:20,flexWrap:'wrap',fontSize:12,color:'#6b7280',background:'#F0F7FF',border:'1px solid #dbeafe',borderRadius:8,padding:'10px 14px'}}>
               <span>National ID: <b style={{color:'#374151'}}>{editModal.national_id||'—'}</b></span>
               <span>Empl. Number: <b style={{color:'#374151'}}>{editModal.employee_number}</b></span>
               <span>Organization: <b style={{color:'#374151'}}>{editModal.organization||'—'}</b></span>
-              <span>Status: <b style={{color:'#374151'}}>{editModal.employment_status}</b></span>
+              <span>Status: <b style={{color:'#374151'}}>{editModal.employment_status ? editModal.employment_status.charAt(0).toUpperCase() + editModal.employment_status.slice(1) : '—'}</b></span>
             </div>
             <div style={{border:'1px solid #e5e7eb',borderRadius:8,overflow:'hidden'}}>
               <div style={{display:'grid',gridTemplateColumns:'34px 140px 1fr 1fr',background:'#f3f4f6',padding:'8px 12px',fontSize:11,fontWeight:600,color:'#6b7280',textTransform:'uppercase',letterSpacing:.3}}>
@@ -428,11 +427,28 @@ export function EmployeesPage() {
               <input className="form-input" value={editForm.reason} placeholder="Required — recorded against this update" onChange={ev=>setEditForm(f=>({...f,reason:ev.target.value}))} />
             </div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
-              <button className="btn" onClick={()=>exitEmployee(editModal)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Employee already exited':'Exit this employee'}>Exit Employee</button>
+              <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Employee already exited':'Exit this employee'}>Exit Employee</button>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
                 <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}>{editSaving?'Saving...':'Update Details'}</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {exitConfirm && editModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:460,borderTop:'4px solid #e24b4a',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <span style={{fontSize:22}}>⚠️</span>
+              <div style={{fontWeight:700,fontSize:16,color:'#c0392b'}}>Exit Employee</div>
+            </div>
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:20}}>
+              You are about to exit <b>{editModal.full_name}</b>. This marks the employee as <b style={{color:'#c0392b'}}>Exit</b> and closes their open PPE requests and NCR items. It is recorded in the change history.
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn" onClick={()=>setExitConfirm(false)} disabled={editSaving}>Cancel</button>
+              <button className="btn" onClick={doExit} disabled={editSaving} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{editSaving?'Exiting...':'Confirm Exit'}</button>
             </div>
           </div>
         </div>
