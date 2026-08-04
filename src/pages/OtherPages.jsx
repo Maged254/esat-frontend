@@ -13,6 +13,9 @@ export function EmployeesPage() {
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
+  const [addModal, setAddModal] = useState(false); // Add Employee modal
+  const [addForm, setAddForm] = useState({});
+  const [addSaving, setAddSaving] = useState(false);
   // Stat-card clicks (activeStat) and the status/resource dropdowns are
   // mutually exclusive in the UI and collapse to canonical status/
   // resource_type values for the backend -- same pattern as the NCR page's
@@ -180,6 +183,24 @@ export function EmployeesPage() {
     { key: 'job_title', label: 'Job Title', type: 'text' },
   ];
   const fieldLabel = (k) => (editFields.find(f => f.key === k) || {}).label || k;
+  // Add a new employee directly (for when ESAT is the independent master list,
+  // post-ETMS). Mirrors the ETMS "Add New Hire" form; uses POST /employees.
+  const openAdd = () => {
+    setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: '', department: '', project: '', client: '', organization: 'Egypro', resource_type: 'inhouse', employment_status: 'active' });
+    setAddModal(true);
+  };
+  const saveAdd = async () => {
+    const required = { full_name: 'Resource Name', national_id: 'National ID Number', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title', organization: 'Organization' };
+    for (const k in required) { if (!String(addForm[k] || '').trim()) { alert(required[k] + ' is required'); return; } }
+    setAddSaving(true);
+    try {
+      const res = await api.post('/employees', addForm);
+      setAddModal(false);
+      reload();
+      if (res.status === 200) alert('An employee with this National ID already existed — their record was updated instead of adding a new one.');
+    } catch (e) { logError(e); alert(e.response?.data?.error || 'Failed to add employee'); }
+    setAddSaving(false);
+  };
   const openEdit = (emp) => {
     setEditModal(emp);
     setEditForm({
@@ -239,6 +260,7 @@ export function EmployeesPage() {
           <span className="topbar-title">Employees</span>
         </div>
         <div className="topbar-right">
+          {canEditEmployee && <button className="btn btn-primary" onClick={openAdd}>+ Add Employee</button>}
           {userRole === 'admin' && <button className="btn" onClick={exportCSV}>↓ Export CSV</button>}
           {userRole === 'admin' && (
             <label className="btn" style={{cursor:'pointer'}}>
@@ -449,6 +471,73 @@ export function EmployeesPage() {
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
               <button className="btn" onClick={()=>setExitConfirm(false)} disabled={editSaving}>Cancel</button>
               <button className="btn" onClick={doExit} disabled={editSaving} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{editSaving?'Exiting...':'Confirm Exit'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {addModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:32,width:760,maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:16}}>+ Add Employee</div>
+                <div style={{fontSize:12,color:'#6b7280',marginTop:2}}>Create a new employee record directly in ESAT.</div>
+              </div>
+              <button onClick={()=>setAddModal(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Resource Name <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" value={addForm.full_name} placeholder="Exactly like the National ID" onChange={ev=>setAddForm(f=>({...f,full_name:ev.target.value}))} />
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>National ID Number <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" value={addForm.national_id} onChange={ev=>setAddForm(f=>({...f,national_id:ev.target.value}))} />
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employment ID</div>
+                <input className="form-input" value={addForm.employee_number} placeholder='Starts with "A" — auto if blank' onChange={ev=>setAddForm(f=>({...f,employee_number:ev.target.value}))} />
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" list="add-dept-list" value={addForm.department} placeholder="Find or type…" onChange={ev=>setAddForm(f=>({...f,department:ev.target.value}))} />
+                <datalist id="add-dept-list">{filterOptions.departments.map(d=><option key={d} value={d} />)}</datalist>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project Name <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" list="add-proj-list" value={addForm.project} placeholder="Find or type…" onChange={ev=>setAddForm(f=>({...f,project:ev.target.value}))} />
+                <datalist id="add-proj-list">{filterOptions.projects.map(p=><option key={p} value={p} />)}</datalist>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" list="add-client-list" value={addForm.client} placeholder="Find or type…" onChange={ev=>setAddForm(f=>({...f,client:ev.target.value}))} />
+                <datalist id="add-client-list">{filterOptions.clients.map(c=><option key={c} value={c} />)}</datalist>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" value={addForm.job_title} onChange={ev=>setAddForm(f=>({...f,job_title:ev.target.value}))} />
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Organization <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" value={addForm.organization} onChange={ev=>setAddForm(f=>({...f,organization:ev.target.value}))} />
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Resource Type</div>
+                <select className="form-input" value={addForm.resource_type} onChange={ev=>setAddForm(f=>({...f,resource_type:ev.target.value}))}>
+                  <option value="inhouse">Inhouse</option>
+                  <option value="outsource">Outsource</option>
+                  <option value="intern">Intern</option>
+                </select>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Date Joined</div>
+                <input className="form-input" value={new Date().toLocaleDateString('en-GB')} readOnly disabled style={{background:'#f3f4f6',color:'#6b7280',cursor:'not-allowed'}} title="Set automatically to today" />
+              </div>
+            </div>
+            <div style={{fontSize:11,color:'#9ca3af'}}>National ID document upload is handled separately (credentials) and isn't part of this form.</div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
+              <button className="btn" onClick={()=>setAddModal(false)} disabled={addSaving}>Cancel</button>
+              <button className="btn btn-primary" onClick={saveAdd} disabled={addSaving}>{addSaving?'Adding…':'Add Employee'}</button>
             </div>
           </div>
         </div>
