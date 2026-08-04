@@ -212,7 +212,8 @@ export function EmployeesPage() {
   // Update a field and clear its inline error as the user types.
   const setAddField = (k, v) => { setAddForm(f => ({ ...f, [k]: v })); setAddErrors(e => (e[k] ? { ...e, [k]: undefined } : e)); };
   const saveAdd = async () => {
-    const required = { full_name: 'Resource Name', national_id: 'National ID Number', employee_number: 'Employment ID', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title' };
+    const required = { full_name: 'Resource Name', national_id: 'National ID Number', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title' };
+    if (addType === 'inhouse') required.employee_number = 'Employment ID'; // interns/outsource have no Employment ID
     const errs = {};
     for (const k in required) { if (!String(addForm[k] || '').trim()) errs[k] = `${required[k]} is required`; }
     if (addForm.national_id && !/^\d+$/.test(addForm.national_id.trim())) errs.national_id = 'Use digits only';
@@ -498,7 +499,7 @@ export function EmployeesPage() {
             </div>
             <div style={{display:'flex',gap:20,flexWrap:'wrap',fontSize:12,color:'#6b7280',background:'#F0F7FF',border:'1px solid #dbeafe',borderRadius:8,padding:'10px 14px'}}>
               <span>National ID: <b style={{color:'#374151'}}>{editModal.national_id||'—'}</b></span>
-              <span>Empl. Number: <b style={{color:'#374151'}}>{editModal.employee_number}</b></span>
+              <span>Empl. Number: <b style={{color:'#374151'}}>{editModal.employee_number || '—'}</b></span>
               <span>Organization: <b style={{color:'#374151'}}>{editModal.organization||'—'}</b></span>
               <span>Status: <b style={{color:'#374151'}}>{editModal.employment_status ? editModal.employment_status.charAt(0).toUpperCase() + editModal.employment_status.slice(1) : '—'}</b></span>
             </div>
@@ -617,11 +618,11 @@ export function EmployeesPage() {
                 <input className="form-input" value={addForm.national_id} placeholder="Use digits only" inputMode="numeric" onChange={ev=>setAddField('national_id',ev.target.value.replace(/\D/g,''))} style={addErrors.national_id?{borderColor:'#e24b4a'}:undefined} />
                 {addErrors.national_id && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.national_id}</div>}
               </div>
-              <div>
+              {addType==='inhouse' && <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employment ID <span style={{color:'#e24b4a'}}>*</span></div>
                 <input className="form-input" value={addForm.employee_number} placeholder='Starts with "A"' onChange={ev=>setAddField('employee_number',ev.target.value)} style={addErrors.employee_number?{borderColor:'#e24b4a'}:undefined} />
                 {addErrors.employee_number && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.employee_number}</div>}
-              </div>
+              </div>}
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
                 <select className="form-input" value={addForm.department} onChange={ev=>setAddField('department',ev.target.value)} style={addErrors.department?{borderColor:'#e24b4a'}:undefined}>
