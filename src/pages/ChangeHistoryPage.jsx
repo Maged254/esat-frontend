@@ -21,6 +21,23 @@ export default function ChangeHistoryPage() {
   const pageSize = 50;
   const [filters, setFilters] = useState(EMPTY);
   const [exporting, setExporting] = useState(false);
+  const [userRole, setUserRole] = useState('');
+  useEffect(() => { try { const u = JSON.parse(localStorage.getItem('esat_user')); if (u) setUserRole(u.role); } catch {} }, []);
+  const [deleteRow, setDeleteRow] = useState(null); // change-log record pending hard-delete (admin)
+  const [deleting, setDeleting] = useState(false);
+  const isAdmin = userRole === 'admin';
+
+  const doDelete = async () => {
+    if (!deleteRow) return;
+    setDeleting(true);
+    try {
+      await api.delete('/employee-change-log/' + deleteRow.id);
+      setRows(prev => prev.filter(r => r.id !== deleteRow.id));
+      setTotal(t => Math.max(t - 1, 0));
+      setDeleteRow(null);
+    } catch (e) { logError(e); alert(e.response?.data?.error || 'Delete failed'); }
+    setDeleting(false);
+  };
 
   const buildParams = () => {
     const p = new URLSearchParams();
@@ -147,6 +164,7 @@ export default function ChangeHistoryPage() {
                   <th>What changed</th>
                   <th>Reason</th>
                   <th>Changed by</th>
+                  {isAdmin && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -161,9 +179,10 @@ export default function ChangeHistoryPage() {
                     <td>{renderChanges(r.changes)}</td>
                     <td style={{ fontSize: 12, color: '#6b7280', fontStyle: r.reason ? 'italic' : 'normal' }}>{r.reason || '—'}</td>
                     <td style={{ fontSize: 12 }}>{r.changed_by_name || '—'}</td>
+                    {isAdmin && <td><button onClick={() => setDeleteRow(r)} title="Hard delete this record" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e24b4a' }}><i className="ti ti-trash" style={{ fontSize: 16 }} aria-hidden="true"></i></button></td>}
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No changes in this range</td></tr>}
+                {!rows.length && <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No changes in this range</td></tr>}
               </tbody>
             </table>
           </div>
@@ -179,6 +198,23 @@ export default function ChangeHistoryPage() {
           )}
         </div>
       </div>
+      {deleteRow && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 460, borderTop: '4px solid #e24b4a', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <i className="ti ti-trash" style={{ fontSize: 20, color: '#c0392b' }} aria-hidden="true"></i>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#c0392b' }}>Delete history record</div>
+            </div>
+            <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: 20 }}>
+              Permanently delete this <b>{ACTION_META[deleteRow.action]?.label || deleteRow.action}</b> record for <b>{deleteRow.employee_name || '—'}</b> ({fmtDateTime(deleteRow.changed_at)})? This <b>cannot be undone</b>.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn" onClick={() => setDeleteRow(null)} disabled={deleting}>Cancel</button>
+              <button className="btn" onClick={doDelete} disabled={deleting} style={{ background: '#e24b4a', borderColor: '#e24b4a', color: '#fff' }}>{deleting ? 'Deleting…' : 'Delete permanently'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
