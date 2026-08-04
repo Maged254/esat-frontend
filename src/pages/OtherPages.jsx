@@ -264,6 +264,7 @@ export function EmployeesPage() {
     try {
       await api.delete('/employees/' + deleteConfirm.id);
       setDeleteConfirm(null);
+      setEditModal(null);
       reload();
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Delete failed'); }
     setDeleting(false);
@@ -417,12 +418,7 @@ export function EmployeesPage() {
                       </div>
                     ) : <span style={{color:'#9ca3af'}}>—</span>}
                   </td>}
-                  {canEditEmployee && <td>
-                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                      <button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={e.employment_status!=='active'} title={e.employment_status!=='active'?'Employee has exited — cannot edit':''}>Edit</button>
-                      {userRole==='admin' && <button onClick={()=>setDeleteConfirm(e)} title="Hard delete this resource" style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16,lineHeight:1}}>🗑</button>}
-                    </div>
-                  </td>}
+                  {canEditEmployee && <td><button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={e.employment_status!=='active'} title={e.employment_status!=='active'?'Employee has exited — cannot edit':''}>Edit</button></td>}
                   {canAssignPpe && <td>
                     <div style={{display:'flex',gap:6}}>
                       <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>PPE</button>
@@ -495,7 +491,10 @@ export function EmployeesPage() {
               <input className="form-input" value={editForm.reason} placeholder="Required — recorded against this update" onChange={ev=>setEditForm(f=>({...f,reason:ev.target.value}))} />
             </div>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
-              <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Employee already exited':'Exit this employee'}>Exit Employee</button>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
+                <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Employee already exited':'Exit this employee'}>Exit Employee</button>
+              </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
                 <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}>{editSaving?'Saving...':'Update Details'}</button>
