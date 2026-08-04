@@ -206,7 +206,8 @@ export function EmployeesPage() {
     setAddMenu(false);
     setAddFile(null);
     setAddErrors({});
-    setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: '', department: '', project: '', client: '', organization: 'Egypro' });
+    // Interns are always job title "Intern" (field hidden on the intern form).
+    setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: type === 'intern' ? 'Intern' : '', department: '', project: '', client: '', organization: 'Egypro' });
     setAddModal(true);
   };
   // Update a field and clear its inline error as the user types.
@@ -499,7 +500,7 @@ export function EmployeesPage() {
             </div>
             <div style={{display:'flex',gap:20,flexWrap:'wrap',fontSize:12,color:'#6b7280',background:'#F0F7FF',border:'1px solid #dbeafe',borderRadius:8,padding:'10px 14px'}}>
               <span>National ID: <b style={{color:'#374151'}}>{editModal.national_id||'—'}</b></span>
-              <span>Empl. Number: <b style={{color:'#374151'}}>{editModal.employee_number || '—'}</b></span>
+              {editModal.employee_number && <span>Empl. Number: <b style={{color:'#374151'}}>{editModal.employee_number}</b></span>}
               <span>Organization: <b style={{color:'#374151'}}>{editModal.organization||'—'}</b></span>
               <span>Status: <b style={{color:'#374151'}}>{editModal.employment_status ? editModal.employment_status.charAt(0).toUpperCase() + editModal.employment_status.slice(1) : '—'}</b></span>
             </div>
@@ -510,10 +511,12 @@ export function EmployeesPage() {
               {editFields.map(f=>{
                 const on = editForm.edit[f.key];
                 const before = editModal[f.key] || '—';
+                // Interns keep the job title "Intern" — that row can't be changed.
+                const locked = f.key === 'job_title' && editModal.job_title === 'Intern';
                 return (
                   <div key={f.key} style={{display:'grid',gridTemplateColumns:'34px 140px 1fr 1fr',gap:8,alignItems:'center',padding:'8px 12px',borderTop:'1px solid #f0f0f0',background:on?'#F8FBFF':'#fff'}}>
-                    <input type="checkbox" checked={on} onChange={()=>toggleField(f.key)} style={{cursor:'pointer',width:16,height:16}} title={on?'Will change':'Tick to change this field'} />
-                    <div style={{fontSize:13,fontWeight:600,color:'#374151'}}>{f.label}</div>
+                    <input type="checkbox" checked={on} disabled={locked} onChange={()=>toggleField(f.key)} style={{cursor:locked?'not-allowed':'pointer',width:16,height:16,opacity:locked?0.4:1}} title={locked?'Interns keep the job title "Intern"':(on?'Will change':'Tick to change this field')} />
+                    <div style={{fontSize:13,fontWeight:600,color:locked?'#9ca3af':'#374151'}}>{f.label}</div>
                     <div style={{fontSize:13,color:on?'#9ca3af':'#374151',textDecoration:on?'line-through':'none'}}>{before}</div>
                     <div>
                       {!on
@@ -647,11 +650,11 @@ export function EmployeesPage() {
                 </select>
                 {addErrors.client && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.client}</div>}
               </div>
-              <div>
+              {addType==='inhouse' && <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
                 <input className="form-input" value={addForm.job_title} placeholder="e.g. Field Technician" onChange={ev=>setAddField('job_title',ev.target.value)} style={addErrors.job_title?{borderColor:'#e24b4a'}:undefined} />
                 {addErrors.job_title && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.job_title}</div>}
-              </div>
+              </div>}
             </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Attach National ID (PDF) <span style={{color:'#e24b4a'}}>*</span></div>
