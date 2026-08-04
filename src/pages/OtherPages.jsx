@@ -13,6 +13,8 @@ export function EmployeesPage() {
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // employee pending hard-delete (admin)
+  const [deleting, setDeleting] = useState(false);
   const [addModal, setAddModal] = useState(false); // Add Employee modal
   const [addForm, setAddForm] = useState({});
   const [addSaving, setAddSaving] = useState(false);
@@ -255,6 +257,17 @@ export function EmployeesPage() {
   };
   // Exit uses a custom red confirmation dialog (not window.confirm, which can't
   // be styled) since it's a destructive, cascading action.
+  // Hard-delete an employee (admin only) — permanent, via a red confirmation.
+  const doDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleting(true);
+    try {
+      await api.delete('/employees/' + deleteConfirm.id);
+      setDeleteConfirm(null);
+      reload();
+    } catch (e) { logError(e); alert(e.response?.data?.error || 'Delete failed'); }
+    setDeleting(false);
+  };
   const doExit = async () => {
     if (!editModal || editModal.employment_status !== 'active') { setExitConfirm(false); return; }
     setExitConfirm(false);
@@ -404,7 +417,12 @@ export function EmployeesPage() {
                       </div>
                     ) : <span style={{color:'#9ca3af'}}>—</span>}
                   </td>}
-                  {canEditEmployee && <td><button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={e.employment_status!=='active'} title={e.employment_status!=='active'?'Employee has exited — cannot edit':''}>Edit</button></td>}
+                  {canEditEmployee && <td>
+                    <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                      <button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={e.employment_status!=='active'} title={e.employment_status!=='active'?'Employee has exited — cannot edit':''}>Edit</button>
+                      {userRole==='admin' && <button onClick={()=>setDeleteConfirm(e)} title="Hard delete this resource" style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16,lineHeight:1}}>🗑</button>}
+                    </div>
+                  </td>}
                   {canAssignPpe && <td>
                     <div style={{display:'flex',gap:6}}>
                       <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>PPE</button>
@@ -499,6 +517,23 @@ export function EmployeesPage() {
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
               <button className="btn" onClick={()=>setExitConfirm(false)} disabled={editSaving}>Cancel</button>
               <button className="btn" onClick={doExit} disabled={editSaving} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{editSaving?'Exiting...':'Confirm Exit'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {deleteConfirm && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:480,borderTop:'4px solid #e24b4a',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <span style={{fontSize:22}}>🗑</span>
+              <div style={{fontWeight:700,fontSize:16,color:'#c0392b'}}>Hard-delete resource</div>
+            </div>
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:20}}>
+              You are about to <b style={{color:'#c0392b'}}>permanently delete</b> <b>{deleteConfirm.full_name}</b> ({deleteConfirm.national_id || deleteConfirm.employee_number}). This also deletes all of their audits, NCR items, and PPE requests, and <b>cannot be undone</b>. To keep their history instead, use <b>Exit</b>.
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn" onClick={()=>setDeleteConfirm(null)} disabled={deleting}>Cancel</button>
+              <button className="btn" onClick={doDelete} disabled={deleting} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{deleting?'Deleting…':'Delete permanently'}</button>
             </div>
           </div>
         </div>
