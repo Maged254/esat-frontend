@@ -418,7 +418,7 @@ export function EmployeesPage() {
                       </div>
                     ) : <span style={{color:'#9ca3af'}}>—</span>}
                   </td>}
-                  {canEditEmployee && <td><button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={e.employment_status!=='active'} title={e.employment_status!=='active'?'Employee has exited — cannot edit':''}>Edit</button></td>}
+                  {canEditEmployee && <td><button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={userRole!=='admin' && e.employment_status!=='active'} title={(userRole!=='admin' && e.employment_status!=='active')?'Employee has exited — cannot edit':''}>Edit</button></td>}
                   {canAssignPpe && <td>
                     <div style={{display:'flex',gap:6}}>
                       <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>PPE</button>
