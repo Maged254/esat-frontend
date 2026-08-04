@@ -38,10 +38,11 @@ export function EmployeesPage() {
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
+  const [hrTasks, setHrTasks] = useState([]); // current user's hr_task_access
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
-      if (user) setUserRole(user.role);
+      if (user) { setUserRole(user.role); setHrTasks(Array.isArray(user.hr_task_access) ? user.hr_task_access : []); }
     } catch {}
   }, []);
 
@@ -187,7 +188,9 @@ export function EmployeesPage() {
 
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
   const canAssignPpe = ['admin','ehs_manager'].includes(userRole);
-  const canEditEmployee = ['admin','hr'].includes(userRole);
+  // Add/Edit Employee are admin-always, or HR with the task assigned (Admin → HR Tasks Managers).
+  const canAddEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('add_employee'));
+  const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee'));
   const colCount = 5 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
@@ -319,7 +322,7 @@ export function EmployeesPage() {
           <span className="topbar-title">Employees</span>
         </div>
         <div className="topbar-right">
-          {canEditEmployee && (
+          {canAddEmployee && (
             <div style={{position:'relative'}}>
               <button className="btn btn-primary" onClick={()=>setAddMenu(m=>!m)}>+ Add Employee ▾</button>
               {addMenu && (

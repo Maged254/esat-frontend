@@ -226,6 +226,23 @@ export default function AdminPage() {
     }
   };
 
+  // Same, for the named HR tasks (add_employee / edit_employee) stored in hr_task_access.
+  const toggleHrTask = async (task, userId) => {
+    const current = users.filter(u => u.role === 'hr' && (u.hr_task_access || []).includes(task)).map(u => u.id);
+    const next = current.includes(userId) ? current.filter(x => x !== userId) : [...current, userId];
+    setUsers(prev => prev.map(u => {
+      if (u.role !== 'hr') return u;
+      const arr = (u.hr_task_access || []).filter(x => x !== task);
+      return { ...u, hr_task_access: next.includes(u.id) ? [...arr, task] : arr };
+    }));
+    try {
+      await api.put('/hr-tasks/' + task + '/managers', { user_ids: next });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to update managers');
+      api.get('/users').then(r => setUsers(r.data)).catch(logError);
+    }
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -861,18 +878,22 @@ export default function AdminPage() {
           </>}
         </div>
 
-        {/* Training Course Managers */}
+        {/* HR Tasks Managers */}
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('managers')}>
-            <span className="card-title">Training Course Managers</span>
+            <span className="card-title">HR Tasks Managers</span>
             <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.managers ? '▲' : '▼'}</span>
           </div>
           {openSections.managers && (() => {
             const hrUsers = users.filter(u => u.role === 'hr');
             const activeCourses = courses.filter(c => c.is_active);
+            const hrTasks = [
+              { key: 'add_employee', label: 'Add Employee', icon: 'ti-user-plus' },
+              { key: 'edit_employee', label: 'Edit Employee', icon: 'ti-user-edit' },
+            ];
             return <>
               <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>
-                Pick which HR users can record/update outcomes on the <b>Update Training Records</b> page for each training. A training can have several managers, and one HR can manage several trainings. <b>An HR with none assigned sees no trainings there.</b> Admins always manage all.
+                Pick which HR users can perform each task. For a <b>training</b>, that's recording outcomes on the <b>Update Training Records</b> page; for <b>Add / Edit Employee</b>, it's using those actions on the <b>Employees</b> page. One HR can hold several tasks; <b>an HR with a task unassigned can't do it.</b> Admins always can.
               </div>
               {hrUsers.length === 0 && <div style={{ fontSize:13, color:'#c0392b', marginBottom:12 }}>No users have the <b>HR</b> role yet — add one in the Users section above, then assign trainings here.</div>}
               {hrUsers.length > 0 && (
@@ -910,7 +931,37 @@ export default function AdminPage() {
                         </tr>
                       );
                     })}
-                    {activeCourses.length === 0 && <tr><td colSpan={2} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No active trainings</td></tr>}
+                    {hrTasks.map(task => {
+                      const mgrs = hrUsers.filter(u => (u.hr_task_access || []).includes(task.key)).map(u => u.id);
+                      return (
+                        <tr key={task.key} style={{ background:'#fbfcfe' }}>
+                          <td style={{ fontWeight:500 }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:10 }}>
+                              <span style={{ width:30, height:30, borderRadius:8, background:'#F0F7FF', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                <i className={`ti ${task.icon}`} style={{ fontSize:18, color:'var(--eg-navy)' }} aria-hidden="true"></i>
+                              </span>
+                              {task.label}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                              {hrUsers.map(u => {
+                                const on = mgrs.includes(u.id);
+                                return (
+                                  <button key={u.id} type="button" onClick={() => toggleHrTask(task.key, u.id)}
+                                    style={{ cursor:'pointer', fontSize:12, padding:'4px 10px', borderRadius:14,
+                                      border:`1.5px solid ${on ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                                      background: on ? '#F0F7FF' : 'white', color: on ? '#0f2a4a' : '#6b7280', fontWeight: on ? 600 : 400 }}>
+                                    {on ? '✓ ' : ''}{u.full_name}
+                                  </button>
+                                );
+                              })}
+                              {mgrs.length === 0 && <span style={{ color:'#c0392b', fontSize:11 }}>no one assigned</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
