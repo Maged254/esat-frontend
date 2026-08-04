@@ -32,6 +32,7 @@ export function EmployeesPage() {
   const pageSize = 25;
   const [stats, setStats] = useState({ total_active: 0, inhouse: 0, outsource: 0, interns: 0, exits: 0 });
   const [filterOptions, setFilterOptions] = useState({ departments: [], projects: [], clients: [] });
+  const [orgLists, setOrgLists] = useState({ department: [], project: [], client: [] }); // admin-managed dropdown options
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
@@ -126,6 +127,13 @@ export function EmployeesPage() {
   useEffect(() => { loadStats(); }, [filters]);
   useEffect(() => { setPage(1); }, [filters]);
   useEffect(() => { api.get('/employees/filter-options').then(r=>setFilterOptions(r.data)).catch(logError); }, []);
+  useEffect(() => {
+    api.get('/org-lists').then(r => {
+      const g = { department: [], project: [], client: [] };
+      r.data.forEach(o => { if (g[o.list_type]) g[o.list_type].push(o.name); });
+      setOrgLists(g);
+    }).catch(logError);
+  }, []);
 
   async function savePpeAssign() {
     setPpeAssignSaving(true);
@@ -183,9 +191,9 @@ export function EmployeesPage() {
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
   const editFields = [
     { key: 'full_name', label: 'Employee Name', type: 'text' },
-    { key: 'department', label: 'Department', type: 'select', options: filterOptions.departments },
-    { key: 'project', label: 'Project', type: 'select', options: filterOptions.projects },
-    { key: 'client', label: 'Client', type: 'select', options: filterOptions.clients },
+    { key: 'department', label: 'Department', type: 'select', options: orgLists.department },
+    { key: 'project', label: 'Project', type: 'select', options: orgLists.project },
+    { key: 'client', label: 'Client', type: 'select', options: orgLists.client },
     { key: 'job_title', label: 'Job Title', type: 'text' },
   ];
   const fieldLabel = (k) => (editFields.find(f => f.key === k) || {}).label || k;
@@ -592,7 +600,7 @@ export function EmployeesPage() {
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
                 <select className="form-input" value={addForm.department} onChange={ev=>setAddField('department',ev.target.value)} style={addErrors.department?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
-                  {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
+                  {orgLists.department.map(d=><option key={d} value={d}>{d}</option>)}
                 </select>
                 {addErrors.department && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.department}</div>}
               </div>
@@ -600,7 +608,7 @@ export function EmployeesPage() {
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project Name <span style={{color:'#e24b4a'}}>*</span></div>
                 <select className="form-input" value={addForm.project} onChange={ev=>setAddField('project',ev.target.value)} style={addErrors.project?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
-                  {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
+                  {orgLists.project.map(p=><option key={p} value={p}>{p}</option>)}
                 </select>
                 {addErrors.project && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.project}</div>}
               </div>
@@ -608,7 +616,7 @@ export function EmployeesPage() {
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client <span style={{color:'#e24b4a'}}>*</span></div>
                 <select className="form-input" value={addForm.client} onChange={ev=>setAddField('client',ev.target.value)} style={addErrors.client?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
-                  {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
+                  {orgLists.client.map(c=><option key={c} value={c}>{c}</option>)}
                 </select>
                 {addErrors.client && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.client}</div>}
               </div>

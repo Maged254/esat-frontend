@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, orglists: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Pending reasons (admin-managed list used by the Update Training Records screen)
@@ -63,6 +63,30 @@ export default function AdminPage() {
       setEditingReason(null); setReasonForm({ label: '' });
     } catch(e) { setReasonError(e.response?.data?.error || 'Save failed'); }
     setReasonSaving(false);
+  };
+
+  // Org option lists (Department / Project / Client) used by the employee Add/Edit dropdowns
+  const [orgItems, setOrgItems] = useState([]);
+  const [editingOrg, setEditingOrg] = useState(null); // id or 'new'
+  const [orgForm, setOrgForm] = useState({ list_type: 'department', name: '' });
+  const [orgSaving, setOrgSaving] = useState(false);
+  const [orgError, setOrgError] = useState('');
+  const ORG_TYPE_LABEL = { department: 'Department', project: 'Project', client: 'Client' };
+
+  const saveOrg = async () => {
+    if (!orgForm.name.trim()) { setOrgError('Name is required'); return; }
+    setOrgSaving(true); setOrgError('');
+    try {
+      if (editingOrg === 'new') {
+        const r = await api.post('/org-lists', { list_type: orgForm.list_type, name: orgForm.name.trim() });
+        setOrgItems(prev => [...prev, r.data]);
+      } else {
+        const r = await api.put('/org-lists/' + editingOrg, { ...orgForm, name: orgForm.name.trim() });
+        setOrgItems(prev => prev.map(x => x.id === editingOrg ? r.data : x));
+      }
+      setEditingOrg(null); setOrgForm({ list_type: orgForm.list_type, name: '' });
+    } catch(e) { setOrgError(e.response?.data?.error || 'Save failed'); }
+    setOrgSaving(false);
   };
 
   // Training courses
@@ -181,6 +205,7 @@ export default function AdminPage() {
     api.get('/locations').then(r => setLocations(r.data)).catch(logError);
     api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons?all=1').then(r => setReasons(r.data)).catch(logError);
+    api.get('/org-lists?all=1').then(r => setOrgItems(r.data)).catch(logError);
   }, []);
 
   // Toggle whether an HR user manages a course (optimistic; the endpoint sets the
@@ -951,6 +976,78 @@ export default function AdminPage() {
                 </tr>
               ))}
               {reasons.length === 0 && <tr><td colSpan={3} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No pending reasons yet</td></tr>}
+            </tbody>
+          </table>
+          </>}
+        </div>
+
+        {/* Org option lists: Department / Project / Client */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('orglists')}>
+            <span className="card-title">Departments, Projects &amp; Clients</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.orglists && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingOrg('new'); setOrgForm({ list_type:'department', name:'' }); setOrgError(''); }}>+ Add</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.orglists ? '▲' : '▼'}</span>
+            </div>
+          </div>
+
+          {openSections.orglists && <>
+          <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>These feed the <b>Department</b>, <b>Project</b> and <b>Client</b> dropdowns when adding or editing an employee. (The Employees filter bar still lists whatever values already exist in the data.)</div>
+          {editingOrg && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingOrg === 'new' ? 'New value' : 'Edit value'}</div>
+              {orgError && <div style={{ background:'#FCEBEB', color:'#A32D2D', padding:'8px 12px', borderRadius:6, marginBottom:10, fontSize:13 }}>{orgError}</div>}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
+                <div className="form-group" style={{ margin:0, width:160 }}>
+                  <label className="form-label">List</label>
+                  <select className="form-input" value={orgForm.list_type} disabled={editingOrg !== 'new'} onChange={e => setOrgForm(f => ({...f, list_type: e.target.value}))}>
+                    <option value="department">Department</option>
+                    <option value="project">Project</option>
+                    <option value="client">Client</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin:0, flex:1 }}>
+                  <label className="form-label">Value</label>
+                  <input className="form-input" value={orgForm.name} onChange={e => setOrgForm(f => ({...f, name: e.target.value}))} placeholder="e.g. Fibre MS" />
+                </div>
+                <button className="btn btn-primary" style={{ fontSize:13 }} disabled={orgSaving} onClick={saveOrg}>{orgSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingOrg(null); setOrgForm({ list_type:'department', name:'' }); setOrgError(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <table>
+            <thead><tr><th>List</th><th>Value</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {orgItems.map(r => (
+                <tr key={r.id}>
+                  <td><span className="tag tag-navy" style={{ fontSize:10 }}>{ORG_TYPE_LABEL[r.list_type] || r.list_type}</span></td>
+                  <td style={{ fontWeight:500 }}>{r.name}</td>
+                  <td><span className={`tag ${r.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={() => { setEditingOrg(r.id); setOrgForm({ list_type:r.list_type, name:r.name, is_active:r.is_active, sort_order:r.sort_order }); setOrgError(''); }}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            const res = await api.put('/org-lists/' + r.id, { ...r, is_active: !r.is_active });
+                            setOrgItems(prev => prev.map(x => x.id === r.id ? res.data : x));
+                          } catch(e) { alert(e.response?.data?.error || 'Failed to update'); }
+                        }}>{r.is_active ? 'Deactivate' : 'Activate'}</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete "${r.name}" from ${ORG_TYPE_LABEL[r.list_type]}?`)) return;
+                          try {
+                            await api.delete('/org-lists/' + r.id);
+                            setOrgItems(prev => prev.filter(x => x.id !== r.id));
+                          } catch(e) { alert(e.response?.data?.error || 'Delete failed'); }
+                        }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {orgItems.length === 0 && <tr><td colSpan={4} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No values yet</td></tr>}
             </tbody>
           </table>
           </>}
