@@ -13,6 +13,7 @@ export function EmployeesPage() {
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [editErrors, setEditErrors] = useState({}); // inline validation for the Edit modal
+  const [editConfirm, setEditConfirm] = useState(null); // styled "confirm update" dialog {payload, summary}
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
   const [deleteConfirm, setDeleteConfirm] = useState(null); // employee pending hard-delete (admin)
   const [deleting, setDeleting] = useState(false);
@@ -269,13 +270,17 @@ export function EmployeesPage() {
       job_title: val('job_title'), department: val('department'), project: val('project'), client: val('client'),
       reason: editForm.reason.trim(),
     };
-    if (!window.confirm(`Update ${editModal.full_name}'s details (${actuallyChanged.map(fieldLabel).join(', ')})? This change will be recorded against your name.`)) return;
+    setEditConfirm({ payload, summary: actuallyChanged.map(fieldLabel).join(', ') });
+  };
+  const doEditSave = async () => {
+    if (!editConfirm) return;
     setEditSaving(true);
     try {
-      await api.put('/employees/' + editModal.id, payload);
+      await api.put('/employees/' + editModal.id, editConfirm.payload);
+      setEditConfirm(null);
       setEditModal(null);
       reload();
-    } catch (e) { logError(e); setEditErrors({ _server: e.response?.data?.error || 'Update failed' }); }
+    } catch (e) { logError(e); setEditErrors({ _server: e.response?.data?.error || 'Update failed' }); setEditConfirm(null); }
     setEditSaving(false);
   };
   // Exit uses a custom red confirmation dialog (not window.confirm, which can't
@@ -538,6 +543,23 @@ export function EmployeesPage() {
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
                 <button className="btn btn-primary" onClick={saveEdit} disabled={editSaving}>{editSaving?'Saving...':'Update Details'}</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {editConfirm && editModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:460,borderTop:'4px solid var(--eg-navy)',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <i className="ti ti-pencil" style={{fontSize:20,color:'var(--eg-navy)'}} aria-hidden="true"></i>
+              <div style={{fontWeight:700,fontSize:16,color:'var(--eg-navy)'}}>Confirm update</div>
+            </div>
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:20}}>
+              Update <b>{editModal.full_name}</b>'s details (<b>{editConfirm.summary}</b>)? This change is recorded against your name in the change history.
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn" onClick={()=>setEditConfirm(null)} disabled={editSaving}>Cancel</button>
+              <button className="btn btn-primary" onClick={doEditSave} disabled={editSaving}>{editSaving?'Saving…':'Confirm update'}</button>
             </div>
           </div>
         </div>
