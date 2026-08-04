@@ -12,6 +12,7 @@ export function EmployeesPage() {
   const [editModal, setEditModal] = useState(null); // employee being edited
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
+  const [editErrors, setEditErrors] = useState({}); // inline validation for the Edit modal
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
   const [deleteConfirm, setDeleteConfirm] = useState(null); // employee pending hard-delete (admin)
   const [deleting, setDeleting] = useState(false);
@@ -241,25 +242,26 @@ export function EmployeesPage() {
   };
   const openEdit = (emp) => {
     setEditModal(emp);
+    setEditErrors({});
     setEditForm({
       edit: { full_name: false, department: false, project: false, client: false, job_title: false },
       after: { full_name: emp.full_name || '', department: emp.department || '', project: emp.project || '', client: emp.client || '', job_title: emp.job_title || '' },
       reason: '',
     });
   };
-  const toggleField = (key) => setEditForm(f => ({ ...f, edit: { ...f.edit, [key]: !f.edit[key] } }));
-  const setAfter = (key, val) => setEditForm(f => ({ ...f, after: { ...f.after, [key]: val } }));
+  const toggleField = (key) => { setEditForm(f => ({ ...f, edit: { ...f.edit, [key]: !f.edit[key] } })); setEditErrors(e => (e._general ? { ...e, _general: undefined } : e)); };
+  const setAfter = (key, val) => { setEditForm(f => ({ ...f, after: { ...f.after, [key]: val } })); setEditErrors(e => (e._general ? { ...e, _general: undefined } : e)); };
   const saveEdit = async () => {
     const changedKeys = Object.keys(editForm.edit).filter(k => editForm.edit[k]);
-    if (!changedKeys.length) { alert('Tick at least one field to change.'); return; }
-    if (editForm.edit.full_name && !editForm.after.full_name.trim()) { alert('Employee name cannot be empty'); return; }
-    // A ticked field whose new value equals the current one is not a change —
-    // block the save (nothing would be recorded) and keep the modal open.
     const normv = (v) => (v === undefined || v === null) ? '' : String(v).trim();
-    const afterVal = (k) => k === 'full_name' ? editForm.after[k].trim() : editForm.after[k];
+    const afterVal = (k) => k === 'full_name' ? (editForm.after[k] || '').trim() : editForm.after[k];
     const actuallyChanged = changedKeys.filter(k => normv(afterVal(k)) !== normv(editModal[k]));
-    if (!actuallyChanged.length) { alert('No changes to save.'); return; }
-    if (!editForm.reason.trim()) { alert('Please enter a reason for the update'); return; }
+    const errs = {};
+    if (!changedKeys.length) errs._general = 'Tick at least one field to change.';
+    else if (editForm.edit.full_name && !editForm.after.full_name.trim()) errs._general = 'Employee name cannot be empty.';
+    else if (!actuallyChanged.length) errs._general = 'No changes to save.';
+    if (!editForm.reason.trim()) errs.reason = 'A reason is required';
+    if (Object.keys(errs).length) { setEditErrors(errs); return; }
     const val = (k) => editForm.edit[k] ? editForm.after[k] : editModal[k];
     const payload = {
       full_name: (editForm.edit.full_name ? editForm.after.full_name.trim() : editModal.full_name),
@@ -273,7 +275,7 @@ export function EmployeesPage() {
       await api.put('/employees/' + editModal.id, payload);
       setEditModal(null);
       reload();
-    } catch (e) { logError(e); alert(e.response?.data?.error || 'Update failed'); }
+    } catch (e) { logError(e); setEditErrors({ _server: e.response?.data?.error || 'Update failed' }); }
     setEditSaving(false);
   };
   // Exit uses a custom red confirmation dialog (not window.confirm, which can't
@@ -523,8 +525,10 @@ export function EmployeesPage() {
             </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason for updating the resource's details <span style={{color:'#e24b4a'}}>*</span></div>
-              <input className="form-input" value={editForm.reason} placeholder="Required — recorded against this update" onChange={ev=>setEditForm(f=>({...f,reason:ev.target.value}))} />
+              <input className="form-input" value={editForm.reason} placeholder="Required — recorded against this update" onChange={ev=>{setEditForm(f=>({...f,reason:ev.target.value})); setEditErrors(e=>e.reason?{...e,reason:undefined}:e);}} style={editErrors.reason?{borderColor:'#e24b4a'}:undefined} />
+              {editErrors.reason && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{editErrors.reason}</div>}
             </div>
+            {(editErrors._general || editErrors._server) && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8}}>{editErrors._general || editErrors._server}</div>}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
