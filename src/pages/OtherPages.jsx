@@ -295,9 +295,23 @@ export function EmployeesPage() {
               {addMenu && (
                 <>
                   <div onClick={()=>setAddMenu(false)} style={{position:'fixed',inset:0,zIndex:900}} />
-                  <div style={{position:'absolute',top:'100%',right:0,marginTop:4,background:'#fff',border:'1px solid #e5e7eb',borderRadius:8,boxShadow:'0 6px 18px rgba(0,0,0,0.14)',zIndex:901,minWidth:200,padding:4}}>
-                    <button onClick={()=>openAdd('inhouse')} onMouseEnter={ev=>ev.currentTarget.style.background='#F0F7FF'} onMouseLeave={ev=>ev.currentTarget.style.background='none'} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,borderRadius:6}}>🏠 In-House Employee</button>
-                    <button onClick={()=>openAdd('intern')} onMouseEnter={ev=>ev.currentTarget.style.background='#F0F7FF'} onMouseLeave={ev=>ev.currentTarget.style.background='none'} style={{display:'block',width:'100%',textAlign:'left',padding:'8px 10px',background:'none',border:'none',cursor:'pointer',fontSize:13,borderRadius:6}}>🎓 Intern</button>
+                  <div style={{position:'absolute',top:'100%',right:0,marginTop:6,background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,boxShadow:'0 12px 32px rgba(0,0,0,0.16)',zIndex:901,minWidth:250,padding:6}}>
+                    {[
+                      {type:'inhouse', icon:'ti-building', title:'In-House', desc:'In-house resource'},
+                      {type:'intern', icon:'ti-school', title:'Intern', desc:'Internship resource'},
+                    ].map(opt=>(
+                      <button key={opt.type} onClick={()=>openAdd(opt.type)}
+                        onMouseEnter={ev=>ev.currentTarget.style.background='#F0F7FF'} onMouseLeave={ev=>ev.currentTarget.style.background='none'}
+                        style={{display:'flex',alignItems:'center',gap:12,width:'100%',textAlign:'left',padding:'10px 12px',background:'none',border:'none',cursor:'pointer',borderRadius:8,transition:'background 0.12s'}}>
+                        <span style={{width:36,height:36,borderRadius:9,background:'#EAF2FF',color:'var(--eg-navy)',display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                          <i className={`ti ${opt.icon}`} style={{fontSize:19}} aria-hidden="true"></i>
+                        </span>
+                        <span>
+                          <div style={{fontSize:13.5,fontWeight:600,color:'#111'}}>{opt.title}</div>
+                          <div style={{fontSize:11,color:'#9ca3af',marginTop:1}}>{opt.desc}</div>
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </>
               )}
