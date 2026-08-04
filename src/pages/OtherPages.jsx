@@ -21,6 +21,7 @@ export function EmployeesPage() {
   const [addType, setAddType] = useState('inhouse'); // 'inhouse' | 'intern'
   const [addFile, setAddFile] = useState(null); // mandatory National ID PDF
   const [addMenu, setAddMenu] = useState(false); // In-House / Intern chooser
+  const [addErrors, setAddErrors] = useState({}); // inline per-field validation errors
   // Stat-card clicks (activeStat) and the status/resource dropdowns are
   // mutually exclusive in the UI and collapse to canonical status/
   // resource_type values for the backend -- same pattern as the NCR page's
@@ -194,15 +195,21 @@ export function EmployeesPage() {
     setAddType(type);
     setAddMenu(false);
     setAddFile(null);
+    setAddErrors({});
     setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: '', department: '', project: '', client: '', organization: 'Egypro' });
     setAddModal(true);
   };
+  // Update a field and clear its inline error as the user types.
+  const setAddField = (k, v) => { setAddForm(f => ({ ...f, [k]: v })); setAddErrors(e => (e[k] ? { ...e, [k]: undefined } : e)); };
   const saveAdd = async () => {
-    const required = { full_name: 'Resource Name', national_id: 'National ID Number', employee_number: 'Employment ID', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title', organization: 'Organization' };
-    for (const k in required) { if (!String(addForm[k] || '').trim()) { alert(required[k] + ' is required'); return; } }
-    if (!addFile) { alert('A National ID document (PDF) is required.'); return; }
-    if (!(/\.pdf$/i.test(addFile.name) || addFile.type === 'application/pdf')) { alert('National ID must be a PDF.'); return; }
-    if (addFile.size > 1024 * 1024) { alert('National ID file must be 1MB or smaller.'); return; }
+    const required = { full_name: 'Resource Name', national_id: 'National ID Number', employee_number: 'Employment ID', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title' };
+    const errs = {};
+    for (const k in required) { if (!String(addForm[k] || '').trim()) errs[k] = `${required[k]} is required`; }
+    if (addForm.national_id && !/^\d+$/.test(addForm.national_id.trim())) errs.national_id = 'Use digits only';
+    if (!addFile) errs.file = 'A National ID PDF is required';
+    else if (!(/\.pdf$/i.test(addFile.name) || addFile.type === 'application/pdf')) errs.file = 'File must be a PDF';
+    else if (addFile.size > 1024 * 1024) errs.file = 'File must be 1MB or smaller';
+    if (Object.keys(errs).length) { setAddErrors(errs); return; }
     setAddSaving(true);
     try {
       const fd = new FormData();
@@ -215,7 +222,13 @@ export function EmployeesPage() {
       if (!resp.ok) { const d = await resp.json().catch(() => ({})); throw new Error(d.error || 'Failed to add employee'); }
       setAddModal(false);
       reload();
-    } catch (e) { logError(e); alert(e.message || 'Failed to add employee'); }
+    } catch (e) {
+      logError(e);
+      const msg = e.message || 'Failed to add employee';
+      if (/national id/i.test(msg)) setAddErrors({ national_id: msg });
+      else if (/employment id/i.test(msg)) setAddErrors({ employee_number: msg });
+      else setAddErrors({ _server: msg });
+    }
     setAddSaving(false);
   };
   const openEdit = (emp) => {
@@ -555,73 +568,66 @@ export function EmployeesPage() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:12,padding:32,width:760,maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:16}}>{addType==='intern' ? 'Add Intern' : 'Add In-House Employee'}</div>
-                <div style={{fontSize:12,color:'#6b7280',marginTop:2}}>Create a new {addType==='intern'?'intern':'in-house employee'} record directly in ESAT.</div>
-              </div>
+              <div style={{fontWeight:700,fontSize:16}}>{addType==='intern' ? 'Add Intern' : 'Add In-House Employee'}</div>
               <button onClick={()=>setAddModal(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
+            {addErrors._server && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8}}>{addErrors._server}</div>}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Resource Name <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.full_name} placeholder="Exactly like the National ID" onChange={ev=>setAddForm(f=>({...f,full_name:ev.target.value}))} />
+                <input className="form-input" autoFocus value={addForm.full_name} placeholder="Exactly like the National ID" onChange={ev=>setAddField('full_name',ev.target.value)} style={addErrors.full_name?{borderColor:'#e24b4a'}:undefined} />
+                {addErrors.full_name && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.full_name}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>National ID Number <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.national_id} onChange={ev=>setAddForm(f=>({...f,national_id:ev.target.value}))} />
+                <input className="form-input" value={addForm.national_id} placeholder="Use digits only" inputMode="numeric" onChange={ev=>setAddField('national_id',ev.target.value.replace(/\D/g,''))} style={addErrors.national_id?{borderColor:'#e24b4a'}:undefined} />
+                {addErrors.national_id && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.national_id}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employment ID <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.employee_number} placeholder='Starts with "A"' onChange={ev=>setAddForm(f=>({...f,employee_number:ev.target.value}))} />
+                <input className="form-input" value={addForm.employee_number} placeholder='Starts with "A"' onChange={ev=>setAddField('employee_number',ev.target.value)} style={addErrors.employee_number?{borderColor:'#e24b4a'}:undefined} />
+                {addErrors.employee_number && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.employee_number}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.department} onChange={ev=>setAddForm(f=>({...f,department:ev.target.value}))}>
+                <select className="form-input" value={addForm.department} onChange={ev=>setAddField('department',ev.target.value)} style={addErrors.department?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
                   {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
                 </select>
+                {addErrors.department && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.department}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project Name <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.project} onChange={ev=>setAddForm(f=>({...f,project:ev.target.value}))}>
+                <select className="form-input" value={addForm.project} onChange={ev=>setAddField('project',ev.target.value)} style={addErrors.project?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
                   {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
                 </select>
+                {addErrors.project && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.project}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.client} onChange={ev=>setAddForm(f=>({...f,client:ev.target.value}))}>
+                <select className="form-input" value={addForm.client} onChange={ev=>setAddField('client',ev.target.value)} style={addErrors.client?{borderColor:'#e24b4a'}:undefined}>
                   <option value="">Select…</option>
                   {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
                 </select>
+                {addErrors.client && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.client}</div>}
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.job_title} onChange={ev=>setAddForm(f=>({...f,job_title:ev.target.value}))} />
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Organization <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.organization} onChange={ev=>setAddForm(f=>({...f,organization:ev.target.value}))} />
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Resource Type</div>
-                <input className="form-input" value={addType==='intern'?'Intern':'Inhouse'} readOnly disabled style={{background:'#f3f4f6',color:'#6b7280',cursor:'not-allowed'}} title="Set by the Add option you chose" />
-              </div>
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Date Joined</div>
-                <input className="form-input" value={new Date().toLocaleDateString('en-GB')} readOnly disabled style={{background:'#f3f4f6',color:'#6b7280',cursor:'not-allowed'}} title="Set automatically to today" />
+                <input className="form-input" value={addForm.job_title} placeholder="e.g. Field Technician" onChange={ev=>setAddField('job_title',ev.target.value)} style={addErrors.job_title?{borderColor:'#e24b4a'}:undefined} />
+                {addErrors.job_title && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.job_title}</div>}
               </div>
             </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Attach National ID (PDF) <span style={{color:'#e24b4a'}}>*</span></div>
               <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-                <label className="btn" style={{cursor:'pointer'}}>
+                <label className="btn" style={{cursor:'pointer',...(addErrors.file?{borderColor:'#e24b4a',color:'#e24b4a'}:{})}}>
                   📎 {addFile ? 'Change file' : 'Choose PDF…'}
-                  <input type="file" accept="application/pdf" style={{display:'none'}} onChange={ev=>setAddFile(ev.target.files[0]||null)} />
+                  <input type="file" accept="application/pdf" style={{display:'none'}} onChange={ev=>{setAddFile(ev.target.files[0]||null); setAddErrors(e=>e.file?{...e,file:undefined}:e);}} />
                 </label>
                 {addFile
                   ? <span style={{fontSize:12,color:'#0f2a4a'}}>{addFile.name} <span style={{color:'#9ca3af'}}>({(addFile.size/1024).toFixed(0)} KB)</span></span>
-                  : <span style={{fontSize:12,color:'#9ca3af'}}>Required · PDF, up to 1MB · stored in the employee's Cloudflare folder → “National ID”.</span>}
+                  : <span style={{fontSize:12,color: addErrors.file?'#e24b4a':'#9ca3af'}}>{addErrors.file || 'Required · PDF, up to 1MB.'}</span>}
               </div>
             </div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
