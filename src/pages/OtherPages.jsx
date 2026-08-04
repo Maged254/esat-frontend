@@ -3,6 +3,36 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 
+const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+// Employment status tag with a modern hover tooltip: for Active shows when/who
+// added the employee; for Exit shows when/who exited them.
+function StatusCell({ status, createdAt, createdBy, exitDate, exitedBy }) {
+  const [show, setShow] = useState(false);
+  const active = status === 'active';
+  const label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '—';
+  const rows = active
+    ? [['Added', fmtTipDate(createdAt)], ['By', createdBy || '—']]
+    : [['Exited', fmtTipDate(exitDate)], ['By', exitedBy || '—']];
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span className={`tag ${active ? 'tag-green' : 'tag-red'}`} style={{ cursor: 'default' }}>{label}</span>
+      {show && (
+        <span style={{ position: 'absolute', bottom: 'calc(100% + 9px)', left: 0, zIndex: 200,
+          background: '#0f2a4a', color: '#fff', padding: '8px 11px', borderRadius: 8,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.28)', fontSize: 11, whiteSpace: 'nowrap', lineHeight: 1.6, pointerEvents: 'none' }}>
+          {rows.map(([k, v]) => (
+            <div key={k}><span style={{ opacity: 0.6 }}>{k}:</span> <b style={{ fontWeight: 600 }}>{v}</b></div>
+          ))}
+          <span style={{ position: 'absolute', top: '100%', left: 14, width: 0, height: 0,
+            borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '6px solid #0f2a4a' }} />
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [ppeAssignModal, setPpeAssignModal] = useState(null); // employee object
@@ -443,7 +473,7 @@ export function EmployeesPage() {
                   <td>
                     <div>{e.organization||'—'}</div>
                     {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
-                    <div style={{marginTop:4}}><span className={`tag ${e.employment_status==='active'?'tag-green':'tag-red'}`}>{e.employment_status ? e.employment_status.charAt(0).toUpperCase() + e.employment_status.slice(1) : '—'}</span></div>
+                    <div style={{marginTop:4}}><StatusCell status={e.employment_status} createdAt={e.created_at} createdBy={e.created_by_name} exitDate={e.exit_date} exitedBy={e.exited_by_name} /></div>
                   </td>
                   <td>
                     <div>{e.job_title||'—'}</div>
