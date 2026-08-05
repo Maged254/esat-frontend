@@ -266,8 +266,8 @@ tr:hover td { background: #f9fafb; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .form-input, .form-select {
-  padding: 8px 10px; border: var(--border); border-radius: var(--radius-md);
-  font-size: 13px; background: var(--surface); color: var(--text-primary);
+  height: 38px; padding: 8px 10px; border: var(--border); border-radius: var(--radius-md);
+  font-size: 13px; line-height: 1.2; background: var(--surface); color: var(--text-primary);
   font-family: inherit; width: 100%;
 }
 .form-input:focus, .form-select:focus { outline: none; border-color: var(--eg-green); }
