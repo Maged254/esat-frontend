@@ -629,7 +629,8 @@ export function EmployeesPage({ outsource = false }) {
       </div>
       {editModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:12,padding:32,width:'min(720px, 94vw)',maxHeight:'88vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:'#fff',borderRadius:12,width:'min(720px, 94vw)',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+            <div style={{padding:'28px 32px 16px',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
               <div style={{fontWeight:700,fontSize:16}}>Update Resource's Details</div>
               <button onClick={()=>setEditModal(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
@@ -674,7 +675,8 @@ export function EmployeesPage({ outsource = false }) {
               {editErrors.reason && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{editErrors.reason}</div>}
             </div>
             {(editErrors._general || editErrors._server) && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8}}>{editErrors._general || editErrors._server}</div>}
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,rowGap:8,flexWrap:'wrap',borderTop:'1px solid #e5e7eb',paddingTop:12}}>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,rowGap:8,flexWrap:'wrap',borderTop:'1px solid #e5e7eb',padding:'12px 32px 20px',background:'#fff'}}>
               <div style={{display:'flex',gap:8,rowGap:8,flexWrap:'wrap',alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
                 <button className="btn" onClick={()=>guardUnsaved(()=>setExitConfirm(true),'exiting')} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
@@ -775,7 +777,8 @@ export function EmployeesPage({ outsource = false }) {
       )}
       {addModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style={{background:'#fff',borderRadius:12,padding:32,width:'min(760px, 94vw)',maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{background:'#fff',borderRadius:12,width:'min(760px, 94vw)',maxHeight:'90vh',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+            <div style={{padding:'28px 32px 16px',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
               <div style={{fontWeight:700,fontSize:16}}>{addType==='outsource' ? 'Add Outsource Resource' : addType==='intern' ? 'Add Intern' : 'Add In-House Employee'}</div>
               <button onClick={()=>setAddModal(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
@@ -847,7 +850,8 @@ export function EmployeesPage({ outsource = false }) {
                   : <span style={{fontSize:12,color: addErrors.file?'#e24b4a':'#9ca3af'}}>{addErrors.file || 'Required · PDF, up to 1MB.'}</span>}
               </div>
             </div>
-            <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #e5e7eb',padding:'12px 32px 20px',background:'#fff'}}>
               <button className="btn" onClick={()=>setAddModal(false)} disabled={addSaving}>Cancel</button>
               <button className="btn btn-primary" onClick={saveAdd} disabled={addSaving}>{addSaving?'Adding…':(addType==='outsource'?'Add Outsource':addType==='intern'?'Add Intern':'Add In-House')}</button>
             </div>
