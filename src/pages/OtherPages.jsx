@@ -473,7 +473,7 @@ export function EmployeesPage() {
                   <td>
                     <div>{e.organization||'—'}</div>
                     {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
-                    <div style={{marginTop:4}}><StatusCell status={e.employment_status} createdAt={e.created_at} createdBy={e.created_by_name} exitDate={e.exit_date} exitedBy={e.exited_by_name} /></div>
+                    <div style={{marginTop:4}}><StatusCell status={e.employment_status} createdAt={e.added_on || e.created_at} createdBy={e.created_by_name} exitDate={e.exit_date} exitedBy={e.exited_by_name} /></div>
                   </td>
                   <td>
                     <div>{e.job_title||'—'}</div>
