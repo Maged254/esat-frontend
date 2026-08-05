@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, orglists: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, orglists: false, outsource: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Pending reasons (admin-managed list used by the Update Training Records screen)
@@ -87,6 +87,30 @@ export default function AdminPage() {
       setEditingOrg(null); setOrgForm({ list_type: orgForm.list_type, name: '' });
     } catch(e) { setOrgError(e.response?.data?.error || 'Save failed'); }
     setOrgSaving(false);
+  };
+
+  // Outsource entities (contractors / vehicle suppliers) — drive the employee Classification
+  const [outsourceItems, setOutsourceItems] = useState([]);
+  const [editingOutsource, setEditingOutsource] = useState(null); // id or 'new'
+  const [outsourceForm, setOutsourceForm] = useState({ name: '', type: 'vehicle_supplier' });
+  const [outsourceSaving, setOutsourceSaving] = useState(false);
+  const [outsourceError, setOutsourceError] = useState('');
+  const OUTSOURCE_TYPE_LABEL = { contractor: 'Contractor', vehicle_supplier: 'Vehicle Supplier' };
+
+  const saveOutsource = async () => {
+    if (!outsourceForm.name.trim()) { setOutsourceError('Name is required'); return; }
+    setOutsourceSaving(true); setOutsourceError('');
+    try {
+      if (editingOutsource === 'new') {
+        const r = await api.post('/outsource-entities', { name: outsourceForm.name.trim(), type: outsourceForm.type });
+        setOutsourceItems(prev => [...prev, r.data]);
+      } else {
+        const r = await api.put('/outsource-entities/' + editingOutsource, { ...outsourceForm, name: outsourceForm.name.trim() });
+        setOutsourceItems(prev => prev.map(x => x.id === editingOutsource ? r.data : x));
+      }
+      setEditingOutsource(null); setOutsourceForm({ name: '', type: 'vehicle_supplier' });
+    } catch(e) { setOutsourceError(e.response?.data?.error || 'Save failed'); }
+    setOutsourceSaving(false);
   };
 
   // Training courses
@@ -206,6 +230,7 @@ export default function AdminPage() {
     api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
     api.get('/training-pending-reasons?all=1').then(r => setReasons(r.data)).catch(logError);
     api.get('/org-lists?all=1').then(r => setOrgItems(r.data)).catch(logError);
+    api.get('/outsource-entities?all=1').then(r => setOutsourceItems(r.data)).catch(logError);
   }, []);
 
   // Toggle whether an HR user manages a course (optimistic; the endpoint sets the
@@ -1099,6 +1124,77 @@ export default function AdminPage() {
                 </tr>
               ))}
               {orgItems.length === 0 && <tr><td colSpan={4} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No values yet</td></tr>}
+            </tbody>
+          </table>
+          </>}
+        </div>
+
+        {/* Outsource entities: Contractors / Vehicle Suppliers */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('outsource')}>
+            <span className="card-title">Outsource Entities (Contractors &amp; Vehicle Suppliers)</span>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              {openSections.outsource && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingOutsource('new'); setOutsourceForm({ name:'', type:'vehicle_supplier' }); setOutsourceError(''); }}>+ Add</button>}
+              <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.outsource ? '▲' : '▼'}</span>
+            </div>
+          </div>
+
+          {openSections.outsource && <>
+          <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>Each outsource <b>organization</b> is a Contractor or a Vehicle Supplier. An employee whose organization matches an entity here is classified as <b>Outsource (Contractor)</b> or <b>Outsource (Vehicle Supplier)</b> on the Employees page. (Egypro staff are Inhouse/Intern, decided by job title.) The name must match the employee's Organization value exactly.</div>
+          {editingOutsource && (
+            <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
+              <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingOutsource === 'new' ? 'New entity' : 'Edit entity'}</div>
+              {outsourceError && <div style={{ background:'#FCEBEB', color:'#A32D2D', padding:'8px 12px', borderRadius:6, marginBottom:10, fontSize:13 }}>{outsourceError}</div>}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-end' }}>
+                <div className="form-group" style={{ margin:0, flex:1 }}>
+                  <label className="form-label">Organization name</label>
+                  <input className="form-input" value={outsourceForm.name} onChange={e => setOutsourceForm(f => ({...f, name: e.target.value}))} placeholder="e.g. OMEGA DESIGNS LIMITED" />
+                </div>
+                <div className="form-group" style={{ margin:0, width:190 }}>
+                  <label className="form-label">Type</label>
+                  <select className="form-input" value={outsourceForm.type} onChange={e => setOutsourceForm(f => ({...f, type: e.target.value}))}>
+                    <option value="vehicle_supplier">Vehicle Supplier</option>
+                    <option value="contractor">Contractor</option>
+                  </select>
+                </div>
+                <button className="btn btn-primary" style={{ fontSize:13 }} disabled={outsourceSaving} onClick={saveOutsource}>{outsourceSaving ? 'Saving...' : 'Save'}</button>
+                <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={() => { setEditingOutsource(null); setOutsourceForm({ name:'', type:'vehicle_supplier' }); setOutsourceError(''); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          <table>
+            <thead><tr><th>Organization</th><th>Type</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {outsourceItems.map(r => (
+                <tr key={r.id}>
+                  <td style={{ fontWeight:500 }}>{r.name}</td>
+                  <td><span className="tag" style={{ fontSize:10, background: r.type==='contractor' ? '#e0e7ff' : '#dcfce7', color: r.type==='contractor' ? '#3730a3' : '#166534' }}>{OUTSOURCE_TYPE_LABEL[r.type] || r.type}</span></td>
+                  <td><span className={`tag ${r.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={() => { setEditingOutsource(r.id); setOutsourceForm({ name:r.name, type:r.type, is_active:r.is_active, sort_order:r.sort_order }); setOutsourceError(''); }}>Edit</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            const res = await api.put('/outsource-entities/' + r.id, { ...r, is_active: !r.is_active });
+                            setOutsourceItems(prev => prev.map(x => x.id === r.id ? res.data : x));
+                          } catch(e) { alert(e.response?.data?.error || 'Failed to update'); }
+                        }}>{r.is_active ? 'Deactivate' : 'Activate'}</button>
+                      <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }}
+                        onClick={async () => {
+                          if (!window.confirm(`Delete "${r.name}"? Its employees fall back to a plain "Outsource" classification.`)) return;
+                          try {
+                            await api.delete('/outsource-entities/' + r.id);
+                            setOutsourceItems(prev => prev.filter(x => x.id !== r.id));
+                          } catch(e) { alert(e.response?.data?.error || 'Delete failed'); }
+                        }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {outsourceItems.length === 0 && <tr><td colSpan={4} style={{ textAlign:'center', color:'#9ca3af', padding:20 }}>No entities yet</td></tr>}
             </tbody>
           </table>
           </>}

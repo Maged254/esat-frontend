@@ -5,6 +5,21 @@ import api, { logError } from '../utils/api';
 
 const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
+// Resource classification pill colours. Inhouse/Intern are Egypro; the two
+// Outsource kinds come from the organization's entity type.
+const CLASS_STYLE = {
+  'Inhouse': { background: '#e8eefb', color: '#042C53' },
+  'Intern': { background: '#fef3c7', color: '#92400e' },
+  'Outsource (Contractor)': { background: '#e0e7ff', color: '#3730a3' },
+  'Outsource (Vehicle Supplier)': { background: '#dcfce7', color: '#166534' },
+  'Outsource': { background: '#f1f5f9', color: '#475569' },
+};
+function ClassificationTag({ value }) {
+  if (!value) return <span style={{ color: '#9ca3af' }}>—</span>;
+  const s = CLASS_STYLE[value] || CLASS_STYLE['Outsource'];
+  return <span className="tag" style={{ ...s, whiteSpace: 'nowrap' }}>{value}</span>;
+}
+
 // Employment status tag with a modern hover tooltip: for Active shows when/who
 // added the employee; for Exit shows when/who exited them.
 function StatusCell({ status, createdAt, createdBy, exitDate, exitedBy }) {
@@ -58,7 +73,7 @@ export function EmployeesPage() {
   // mutually exclusive in the UI and collapse to canonical status/
   // resource_type values for the backend -- same pattern as the NCR page's
   // stat cards, so exactly one card (or neither) is ever highlighted.
-  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', search: '', national_id: '', employee_number: '', project: '', client: '', san: '', job_title: '', audit_age: '', activeStat: 'active' });
+  const [filters, setFilters] = useState({ status: 'active', department: '', resource_type: '', classification: '', search: '', national_id: '', employee_number: '', project: '', client: '', san: '', job_title: '', audit_age: '', activeStat: 'active' });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
@@ -197,7 +212,7 @@ export function EmployeesPage() {
   // Full filtered set (no page/pageSize), not just the currently visible page.
   const exportCSV = () => {
     api.get(`/employees?${filterParams()}`).then(r => {
-      const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','employment_status','san','last_audit_date'];
+      const headers = ['employee_number','full_name','national_id','job_title','department','project','client','organization','resource_type','classification','employment_status','san','last_audit_date'];
       const rows = r.data.map(e => headers.map(h => {
         const val = e[h];
         if (val === null || val === undefined) return '';
@@ -221,7 +236,7 @@ export function EmployeesPage() {
   // Add/Edit Employee are admin-always, or HR with the task assigned (Admin → HR Tasks Managers).
   const canAddEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('add_employee'));
   const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee'));
-  const colCount = 5 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
+  const colCount = 6 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
   const editFields = [
@@ -411,6 +426,14 @@ export function EmployeesPage() {
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value,activeStat:''}))}>
                   <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
                 </select>
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:175}} value={filters.classification} onChange={e=>setFilters(p=>({...p,classification:e.target.value}))}>
+                  <option value="">All Classifications</option>
+                  <option value="inhouse">Inhouse</option>
+                  <option value="intern">Intern</option>
+                  <option value="outsource_contractor">Outsource (Contractor)</option>
+                  <option value="outsource_vehicle_supplier">Outsource (Vehicle Supplier)</option>
+                  <option value="outsource">Outsource (unclassified)</option>
+                </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
                   <option value="">All Departments</option>
                   {filterOptions.departments.map(d=><option key={d} value={d}>{d}</option>)}
@@ -434,7 +457,7 @@ export function EmployeesPage() {
                   <option value="2months">1 - 2 Months</option>
                   <option value="over2months">More than 2 Months</option>
                 </select>
-                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',search:'',national_id:'',employee_number:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',classification:'',search:'',national_id:'',employee_number:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
               </div>
             </div>
           </div>
@@ -465,7 +488,7 @@ export function EmployeesPage() {
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
           <table className="table-hover-soft">
-            <thead><tr><th>Employee</th><th>Organization</th><th>Job Title / Department</th><th>Project / Client</th><th>SAN / Last Audit</th>{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
+            <thead><tr><th>Employee</th><th>Organization</th><th>Classification</th><th>Job Title / Department</th><th>Project / Client</th><th>SAN / Last Audit</th>{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
             <tbody>
               {employees.map(e => (
                 <tr key={e.id}>
@@ -475,6 +498,7 @@ export function EmployeesPage() {
                     {['admin','hr'].includes(userRole) && e.employee_number && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.employee_number}</div>}
                     <div style={{marginTop:4}}><StatusCell status={e.employment_status} createdAt={e.added_on || e.created_at} createdBy={e.created_by_name} exitDate={e.exit_date} exitedBy={e.exited_by_name} /></div>
                   </td>
+                  <td><ClassificationTag value={e.classification} /></td>
                   <td>
                     <div>{e.job_title||'—'}</div>
                     {e.department && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.department}</div>}
