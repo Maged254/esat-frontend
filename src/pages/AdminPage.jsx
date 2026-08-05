@@ -1214,7 +1214,7 @@ export default function AdminPage() {
         {/* Outsource entities: Contractors / Vehicle Suppliers */}
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('outsource')}>
-            <span className="card-title">Outsource Entities (Contractors &amp; Vehicle Suppliers)</span>
+            <span className="card-title">Outsource Entities (Services &amp; Vehicle Suppliers)</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
               {openSections.outsource && <button className="btn btn-primary" style={{ fontSize:13, padding:'6px 14px' }} onClick={e => { e.stopPropagation(); setEditingOutsource('new'); setOutsourceForm({ name:'', type:'vehicle_supplier' }); setOutsourceError(''); }}>+ Add</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.outsource ? '▲' : '▼'}</span>
@@ -1222,7 +1222,7 @@ export default function AdminPage() {
           </div>
 
           {openSections.outsource && <>
-          <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>Each outsource <b>organization</b> is a Contractor or a Vehicle Supplier. An employee whose organization matches an entity here is classified as <b>Outsource (Contractor)</b> or <b>Outsource (Vehicle Supplier)</b> on the Employees page. (Egypro staff are Inhouse/Intern, decided by job title.) The name must match the employee's Organization value exactly.</div>
+          <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>Each outsource <b>organization</b> is a Services provider or a Vehicle Supplier. An employee whose organization matches an entity here is classified as <b>Outsource (Services)</b> or <b>Outsource (Vehicle Supplier)</b> on the Employees page. (Egypro staff are Inhouse/Intern, decided by job title.) The name must match the employee's Organization value exactly.</div>
           {editingOutsource && (
             <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:8, padding:16, margin:'0 0 16px 0' }}>
               <div style={{ fontSize:13, fontWeight:600, marginBottom:10 }}>{editingOutsource === 'new' ? 'New entity' : 'Edit entity'}</div>
