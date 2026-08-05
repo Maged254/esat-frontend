@@ -48,7 +48,7 @@ function StatusCell({ status, createdAt, createdBy, exitDate, exitedBy }) {
   );
 }
 
-export function EmployeesPage() {
+export function EmployeesPage({ outsource = false }) {
   const [employees, setEmployees] = useState([]);
   const [ppeAssignModal, setPpeAssignModal] = useState(null); // employee object
   const [allPpeItems, setAllPpeItems] = useState([]);
@@ -84,12 +84,20 @@ export function EmployeesPage() {
   const [importing, setImporting] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [hrTasks, setHrTasks] = useState([]); // current user's hr_task_access
+  const [outsourceAccess, setOutsourceAccess] = useState([]); // subtypes this user manages
+  const [outsourceEntities, setOutsourceEntities] = useState([]); // {name,type} for the Add-Outsource org dropdown
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
-      if (user) { setUserRole(user.role); setHrTasks(Array.isArray(user.hr_task_access) ? user.hr_task_access : []); }
+      if (user) { setUserRole(user.role); setHrTasks(Array.isArray(user.hr_task_access) ? user.hr_task_access : []); setOutsourceAccess(Array.isArray(user.outsource_access) ? user.outsource_access : []); }
     } catch {}
   }, []);
+  // Outsource entities for the Add form's Organization dropdown (only the ones
+  // whose subtype the current user may manage; admins see all).
+  useEffect(() => {
+    if (!outsource) return;
+    api.get('/outsource-entities').then(r => setOutsourceEntities(r.data)).catch(logError);
+  }, [outsource]);
 
   const toggleSAN = async (emp) => {
     const newVal = !emp.san;
@@ -106,6 +114,8 @@ export function EmployeesPage() {
     else if (f.activeStat === 'inhouse') { f.status = 'active'; f.resource_type = 'inhouse'; }
     else if (f.activeStat === 'outsource') { f.status = 'active'; f.resource_type = 'outsource'; }
     else if (f.activeStat === 'intern') { f.status = 'active'; f.resource_type = 'intern'; }
+    else if (f.activeStat === 'services') { f.status = 'active'; } // classification already set by the card
+    else if (f.activeStat === 'vehicle') { f.status = 'active'; }
     else if (f.activeStat === 'exit') { f.status = 'exit'; f.resource_type = ''; }
     delete f.activeStat;
     return f;
@@ -114,6 +124,7 @@ export function EmployeesPage() {
   const filterParams = () => {
     const params = new URLSearchParams();
     Object.entries(effectiveFilters()).forEach(([k, v]) => { if (v) params.append(k, v); });
+    if (outsource) params.append('outsource_scope', '1');
     return params;
   };
 
@@ -234,8 +245,11 @@ export function EmployeesPage() {
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
   const canAssignPpe = ['admin','ehs_manager'].includes(userRole);
   // Add/Edit Employee are admin-always, or HR with the task assigned (Admin → HR Tasks Managers).
-  const canAddEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('add_employee'));
-  const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee'));
+  // On the Outsource page, an outsource subtype-manager (fleet/supervisor) can also add/edit.
+  const canAddEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('add_employee')) || (outsource && outsourceAccess.length > 0);
+  const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee')) || (outsource && outsourceAccess.length > 0);
+  // Organizations the current user may add an outsource resource under (admins: all).
+  const manageableOrgs = outsourceEntities.filter(e => userRole === 'admin' || outsourceAccess.includes(e.type));
   const colCount = 6 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
@@ -255,7 +269,7 @@ export function EmployeesPage() {
     setAddFile(null);
     setAddErrors({});
     // Interns are always job title "Intern" (field hidden on the intern form).
-    setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: type === 'intern' ? 'Intern' : '', department: '', project: '', client: '', organization: 'Egypro' });
+    setAddForm({ full_name: '', national_id: '', employee_number: '', job_title: type === 'intern' ? 'Intern' : '', department: '', project: '', client: '', organization: type === 'outsource' ? '' : 'Egypro' });
     setAddModal(true);
   };
   // Update a field and clear its inline error as the user types.
@@ -263,6 +277,7 @@ export function EmployeesPage() {
   const saveAdd = async () => {
     const required = { full_name: 'Resource Name', national_id: 'National ID Number', department: 'Department', project: 'Project Name', client: 'Client', job_title: 'Job Title' };
     if (addType === 'inhouse') required.employee_number = 'Employment ID'; // interns/outsource have no Employment ID
+    if (addType === 'outsource') required.organization = 'Organization'; // the org determines the outsource subtype
     const errs = {};
     for (const k in required) { if (!String(addForm[k] || '').trim()) errs[k] = `${required[k]} is required`; }
     if (addForm.national_id && !/^\d+$/.test(addForm.national_id.trim())) errs.national_id = 'Use digits only';
@@ -364,10 +379,13 @@ export function EmployeesPage() {
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span>
-          <span className="topbar-title">Employees</span>
+          <span className="topbar-title">{outsource ? 'Outsource' : 'Employees'}</span>
         </div>
         <div className="topbar-right">
-          {canAddEmployee && (
+          {canAddEmployee && outsource && (
+            <button className="btn btn-primary" onClick={()=>openAdd('outsource')}>+ Add Outsource</button>
+          )}
+          {canAddEmployee && !outsource && (
             <div style={{position:'relative'}}>
               <button className="btn btn-primary" onClick={()=>setAddMenu(m=>!m)}>+ Add Employee ▾</button>
               {addMenu && (
@@ -413,7 +431,7 @@ export function EmployeesPage() {
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search name..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search national ID..." value={filters.national_id} onChange={e=>setFilters(p=>({...p,national_id:e.target.value}))} />
-                {['admin','hr'].includes(userRole) && <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employment ID..." value={filters.employee_number} onChange={e=>setFilters(p=>({...p,employee_number:e.target.value}))} />}
+                {!outsource && ['admin','hr'].includes(userRole) && <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:150}} placeholder="Search employment ID..." value={filters.employee_number} onChange={e=>setFilters(p=>({...p,employee_number:e.target.value}))} />}
                 <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:140}} placeholder="Search job title..." value={filters.job_title} onChange={e=>setFilters(p=>({...p,job_title:e.target.value}))} />
               </div>
             </div>
@@ -423,13 +441,13 @@ export function EmployeesPage() {
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
                   <option value="">All Status</option><option value="active">Active</option><option value="exit">Exit</option>
                 </select>
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value,activeStat:''}))}>
+                {!outsource && <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:120}} value={filters.resource_type} onChange={e=>setFilters(p=>({...p,resource_type:e.target.value,activeStat:''}))}>
                   <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
-                </select>
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:175}} value={filters.classification} onChange={e=>setFilters(p=>({...p,classification:e.target.value}))}>
-                  <option value="">All Classifications</option>
-                  <option value="inhouse">Inhouse</option>
-                  <option value="intern">Intern</option>
+                </select>}
+                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:175}} value={filters.classification} onChange={e=>setFilters(p=>({...p,classification:e.target.value,activeStat:''}))}>
+                  <option value="">{outsource ? 'All Subtypes' : 'All Classifications'}</option>
+                  {!outsource && <option value="inhouse">Inhouse</option>}
+                  {!outsource && <option value="intern">Intern</option>}
                   <option value="outsource_services">Outsource (Services)</option>
                   <option value="outsource_vehicle_supplier">Outsource (Vehicle Supplier)</option>
                 </select>
@@ -461,10 +479,11 @@ export function EmployeesPage() {
             </div>
           </div>
         </div>
-        <div className="stat-grid" style={{gridTemplateColumns:'repeat(5,1fr)'}}>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#F0F7FF':'#fff',outline:filters.activeStat==='active'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='active'?'':'active'}))}>
+        <div className="stat-grid" style={{gridTemplateColumns:`repeat(${outsource?4:5},1fr)`}}>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='active'?'#F0F7FF':'#fff',outline:filters.activeStat==='active'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',...(outsource?{classification:''}:{}),activeStat:p.activeStat==='active'?'':'active'}))}>
             <div className="stat-label">Total active</div><div className="stat-value green">{stats.total_active}</div>
           </div>
+          {!outsource && <>
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='inhouse'?'#F0F7FF':'#fff',outline:filters.activeStat==='inhouse'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='inhouse'?'':'inhouse'}))}>
             <div className="stat-label">Active Inhouse</div><div className="stat-value navy">{stats.inhouse}</div>
           </div>
@@ -474,7 +493,16 @@ export function EmployeesPage() {
           <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='intern'?'#F0F7FF':'#fff',outline:filters.activeStat==='intern'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='intern'?'':'intern'}))}>
             <div className="stat-label">Active Intern</div><div className="stat-value warning">{stats.interns}</div>
           </div>
-          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#F0F7FF':'#fff',outline:filters.activeStat==='exit'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',activeStat:p.activeStat==='exit'?'':'exit'}))}>
+          </>}
+          {outsource && <>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='services'?'#F0F7FF':'#fff',outline:filters.activeStat==='services'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',classification:p.activeStat==='services'?'':'outsource_services',activeStat:p.activeStat==='services'?'':'services'}))}>
+            <div className="stat-label">Services</div><div className="stat-value navy">{stats.services}</div>
+          </div>
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='vehicle'?'#F0F7FF':'#fff',outline:filters.activeStat==='vehicle'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',classification:p.activeStat==='vehicle'?'':'outsource_vehicle_supplier',activeStat:p.activeStat==='vehicle'?'':'vehicle'}))}>
+            <div className="stat-label">Vehicle Supplier</div><div className="stat-value">{stats.vehicle_supplier}</div>
+          </div>
+          </>}
+          <div className="card" style={{cursor:'pointer',padding:'16px 18px',background:filters.activeStat==='exit'?'#F0F7FF':'#fff',outline:filters.activeStat==='exit'?'2px solid #042C53':''}} onClick={()=>setFilters(p=>({...p,status:'',resource_type:'',...(outsource?{classification:''}:{}),activeStat:p.activeStat==='exit'?'':'exit'}))}>
             <div className="stat-label">Exits</div><div className="stat-value">{stats.exits}</div>
           </div>
         </div>
@@ -662,7 +690,7 @@ export function EmployeesPage() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}}>
           <div style={{background:'#fff',borderRadius:12,padding:32,width:760,maxHeight:'90vh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div style={{fontWeight:700,fontSize:16}}>{addType==='intern' ? 'Add Intern' : 'Add In-House Employee'}</div>
+              <div style={{fontWeight:700,fontSize:16}}>{addType==='outsource' ? 'Add Outsource Resource' : addType==='intern' ? 'Add Intern' : 'Add In-House Employee'}</div>
               <button onClick={()=>setAddModal(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'#6b7280'}}>✕</button>
             </div>
             {addErrors._server && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8}}>{addErrors._server}</div>}
@@ -681,6 +709,14 @@ export function EmployeesPage() {
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employment ID <span style={{color:'#e24b4a'}}>*</span></div>
                 <input className="form-input" value={addForm.employee_number} placeholder='Starts with "A"' onChange={ev=>setAddField('employee_number',ev.target.value)} style={addErrors.employee_number?{borderColor:'#e24b4a'}:undefined} />
                 {addErrors.employee_number && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.employee_number}</div>}
+              </div>}
+              {addType==='outsource' && <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Organization (Entity) <span style={{color:'#e24b4a'}}>*</span></div>
+                <select className="form-input" value={addForm.organization} onChange={ev=>setAddField('organization',ev.target.value)} style={addErrors.organization?{borderColor:'#e24b4a'}:undefined}>
+                  <option value="">Select…</option>
+                  {manageableOrgs.map(o=><option key={o.id} value={o.name}>{o.name} — {o.type==='services'?'Services':'Vehicle Supplier'}</option>)}
+                </select>
+                {addErrors.organization && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.organization}</div>}
               </div>}
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
@@ -706,9 +742,9 @@ export function EmployeesPage() {
                 </select>
                 {addErrors.client && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.client}</div>}
               </div>
-              {addType==='inhouse' && <div>
+              {addType!=='intern' && <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
-                <input className="form-input" value={addForm.job_title} placeholder="e.g. Field Technician" onChange={ev=>setAddField('job_title',ev.target.value)} style={addErrors.job_title?{borderColor:'#e24b4a'}:undefined} />
+                <input className="form-input" value={addForm.job_title} placeholder={addType==='outsource'?'e.g. Driver':'e.g. Field Technician'} onChange={ev=>setAddField('job_title',ev.target.value)} style={addErrors.job_title?{borderColor:'#e24b4a'}:undefined} />
                 {addErrors.job_title && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.job_title}</div>}
               </div>}
             </div>
@@ -726,7 +762,7 @@ export function EmployeesPage() {
             </div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
               <button className="btn" onClick={()=>setAddModal(false)} disabled={addSaving}>Cancel</button>
-              <button className="btn btn-primary" onClick={saveAdd} disabled={addSaving}>{addSaving?'Adding…':(addType==='intern'?'Add Intern':'Add In-House')}</button>
+              <button className="btn btn-primary" onClick={saveAdd} disabled={addSaving}>{addSaving?'Adding…':(addType==='outsource'?'Add Outsource':addType==='intern'?'Add Intern':'Add In-House')}</button>
             </div>
           </div>
         </div>

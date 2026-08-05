@@ -8,6 +8,7 @@ import { useAuth } from '../utils/AuthContext';
 const ALL_PAGES = [
   { key: '/', label: 'Dashboard' },
   { key: '/employees', label: 'Employees' },
+  { key: '/outsource', label: 'Outsource' },
   { key: '/casuals', label: 'Casuals' },
   { key: '/employees/change-log', label: 'Employee Change History' },
   { key: '/audit/new', label: 'New Audit' },
@@ -39,7 +40,7 @@ export default function AdminPage() {
   const [ppeSaving, setPpeSaving] = useState(false);
 
   // Collapsible sections
-  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, reasons: false, orglists: false, outsource: false, logs: false });
+  const [openSections, setOpenSections] = useState({ users: false, ppe: false, locations: false, training: false, managers: false, outsourceMgrs: false, reasons: false, orglists: false, outsource: false, logs: false });
   const toggleSection = (key) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Pending reasons (admin-managed list used by the Update Training Records screen)
@@ -268,6 +269,25 @@ export default function AdminPage() {
     }
   };
 
+  // Same, for outsource subtypes ('services' / 'vehicle_supplier') stored in outsource_access.
+  // Assignable to the two outsource-facing roles: fleet and supervisor.
+  const toggleOutsource = async (subtype, userId) => {
+    const eligible = (u) => ['fleet','supervisor'].includes(u.role);
+    const current = users.filter(u => eligible(u) && (u.outsource_access || []).includes(subtype)).map(u => u.id);
+    const next = current.includes(userId) ? current.filter(x => x !== userId) : [...current, userId];
+    setUsers(prev => prev.map(u => {
+      if (!eligible(u)) return u;
+      const arr = (u.outsource_access || []).filter(x => x !== subtype);
+      return { ...u, outsource_access: next.includes(u.id) ? [...arr, subtype] : arr };
+    }));
+    try {
+      await api.put('/outsource-tasks/' + subtype + '/managers', { user_ids: next });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to update managers');
+      api.get('/users').then(r => setUsers(r.data)).catch(logError);
+    }
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -340,6 +360,7 @@ export default function AdminPage() {
     scm_officer: <span className="tag tag-gray">SCM Officer</span>,
     project_director: <span className="tag tag-purple">Project Director</span>,
     hr: <span className="tag tag-green">HR</span>,
+    fleet: <span className="tag tag-navy">Fleet</span>,
   };
 
   const Avatar = ({ user, size = 32 }) => {
@@ -416,6 +437,7 @@ export default function AdminPage() {
               <option value="scm_officer">SCM Officer</option>
               <option value="project_director">Project Director</option>
               <option value="hr">HR</option>
+              <option value="fleet">Fleet</option>
             </select>
             {(userSearch||userRoleFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setUserSearch('');setUserRoleFilter('');}}>✕ Clear</button>}
           </div>
@@ -465,6 +487,7 @@ export default function AdminPage() {
                     <option value="scm_officer">SCM Officer</option>
                     <option value="project_director">Project Director</option>
                     <option value="hr">HR</option>
+                    <option value="fleet">Fleet</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -978,6 +1001,65 @@ export default function AdminPage() {
                                       border:`1.5px solid ${on ? 'var(--eg-navy)' : '#e5e7eb'}`,
                                       background: on ? '#F0F7FF' : 'white', color: on ? '#0f2a4a' : '#6b7280', fontWeight: on ? 600 : 400 }}>
                                     {on ? '✓ ' : ''}{u.full_name}
+                                  </button>
+                                );
+                              })}
+                              {mgrs.length === 0 && <span style={{ color:'#c0392b', fontSize:11 }}>no one assigned</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </>;
+          })()}
+        </div>
+
+        {/* Outsource Managers */}
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('outsourceMgrs')}>
+            <span className="card-title">Outsource Managers</span>
+            <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.outsourceMgrs ? '▲' : '▼'}</span>
+          </div>
+          {openSections.outsourceMgrs && (() => {
+            const osUsers = users.filter(u => ['fleet','supervisor'].includes(u.role));
+            const subtypes = [
+              { key: 'services', label: 'Outsource (Services)', icon: 'ti-briefcase' },
+              { key: 'vehicle_supplier', label: 'Outsource (Vehicle Supplier)', icon: 'ti-truck' },
+            ];
+            return <>
+              <div style={{ fontSize:12, color:'#6b7280', margin:'0 0 12px' }}>
+                Pick which <b>Fleet</b> / <b>Supervisor</b> users can <b>add, edit and exit</b> each outsource subtype on the <b>Outsource</b> page. A manager sees and manages only the subtype(s) assigned here; <b>with none assigned they see an empty page.</b> Admins always manage both. (Also grant them the <b>/outsource</b> page in the user's Page Access above.)
+              </div>
+              {osUsers.length === 0 && <div style={{ fontSize:13, color:'#c0392b', marginBottom:12 }}>No users have the <b>Fleet</b> or <b>Supervisor</b> role yet — add one in the Users section above, then assign subtypes here.</div>}
+              {osUsers.length > 0 && (
+                <table>
+                  <thead><tr><th>Subtype</th><th>Managed by (click to toggle)</th></tr></thead>
+                  <tbody>
+                    {subtypes.map(st => {
+                      const mgrs = osUsers.filter(u => (u.outsource_access || []).includes(st.key)).map(u => u.id);
+                      return (
+                        <tr key={st.key}>
+                          <td style={{ fontWeight:500 }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:10 }}>
+                              <span style={{ width:30, height:30, borderRadius:8, background:'#F0F7FF', display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                                <i className={`ti ${st.icon}`} style={{ fontSize:18, color:'var(--eg-navy)' }} aria-hidden="true"></i>
+                              </span>
+                              {st.label}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                              {osUsers.map(u => {
+                                const on = mgrs.includes(u.id);
+                                return (
+                                  <button key={u.id} type="button" onClick={() => toggleOutsource(st.key, u.id)}
+                                    style={{ cursor:'pointer', fontSize:12, padding:'4px 10px', borderRadius:14,
+                                      border:`1.5px solid ${on ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                                      background: on ? '#F0F7FF' : 'white', color: on ? '#0f2a4a' : '#6b7280', fontWeight: on ? 600 : 400 }}>
+                                    {on ? '✓ ' : ''}{u.full_name} <span style={{ opacity:0.6 }}>({u.role})</span>
                                   </button>
                                 );
                               })}

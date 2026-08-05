@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import EmployeesPage from './pages/EmployeesPage';
+import OutsourcePage from './pages/OutsourcePage';
 import NewAuditPage from './pages/NewAuditPage';
 import AuditHistoryPage from './pages/AuditHistoryPage';
 import NCRPage from './pages/NCRPage';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<PageGuard pageKey="/"><DashboardPage /></PageGuard>} />
             <Route path="employees" element={<PageGuard pageKey="/employees"><EmployeesPage /></PageGuard>} />
+            <Route path="outsource" element={<PageGuard pageKey="/outsource"><OutsourcePage /></PageGuard>} />
             <Route path="casuals" element={<PageGuard pageKey="/casuals"><CasualsPage /></PageGuard>} />
             <Route path="employees/change-log" element={<PageGuard pageKey="/employees/change-log"><ChangeHistoryPage /></PageGuard>} />
             <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
