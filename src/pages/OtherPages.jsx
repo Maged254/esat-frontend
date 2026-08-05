@@ -10,7 +10,7 @@ const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-
 const CLASS_STYLE = {
   'Inhouse': { background: '#e8eefb', color: '#042C53' },
   'Intern': { background: '#fef3c7', color: '#92400e' },
-  'Outsource (Contractor)': { background: '#e0e7ff', color: '#3730a3' },
+  'Outsource (Services)': { background: '#e0e7ff', color: '#3730a3' },
   'Outsource (Vehicle Supplier)': { background: '#dcfce7', color: '#166534' },
   'Outsource': { background: '#f1f5f9', color: '#475569' },
 };
@@ -430,9 +430,8 @@ export function EmployeesPage() {
                   <option value="">All Classifications</option>
                   <option value="inhouse">Inhouse</option>
                   <option value="intern">Intern</option>
-                  <option value="outsource_contractor">Outsource (Contractor)</option>
+                  <option value="outsource_services">Outsource (Services)</option>
                   <option value="outsource_vehicle_supplier">Outsource (Vehicle Supplier)</option>
-                  <option value="outsource">Outsource (unclassified)</option>
                 </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.department} onChange={e=>setFilters(p=>({...p,department:e.target.value}))}>
                   <option value="">All Departments</option>

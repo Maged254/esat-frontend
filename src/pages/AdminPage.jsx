@@ -95,7 +95,7 @@ export default function AdminPage() {
   const [outsourceForm, setOutsourceForm] = useState({ name: '', type: 'vehicle_supplier' });
   const [outsourceSaving, setOutsourceSaving] = useState(false);
   const [outsourceError, setOutsourceError] = useState('');
-  const OUTSOURCE_TYPE_LABEL = { contractor: 'Contractor', vehicle_supplier: 'Vehicle Supplier' };
+  const OUTSOURCE_TYPE_LABEL = { services: 'Services', vehicle_supplier: 'Vehicle Supplier' };
 
   const saveOutsource = async () => {
     if (!outsourceForm.name.trim()) { setOutsourceError('Name is required'); return; }
@@ -1154,7 +1154,7 @@ export default function AdminPage() {
                   <label className="form-label">Type</label>
                   <select className="form-input" value={outsourceForm.type} onChange={e => setOutsourceForm(f => ({...f, type: e.target.value}))}>
                     <option value="vehicle_supplier">Vehicle Supplier</option>
-                    <option value="contractor">Contractor</option>
+                    <option value="services">Services</option>
                   </select>
                 </div>
                 <button className="btn btn-primary" style={{ fontSize:13 }} disabled={outsourceSaving} onClick={saveOutsource}>{outsourceSaving ? 'Saving...' : 'Save'}</button>
@@ -1169,7 +1169,7 @@ export default function AdminPage() {
               {outsourceItems.map(r => (
                 <tr key={r.id}>
                   <td style={{ fontWeight:500 }}>{r.name}</td>
-                  <td><span className="tag" style={{ fontSize:10, background: r.type==='contractor' ? '#e0e7ff' : '#dcfce7', color: r.type==='contractor' ? '#3730a3' : '#166534' }}>{OUTSOURCE_TYPE_LABEL[r.type] || r.type}</span></td>
+                  <td><span className="tag" style={{ fontSize:10, background: r.type==='services' ? '#e0e7ff' : '#dcfce7', color: r.type==='services' ? '#3730a3' : '#166534' }}>{OUTSOURCE_TYPE_LABEL[r.type] || r.type}</span></td>
                   <td><span className={`tag ${r.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{r.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td>
                     <div style={{ display:'flex', gap:6 }}>
