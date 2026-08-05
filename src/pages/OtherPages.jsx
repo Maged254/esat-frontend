@@ -341,6 +341,22 @@ export function EmployeesPage({ outsource = false }) {
     };
     setEditConfirm({ payload, summary: actuallyChanged.map(fieldLabel).join(', ') });
   };
+  // Ticked fields whose value actually differs from the current record — i.e. edits
+  // the user made but hasn't saved via "Update Details".
+  const pendingEditFields = () => {
+    const normv = (v) => (v === undefined || v === null) ? '' : String(v).trim();
+    const afterVal = (k) => k === 'full_name' ? (editForm.after[k] || '').trim() : editForm.after[k];
+    return Object.keys(editForm.edit)
+      .filter(k => editForm.edit[k] && normv(afterVal(k)) !== normv(editModal[k]))
+      .map(fieldLabel);
+  };
+  // Block Exit / Convert when there are unsaved field edits, so they aren't silently
+  // lost (those actions don't save the ticked changes).
+  const guardUnsaved = (thenFn, verb) => {
+    const pend = pendingEditFields();
+    if (pend.length) { setEditErrors(e => ({ ...e, _general: `You changed ${pend.join(', ')} but haven't saved. Click "Update Details" first, or untick to discard, before ${verb}.` })); return; }
+    thenFn();
+  };
   const doEditSave = async () => {
     if (!editConfirm) return;
     setEditSaving(true);
@@ -661,8 +677,8 @@ export function EmployeesPage({ outsource = false }) {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
-                <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
-                {!outsource && /\bintern\b/i.test(editModal.job_title||'') && editModal.employment_status==='active' && <button className="btn" onClick={()=>openConvert(editModal)} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title="Convert this intern to a full in-house employee"><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>Convert to In-House</button>}
+                <button className="btn" onClick={()=>guardUnsaved(()=>setExitConfirm(true),'exiting')} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
+                {!outsource && /\bintern\b/i.test(editModal.job_title||'') && editModal.employment_status==='active' && <button className="btn" onClick={()=>guardUnsaved(()=>openConvert(editModal),'converting')} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title="Convert this intern to a full in-house employee"><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>Convert to In-House</button>}
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
@@ -714,7 +730,7 @@ export function EmployeesPage({ outsource = false }) {
               <div style={{fontWeight:700,fontSize:16,color:'#042C53'}}>Convert to In-House</div>
             </div>
             <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:16}}>
-              Promoting <b>{convertModal.full_name}</b> from Intern to a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history (shared in the daily email).
+              Promoting <b>{convertModal.full_name}</b> from Intern to a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history.
             </div>
             {convertErrors._server && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8,marginBottom:12}}>{convertErrors._server}</div>}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
