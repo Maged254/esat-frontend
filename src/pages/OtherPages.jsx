@@ -625,7 +625,7 @@ export function EmployeesPage({ outsource = false }) {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,borderTop:'1px solid #e5e7eb',paddingTop:12}}>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
-                <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Employee already exited':'Exit this employee'}>Exit Employee</button>
+                <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
@@ -657,7 +657,7 @@ export function EmployeesPage({ outsource = false }) {
           <div style={{background:'#fff',borderRadius:12,padding:24,width:460,borderTop:'4px solid #e24b4a',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
               <span style={{fontSize:22}}>⚠️</span>
-              <div style={{fontWeight:700,fontSize:16,color:'#c0392b'}}>Exit Employee</div>
+              <div style={{fontWeight:700,fontSize:16,color:'#c0392b'}}>Exit Resource</div>
             </div>
             <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:20}}>
               You are about to exit <b>{editModal.full_name}</b>. This marks the employee as <b style={{color:'#c0392b'}}>Exit</b> and closes their open PPE requests and NCR items. It is recorded in the change history.
