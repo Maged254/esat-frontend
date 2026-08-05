@@ -61,6 +61,10 @@ export function EmployeesPage({ outsource = false }) {
   const [editConfirm, setEditConfirm] = useState(null); // styled "confirm update" dialog {payload, summary}
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
   const [deleteConfirm, setDeleteConfirm] = useState(null); // employee pending hard-delete (admin)
+  const [convertModal, setConvertModal] = useState(null); // intern being converted to in-house
+  const [convertForm, setConvertForm] = useState({ job_title: '', employee_number: '', reason: '' });
+  const [convertErrors, setConvertErrors] = useState({});
+  const [convertSaving, setConvertSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [addModal, setAddModal] = useState(false); // Add Employee modal
   const [addForm, setAddForm] = useState({});
@@ -373,6 +377,38 @@ export function EmployeesPage({ outsource = false }) {
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Exit failed'); }
     setEditSaving(false);
   };
+  // Convert an intern to a full in-house employee: collect the missing Job Title +
+  // Employment ID; the backend sets the Added date to today and logs it (→ emailed).
+  const openConvert = (emp) => {
+    setConvertModal(emp);
+    setConvertErrors({});
+    setConvertForm({ job_title: emp.job_title && !/\bintern\b/i.test(emp.job_title) ? emp.job_title : '', employee_number: '', reason: 'Converted from Intern to In-House' });
+  };
+  const setConvertField = (k, v) => { setConvertForm(f => ({ ...f, [k]: v })); setConvertErrors(e => (e[k] ? { ...e, [k]: undefined } : e)); };
+  const doConvert = async () => {
+    const errs = {};
+    if (!convertForm.job_title.trim()) errs.job_title = 'Job Title is required';
+    else if (/\bintern\b/i.test(convertForm.job_title)) errs.job_title = 'Pick a non-intern job title';
+    if (!convertForm.employee_number.trim()) errs.employee_number = 'Employment ID is required';
+    if (Object.keys(errs).length) { setConvertErrors(errs); return; }
+    setConvertSaving(true);
+    try {
+      await api.post('/employees/' + convertModal.id + '/promote', {
+        job_title: convertForm.job_title.trim(),
+        employee_number: convertForm.employee_number.trim(),
+        reason: convertForm.reason.trim(),
+      });
+      setConvertModal(null);
+      setEditModal(null);
+      reload();
+    } catch (e) {
+      logError(e);
+      const msg = e.response?.data?.error || 'Conversion failed';
+      if (/employment id/i.test(msg)) setConvertErrors({ employee_number: msg });
+      else setConvertErrors({ _server: msg });
+    }
+    setConvertSaving(false);
+  };
 
   return (
     <>
@@ -626,6 +662,7 @@ export function EmployeesPage({ outsource = false }) {
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
                 <button className="btn" onClick={()=>setExitConfirm(true)} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
+                {!outsource && /\bintern\b/i.test(editModal.job_title||'') && editModal.employment_status==='active' && <button className="btn" onClick={()=>openConvert(editModal)} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title="Convert this intern to a full in-house employee"><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>Convert to In-House</button>}
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
@@ -665,6 +702,40 @@ export function EmployeesPage({ outsource = false }) {
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
               <button className="btn" onClick={()=>setExitConfirm(false)} disabled={editSaving}>Cancel</button>
               <button className="btn" onClick={doExit} disabled={editSaving} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{editSaving?'Exiting...':'Confirm Exit'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {convertModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:520,borderTop:'4px solid #042C53',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+              <i className="ti ti-arrow-up-circle" style={{fontSize:22,color:'#042C53'}} aria-hidden="true"></i>
+              <div style={{fontWeight:700,fontSize:16,color:'#042C53'}}>Convert to In-House</div>
+            </div>
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:16}}>
+              Promoting <b>{convertModal.full_name}</b> from Intern to a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history (shared in the daily email).
+            </div>
+            {convertErrors._server && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8,marginBottom:12}}>{convertErrors._server}</div>}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" autoFocus value={convertForm.job_title} placeholder="e.g. Field Technician" onChange={ev=>setConvertField('job_title',ev.target.value)} style={convertErrors.job_title?{borderColor:'#e24b4a'}:undefined} />
+                {convertErrors.job_title && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{convertErrors.job_title}</div>}
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Employment ID <span style={{color:'#e24b4a'}}>*</span></div>
+                <input className="form-input" value={convertForm.employee_number} placeholder='Starts with "A"' onChange={ev=>setConvertField('employee_number',ev.target.value)} style={convertErrors.employee_number?{borderColor:'#e24b4a'}:undefined} />
+                {convertErrors.employee_number && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{convertErrors.employee_number}</div>}
+              </div>
+            </div>
+            <div style={{marginBottom:18}}>
+              <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason</div>
+              <input className="form-input" value={convertForm.reason} onChange={ev=>setConvertField('reason',ev.target.value)} />
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn" onClick={()=>setConvertModal(null)} disabled={convertSaving}>Cancel</button>
+              <button className="btn btn-primary" onClick={doConvert} disabled={convertSaving}>{convertSaving?'Converting…':'Convert to In-House'}</button>
             </div>
           </div>
         </div>
