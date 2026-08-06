@@ -7,7 +7,7 @@ const C = {
   expiring: { solid: '#d97706', from: '#fbbf24', to: '#d97706', tint: '#fef3c7' },
   expired:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#fee2e2' },
   navy:     { solid: '#042C53', from: '#3b82f6', to: '#1d4ed8', tint: '#e0e7ff' },
-  pending:  { solid: '#6366f1', from: '#818cf8', to: '#4f46e5', tint: '#e0e7ff' },
+  pending:  { solid: '#A32D2D', from: '#f87171', to: '#dc2626', tint: '#FCEBEB' }, // matches the app's tag-red (Pending)
 };
 
 const Gradients = () => (
@@ -231,11 +231,10 @@ export default function TrainingDashboardPage() {
         </div>
 
         {/* KPI row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
           <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
           <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
           <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
-          <KPI label="Expired Certificates" value={k.expired} kind="expired" icon="ti-alert-triangle" />
           <KPI label="Pending Certificates" value={pendingTotal} kind="pending" icon="ti-hourglass" />
         </div>
 
