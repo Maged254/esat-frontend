@@ -7,9 +7,9 @@ const C = {
   expiring: { solid: '#d97706', from: '#fbbf24', to: '#d97706', tint: '#fef3c7' },
   expired:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#fee2e2' },
   navy:     { solid: '#042C53', from: '#3b82f6', to: '#1d4ed8', tint: '#e0e7ff' },
+  pending:  { solid: '#6366f1', from: '#818cf8', to: '#4f46e5', tint: '#e0e7ff' },
 };
 
-// Gradient defs shared by the charts.
 const Gradients = () => (
   <defs>
     {['valid', 'expiring', 'expired'].map(k => (
@@ -36,7 +36,20 @@ const KPI = ({ label, value, kind, icon }) => {
   );
 };
 
-const trunc = (s, n = 24) => (s && s.length > n ? s.slice(0, n - 1) + '…' : s);
+// Y-axis tick that wraps a long name onto up to two lines (so nothing is trimmed).
+const WrapTick = ({ x, y, payload }) => {
+  const words = String(payload.value).split(' ');
+  const lines = []; let cur = '';
+  words.forEach(w => { const t = (cur ? cur + ' ' : '') + w; if (t.length > 19 && cur) { lines.push(cur); cur = w; } else cur = t; });
+  if (cur) lines.push(cur);
+  const two = lines.slice(0, 2);
+  if (lines.length > 2) two[1] = two[1].slice(0, 16) + '…';
+  return (
+    <text x={x} y={y} textAnchor="end" fill="#374151" fontSize={11}>
+      {two.map((ln, i) => <tspan key={i} x={x} dy={i === 0 ? (two.length > 1 ? -3 : 4) : 13}>{ln}</tspan>)}
+    </text>
+  );
+};
 
 const BarTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -49,19 +62,27 @@ const BarTip = ({ active, payload, label }) => {
   );
 };
 
-// Horizontal stacked validity bars (per course / per project), gradient-filled.
+const PieTip = ({ active, payload, total }) => {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  const pct = ((p.value / (total || 1)) * 100).toFixed(1);
+  return (
+    <div style={{ background: '#0f2a4a', color: '#fff', borderRadius: 8, padding: '8px 11px', fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.28)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 10, height: 10, borderRadius: 2, background: p.payload.color }} />{p.name}: <b>{p.value}</b> <span style={{ opacity: 0.7 }}>· {pct}%</span>
+    </div>
+  );
+};
+
 function ValidityBars({ data, nameKey }) {
   if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>;
   return (
-    <ResponsiveContainer width="100%" height={Math.max(data.length * 38 + 20, 130)}>
-      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={9}>
+    <ResponsiveContainer width="100%" height={Math.max(data.length * 44 + 20, 130)}>
+      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
         <Gradients />
         <XAxis type="number" hide />
-        <YAxis type="category" dataKey={nameKey} width={150} tickLine={false} axisLine={false}
-          tick={{ fontSize: 11, fill: '#374151' }} interval={0} tickFormatter={v => trunc(v)} />
+        <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
         <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
-        <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false}
-          background={{ fill: '#f1f5f9', radius: 5 }}>
+        <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
           <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
         </Bar>
         <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
@@ -83,9 +104,66 @@ const ChartCard = ({ title, children }) => (
   </div>
 );
 
+function Donut({ k }) {
+  const total = k.total || 0;
+  if (total === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>;
+  const rows = [
+    { name: 'Valid', value: k.valid || 0, color: C.valid.solid },
+    { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid },
+    { name: 'Expired', value: k.expired || 0, color: C.expired.solid },
+  ];
+  const shown = rows.filter(d => d.value > 0);
+  return (
+    <>
+      <div style={{ position: 'relative' }}>
+        <ResponsiveContainer width="100%" height={230}>
+          <PieChart>
+            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={92}
+              paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}>
+              {shown.map(d => <Cell key={d.name} fill={d.color} />)}
+            </Pie>
+            <Tooltip content={<PieTip total={total} />} wrapperStyle={{ zIndex: 60 }} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{total}</div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Certificates</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+        {rows.map(d => (
+          <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{d.value}</b>
+          </span>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const ChartsRow = ({ d }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 20 }}>
+    <ChartCard title="Total Validity"><Donut k={d.kpis || {}} /></ChartCard>
+    <ChartCard title="Validity per Training Type"><ValidityBars data={d.by_course || []} nameKey="course" /></ChartCard>
+    <ChartCard title="Validity per Project"><ValidityBars data={d.by_project || []} nameKey="project" /></ChartCard>
+  </div>
+);
+
+const Section = ({ icon, label }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 2px 14px' }}>
+    <i className={`ti ${icon}`} style={{ fontSize: 18, color: '#042C53' }} aria-hidden="true"></i>
+    <span style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>{label}</span>
+    <span style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+  </div>
+);
+
+const EMPTY = { kpis: {}, pending_reasons: [], by_course: [], by_project: [] };
+
 export default function TrainingDashboardPage() {
-  const [filters, setFilters] = useState({ client: '', project: '', course_id: '', resource_type: 'inhouse', employment_status: 'active' });
-  const [data, setData] = useState({ kpis: {}, pending_reasons: [], by_course: [], by_project: [] });
+  const [filters, setFilters] = useState({ client: '', project: '', course_id: '', employment_status: 'active' });
+  const [overall, setOverall] = useState(EMPTY);
+  const [inhouse, setInhouse] = useState(EMPTY);
+  const [outsource, setOutsource] = useState(EMPTY);
   const [courses, setCourses] = useState([]);
   const [opts, setOpts] = useState({ projects: [], clients: [] });
   const [loading, setLoading] = useState(true);
@@ -96,132 +174,89 @@ export default function TrainingDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const p = new URLSearchParams();
-    if (filters.client) p.append('clients', filters.client);
-    if (filters.project) p.append('projects', filters.project);
-    if (filters.course_id) p.append('course_id', filters.course_id);
-    if (filters.resource_type) p.append('resource_type', filters.resource_type);
-    if (filters.employment_status) p.append('employment_status', filters.employment_status);
+    const base = new URLSearchParams();
+    if (filters.client) base.append('clients', filters.client);
+    if (filters.project) base.append('projects', filters.project);
+    if (filters.course_id) base.append('course_id', filters.course_id);
+    if (filters.employment_status) base.append('employment_status', filters.employment_status);
+    const url = rt => `/training-records/dashboard?${base}${rt ? `&resource_type=${rt}` : ''}`;
     setLoading(true);
-    api.get(`/training-records/dashboard?${p}`).then(r => setData(r.data)).catch(logError).finally(() => setLoading(false));
+    Promise.all([api.get(url('')), api.get(url('inhouse')), api.get(url('outsource'))])
+      .then(([o, i, s]) => { setOverall(o.data); setInhouse(i.data); setOutsource(s.data); })
+      .catch(logError).finally(() => setLoading(false));
   }, [filters]);
 
-  const k = data.kpis || {};
-  const donut = [
-    { name: 'Valid', value: k.valid || 0, color: C.valid.solid },
-    { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid },
-    { name: 'Expired', value: k.expired || 0, color: C.expired.solid },
-  ];
-  const pendingTotal = (data.pending_reasons || []).reduce((s, r) => s + r.count, 0);
+  const k = overall.kpis || {};
+  const pendingTotal = (overall.pending_reasons || []).reduce((s, r) => s + r.count, 0);
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
 
   return (
-    <div className="content graphs-content">
+    <>
       <div className="topbar">
         <div className="topbar-left">
           <span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span>
           <span className="topbar-title">Training Dashboard</span>
         </div>
       </div>
-
-      {/* Filters — the standard card used across the app */}
-      <div className="card" style={{ marginBottom: 20, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
-        <div className="card-body">
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-              <select className="form-select" style={sel} value={filters.client} onChange={e => setFilters(f => ({ ...f, client: e.target.value }))}>
-                <option value="">All Clients</option>
-                {opts.clients.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <select className="form-select" style={sel} value={filters.project} onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}>
-                <option value="">All Projects</option>
-                {opts.projects.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <select className="form-select" style={sel} value={filters.course_id} onChange={e => setFilters(f => ({ ...f, course_id: e.target.value }))}>
-                <option value="">All Training Types</option>
-                {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <select className="form-select" style={sel} value={filters.resource_type} onChange={e => setFilters(f => ({ ...f, resource_type: e.target.value }))}>
-                <option value="">All Resources</option>
-                <option value="inhouse">Inhouse</option>
-                <option value="outsource">Outsource</option>
-                <option value="intern">Intern</option>
-              </select>
-              <select className="form-select" style={sel} value={filters.employment_status} onChange={e => setFilters(f => ({ ...f, employment_status: e.target.value }))}>
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="exit">Exit</option>
-              </select>
-              <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
-                onClick={() => setFilters({ client: '', project: '', course_id: '', resource_type: 'inhouse', employment_status: 'active' })}>✕ Clear</button>
-              {loading && <span style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</span>}
+      <div className="content graphs-content">
+        {/* Filters — the standard card used across the app */}
+        <div className="card" style={{ marginBottom: 20, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <select className="form-select" style={sel} value={filters.client} onChange={e => setFilters(f => ({ ...f, client: e.target.value }))}>
+                  <option value="">All Clients</option>
+                  {opts.clients.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select className="form-select" style={sel} value={filters.project} onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}>
+                  <option value="">All Projects</option>
+                  {opts.projects.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <select className="form-select" style={sel} value={filters.course_id} onChange={e => setFilters(f => ({ ...f, course_id: e.target.value }))}>
+                  <option value="">All Training Types</option>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <select className="form-select" style={sel} value={filters.employment_status} onChange={e => setFilters(f => ({ ...f, employment_status: e.target.value }))}>
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="exit">Exit</option>
+                </select>
+                <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
+                  onClick={() => setFilters({ client: '', project: '', course_id: '', employment_status: 'active' })}>✕ Clear</button>
+                {loading && <span style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</span>}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* KPI row + pending reasons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.35fr', gap: 18, marginBottom: 20 }}>
-        <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
-        <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
-        <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
-        <KPI label="Expired Certificates" value={k.expired} kind="expired" icon="ti-alert-triangle" />
-        <div className="card" style={{ padding: '16px 18px' }}>
-          <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
-            <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
-          </div>
-          <div style={{ maxHeight: 128, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
-            {(data.pending_reasons || []).map(r => (
-              <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
-                <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.expiring.tint, color: C.expiring.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.count}</span>
-                <span>{r.reason}</span>
-              </div>
-            ))}
-            {!data.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
-          </div>
-          {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 8, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a' }}>{pendingTotal} total</div>}
+        {/* KPI row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 16 }}>
+          <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
+          <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
+          <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
+          <KPI label="Expired Certificates" value={k.expired} kind="expired" icon="ti-alert-triangle" />
+          <KPI label="Pending Certificates" value={pendingTotal} kind="pending" icon="ti-hourglass" />
         </div>
-      </div>
 
-      {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18 }}>
-        <ChartCard title="Total Validity">
-          {(k.total || 0) === 0
-            ? <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>
-            : <>
-                <div style={{ position: 'relative' }}>
-                  <ResponsiveContainer width="100%" height={230}>
-                    <PieChart>
-                      <Pie data={donut.filter(d => d.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                        innerRadius={62} outerRadius={92} paddingAngle={donut.filter(d => d.value > 0).length > 1 ? 2 : 0}
-                        cornerRadius={4} stroke="none" isAnimationActive={false}>
-                        {donut.filter(d => d.value > 0).map(d => <Cell key={d.name} fill={d.color} />)}
-                      </Pie>
-                      <Tooltip formatter={(v, n) => [`${v} · ${((v / (k.total || 1)) * 100).toFixed(1)}%`, n]} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                    <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{k.total}</div>
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Certificates</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
-                  {donut.map(d => (
-                    <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-                      <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{d.value}</b>
-                    </span>
-                  ))}
-                </div>
-              </>}
-        </ChartCard>
-        <ChartCard title="Validity per Training Type">
-          <ValidityBars data={data.by_course || []} nameKey="course" />
-        </ChartCard>
-        <ChartCard title="Validity per Project">
-          <ValidityBars data={data.by_project || []} nameKey="project" />
-        </ChartCard>
+        {/* Pending reasons — horizontal chip strip */}
+        <div className="card" style={{ padding: '12px 18px', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, flexShrink: 0 }}>Pending Reasons</span>
+          {(overall.pending_reasons || []).map(r => (
+            <span key={r.reason} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#374151', background: '#f8fafc', border: '1px solid #eef1f5', borderRadius: 20, padding: '4px 12px 4px 4px' }}>
+              <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.count}</span>
+              {r.reason}
+            </span>
+          ))}
+          {!overall.pending_reasons?.length && <span style={{ fontSize: 12, color: '#9ca3af' }}>No pending trainings.</span>}
+        </div>
+
+        {/* Charts, split by resource */}
+        <Section icon="ti-building" label="In-House" />
+        <ChartsRow d={inhouse} />
+        <Section icon="ti-briefcase" label="Outsource" />
+        <ChartsRow d={outsource} />
       </div>
-    </div>
+    </>
   );
 }
