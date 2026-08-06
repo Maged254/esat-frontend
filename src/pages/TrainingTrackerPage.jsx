@@ -16,7 +16,7 @@ const STATUS_META = {
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 
-const EMPTY_FILTERS = { status: '', expiry: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '' };
+const EMPTY_FILTERS = { status: '', expiry: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
 
 export default function TrainingTrackerPage() {
   const [rows, setRows] = useState([]);
@@ -26,7 +26,7 @@ export default function TrainingTrackerPage() {
   const [stats, setStats] = useState({ total: 0, requested: 0, scheduled: 0, pending: 0, completed: 0, expiring: 0, expired: 0 });
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [courses, setCourses] = useState([]);
-  const [filterOptions, setFilterOptions] = useState({ projects: [], departments: [], clients: [] });
+  const [filterOptions, setFilterOptions] = useState({ projects: [], departments: [], clients: [], organizations: [] });
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -46,6 +46,7 @@ export default function TrainingTrackerPage() {
     if (filters.department) p.append('department', filters.department);
     if (filters.project) p.append('projects', filters.project);
     if (filters.client) p.append('clients', filters.client);
+    if (filters.organization) p.append('organization', filters.organization);
     return p;
   };
 
@@ -82,6 +83,13 @@ export default function TrainingTrackerPage() {
     return <span className={`tag ${m.cls}`}>{m.label}</span>;
   };
 
+  // Employee employment status (Active / Exit) shown under the Organization column.
+  const renderEmpStatus = (s) => {
+    if (!s) return null;
+    const active = s === 'active';
+    return <span className={`tag ${active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize: 10, marginTop: 3, display: 'inline-block' }}>{active ? 'Active' : titleCase(s)}</span>;
+  };
+
   const renderExpiry = (r) => {
     if (r.status !== 'completed' || !r.expiry_date) return <span style={{ color: '#9ca3af' }}>—</span>;
     const state = r.expiry_state; // 'valid' | 'expiring' | 'expired' | 'superseded'
@@ -113,7 +121,7 @@ export default function TrainingTrackerPage() {
   const exportCSV = async () => {
     setExporting(true);
     try {
-      const labels = ['Employee', 'National ID', 'Employee No', 'Job Title', 'Training Type', 'Project', 'Client', 'Status', 'Requested', 'Requested By', 'Scheduled', 'Completed', 'Expiry', 'Expiry State'];
+      const labels = ['Employee', 'National ID', 'Employee No', 'Job Title', 'Organization', 'Employment Status', 'Training Type', 'Project', 'Client', 'Status', 'Requested', 'Requested By', 'Scheduled', 'Completed', 'Expiry', 'Expiry State'];
       const all = [];
       let pg = 1;
       // Pull every matching page (backend caps pageSize at 100).
@@ -128,7 +136,8 @@ export default function TrainingTrackerPage() {
       }
       const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const csvRows = all.map(r => [
-        r.employee_name, r.national_id, r.employee_number, r.job_title, r.course_name,
+        r.employee_name, r.national_id, r.employee_number, r.job_title,
+        r.organization, (r.employment_status ? titleCase(r.employment_status) : ''), r.course_name,
         r.project, r.client, (STATUS_META[r.status]?.label || titleCase(r.status)),
         fmtDate(r.requested_at), r.requested_by_name, fmtDate(r.scheduled_date),
         fmtDate(r.completed_at), fmtDate(r.expiry_date), r.expiry_state || '',
@@ -192,6 +201,10 @@ export default function TrainingTrackerPage() {
                   <option value="">All Clients</option>
                   {filterOptions.clients.map(cl => <option key={cl} value={cl}>{cl}</option>)}
                 </select>
+                <input className="form-input" list="tracker-organizations" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 170 }} placeholder="All Organizations" value={filters.organization} onChange={e => setFilters(p => ({ ...p, organization: e.target.value }))} />
+                <datalist id="tracker-organizations">
+                  {filterOptions.organizations.map(o => <option key={o} value={o} />)}
+                </datalist>
                 <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value, expiry: '' }))}>
                   <option value="">All Status</option>
                   <option value="requested">Requested</option>
@@ -211,9 +224,9 @@ export default function TrainingTrackerPage() {
           {statCard('Total Records', stats.total, { active: !filters.status && !filters.expiry, onClick: () => setFilters(f => ({ ...f, status: '', expiry: '' })), color: 'var(--eg-navy)' })}
           {statCard('Requested', stats.requested, { active: filters.status === 'requested', onClick: () => setStatus('requested'), color: '#2563eb' })}
           {statCard('Scheduled', stats.scheduled, { active: filters.status === 'scheduled', onClick: () => setStatus('scheduled'), color: '#0f766e' })}
+          {statCard('Pending', stats.pending, { active: filters.status === 'pending', onClick: () => setStatus('pending'), color: '#A32D2D' })}
           {statCard('Completed', stats.completed, { active: filters.status === 'completed', onClick: () => setStatus('completed'), color: 'var(--eg-green)' })}
-          {statCard('Expiring ≤60d', stats.expiring, { active: filters.expiry === 'expiring', onClick: () => setExpiry('expiring'), color: '#b45309' })}
-          {statCard('Expired', stats.expired, { active: filters.expiry === 'expired', onClick: () => setExpiry('expired'), color: '#c0392b' })}
+          {statCard('Expiring ≤60d', stats.expiring, { active: filters.expiry === 'expiring', onClick: () => setExpiry('expiring'), color: '#d97706' })}
         </div>
 
         {/* Table */}
@@ -231,6 +244,7 @@ export default function TrainingTrackerPage() {
                 <tr style={{ position: 'sticky', top: 0, zIndex: 4 }}>
                   <th>Employee</th>
                   <th>Training Type</th>
+                  <th>Organization</th>
                   <th>Project / Client</th>
                   <th>Requested</th>
                   <th>Completed</th>
@@ -248,6 +262,10 @@ export default function TrainingTrackerPage() {
                       </div></div>
                     </td>
                     <td>{r.course_name}</td>
+                    <td>
+                      <div>{r.organization || '—'}</div>
+                      {renderEmpStatus(r.employment_status)}
+                    </td>
                     <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
                     <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.requested_by_name}</div> : ''}</td>
                     <td>{fmtDate(r.completed_at)}</td>
@@ -255,7 +273,7 @@ export default function TrainingTrackerPage() {
                     <td>{renderStatus(r.status)}</td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No training records found</td></tr>}
+                {!rows.length && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No training records found</td></tr>}
               </tbody>
             </table>
           </div>
