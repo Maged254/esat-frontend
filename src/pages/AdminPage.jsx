@@ -16,6 +16,7 @@ const ALL_PAGES = [
   { key: '/training/request', label: 'Request a Training' },
   { key: '/training/update', label: 'Update Training Records' },
   { key: '/training/tracker', label: 'Trainings Tracker' },
+  { key: '/training/dashboard', label: 'Training Dashboard' },
   { key: '/history', label: 'Audit History' },
   { key: '/audit-coverage', label: 'Audit Coverage' },
   { key: '/ncr', label: 'NCR List' },
