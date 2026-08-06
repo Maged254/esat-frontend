@@ -270,7 +270,11 @@ export default function TrainingTrackerPage() {
                     <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.requested_by_name}</div> : ''}</td>
                     <td>{fmtDate(r.completed_at)}</td>
                     <td>{renderExpiry(r)}</td>
-                    <td>{renderStatus(r.status)}</td>
+                    <td>
+                      {renderStatus(r.status)}
+                      {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
+                      {r.status === 'not_eligible' && r.not_eligible_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.not_eligible_reason}</div> : ''}
+                    </td>
                   </tr>
                 ))}
                 {!rows.length && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No training records found</td></tr>}
