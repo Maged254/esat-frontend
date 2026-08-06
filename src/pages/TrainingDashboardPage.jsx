@@ -58,9 +58,17 @@ const BarTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   const total = payload.reduce((s, p) => s + (p.value || 0), 0);
   return (
-    <div style={{ background: '#0f2a4a', color: '#fff', borderRadius: 8, padding: '8px 11px', fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.28)' }}>
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>{label} <span style={{ opacity: 0.6 }}>· {total}</span></div>
-      {payload.map(p => <div key={p.name}><span style={{ opacity: 0.7 }}>{p.name}:</span> <b>{p.value}</b></div>)}
+    <div style={{ background: '#0f2a4a', color: '#fff', borderRadius: 8, padding: '8px 11px', fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.28)', minWidth: 160 }}>
+      <div style={{ fontWeight: 700, marginBottom: 5, display: 'flex', justifyContent: 'space-between', gap: 14 }}>
+        <span>{label}</span><span style={{ opacity: 0.7, fontVariantNumeric: 'tabular-nums' }}>{total}</span>
+      </div>
+      {payload.map(p => (
+        <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 2, background: (C[p.dataKey]?.solid || p.color), flexShrink: 0 }} />
+          <span style={{ opacity: 0.85, flex: 1 }}>{p.name}</span>
+          <b style={{ fontVariantNumeric: 'tabular-nums' }}>{p.value}</b>
+        </div>
+      ))}
     </div>
   );
 };
