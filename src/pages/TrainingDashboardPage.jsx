@@ -7,13 +7,12 @@ const C = {
   expiring: { solid: '#d97706', from: '#fbbf24', to: '#d97706', tint: '#fef3c7' },
   expired:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#fee2e2' },
   navy:     { solid: '#042C53', from: '#3b82f6', to: '#1d4ed8', tint: '#e0e7ff' },
-  pending:  { solid: '#A32D2D', from: '#f87171', to: '#dc2626', tint: '#FCEBEB' }, // matches the app's tag-red (Pending)
-  pendingBar:{ solid: '#64748b', from: '#94a3b8', to: '#475569', tint: '#eef2f6' }, // slate — distinct from the red "Expired" in stacked bars
+  pending:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#FCEBEB' }, // reddish (Pending)
 };
 
 const Gradients = () => (
   <defs>
-    {['valid', 'expiring', 'expired', 'pendingBar'].map(k => (
+    {['valid', 'expiring', 'pending'].map(k => (
       <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor={C[k].from} />
         <stop offset="100%" stopColor={C[k].to} />
@@ -94,10 +93,7 @@ function ValidityBars({ data, nameKey }) {
           <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
             <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
           </Bar>
-          <Bar dataKey="expired" name="Expired" stackId="a" fill="url(#grad-expired)" isAnimationActive={false}>
-            <LabelList dataKey="expired" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
-          </Bar>
-          <Bar dataKey="pending" name="Pending" stackId="a" fill="url(#grad-pendingBar)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+          <Bar dataKey="pending" name="Pending" stackId="a" fill="url(#grad-pending)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
             <LabelList dataKey="pending" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
             <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
           </Bar>
@@ -115,13 +111,13 @@ const ChartCard = ({ title, children }) => (
 );
 
 function Donut({ k }) {
-  const total = k.total || 0;
-  if (total === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>;
   const rows = [
     { name: 'Valid', value: k.valid || 0, color: C.valid.solid },
     { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid },
-    { name: 'Expired', value: k.expired || 0, color: C.expired.solid },
+    { name: 'Pending', value: k.pending || 0, color: C.pending.solid },
   ];
+  const total = rows.reduce((s, r) => s + r.value, 0);
+  if (total === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   const shown = rows.filter(d => d.value > 0);
   return (
     <>
@@ -137,7 +133,7 @@ function Donut({ k }) {
         </ResponsiveContainer>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
           <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{total}</div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Certificates</div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Trainings</div>
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
