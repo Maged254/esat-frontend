@@ -232,7 +232,7 @@ export default function TrainingDashboardPage() {
 
         {/* KPI row + pending reasons */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.3fr', gap: 16, marginBottom: 22 }}>
-          <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
+          <KPI label="Current Requested Trainings" value={k.all_records ?? k.total} kind="navy" icon="ti-clipboard-list" />
           <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
           <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
           <KPI label="Pending Certificates" value={pendingTotal} kind="pending" icon="ti-hourglass" />
