@@ -8,11 +8,12 @@ const C = {
   expired:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#fee2e2' },
   navy:     { solid: '#042C53', from: '#3b82f6', to: '#1d4ed8', tint: '#e0e7ff' },
   pending:  { solid: '#A32D2D', from: '#f87171', to: '#dc2626', tint: '#FCEBEB' }, // matches the app's tag-red (Pending)
+  pendingBar:{ solid: '#64748b', from: '#94a3b8', to: '#475569', tint: '#eef2f6' }, // slate — distinct from the red "Expired" in stacked bars
 };
 
 const Gradients = () => (
   <defs>
-    {['valid', 'expiring', 'expired'].map(k => (
+    {['valid', 'expiring', 'expired', 'pendingBar'].map(k => (
       <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor={C[k].from} />
         <stop offset="100%" stopColor={C[k].to} />
@@ -73,27 +74,36 @@ const PieTip = ({ active, payload, total }) => {
   );
 };
 
+// Fixed viewport height for the bar charts so every card is the same size and
+// fits the page; when there are more bars than fit, the list scrolls inside.
+const BARS_MAX_H = 320;
 function ValidityBars({ data, nameKey }) {
-  if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>;
+  if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
+  const innerH = Math.max(data.length * 44 + 20, 130);
   return (
-    <ResponsiveContainer width="100%" height={Math.max(data.length * 44 + 20, 130)}>
-      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
-        <Gradients />
-        <XAxis type="number" hide />
-        <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
-        <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
-        <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
-          <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
-        </Bar>
-        <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
-          <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
-        </Bar>
-        <Bar dataKey="expired" name="Expired" stackId="a" fill="url(#grad-expired)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
-          <LabelList dataKey="expired" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
-          <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div style={{ maxHeight: BARS_MAX_H, overflowY: 'auto', overflowX: 'hidden' }}>
+      <ResponsiveContainer width="100%" height={innerH}>
+        <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
+          <Gradients />
+          <XAxis type="number" hide />
+          <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
+          <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
+          <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
+            <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+          </Bar>
+          <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
+            <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+          </Bar>
+          <Bar dataKey="expired" name="Expired" stackId="a" fill="url(#grad-expired)" isAnimationActive={false}>
+            <LabelList dataKey="expired" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+          </Bar>
+          <Bar dataKey="pending" name="Pending" stackId="a" fill="url(#grad-pendingBar)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+            <LabelList dataKey="pending" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+            <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -159,13 +169,17 @@ const Section = ({ icon, label }) => (
 
 const EMPTY = { kpis: {}, pending_reasons: [], by_course: [], by_project: [] };
 
+const RT_LABEL = { inhouse: 'In-House', outsource: 'Outsource', intern: 'Interns' };
+const RT_ICON = { inhouse: 'ti-building', outsource: 'ti-briefcase', intern: 'ti-school' };
+const DEFAULT_FILTERS = { client: '', project: '', course_id: '', organization: '', resource_type: '', employment_status: 'active' };
+
 export default function TrainingDashboardPage() {
-  const [filters, setFilters] = useState({ client: '', project: '', course_id: '', employment_status: 'active' });
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [overall, setOverall] = useState(EMPTY);
   const [inhouse, setInhouse] = useState(EMPTY);
   const [outsource, setOutsource] = useState(EMPTY);
   const [courses, setCourses] = useState([]);
-  const [opts, setOpts] = useState({ projects: [], clients: [] });
+  const [opts, setOpts] = useState({ projects: [], clients: [], organizations: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -174,15 +188,25 @@ export default function TrainingDashboardPage() {
   }, []);
 
   useEffect(() => {
-    const base = new URLSearchParams();
-    if (filters.client) base.append('clients', filters.client);
-    if (filters.project) base.append('projects', filters.project);
-    if (filters.course_id) base.append('course_id', filters.course_id);
-    if (filters.employment_status) base.append('employment_status', filters.employment_status);
-    const url = rt => `/training-records/dashboard?${base}${rt ? `&resource_type=${rt}` : ''}`;
+    const build = (rtOverride) => {
+      const p = new URLSearchParams();
+      if (filters.client) p.append('clients', filters.client);
+      if (filters.project) p.append('projects', filters.project);
+      if (filters.course_id) p.append('course_id', filters.course_id);
+      if (filters.organization) p.append('organization', filters.organization);
+      if (filters.employment_status) p.append('employment_status', filters.employment_status);
+      const rt = rtOverride !== undefined ? rtOverride : filters.resource_type;
+      if (rt) p.append('resource_type', rt);
+      return `/training-records/dashboard?${p.toString()}`;
+    };
+    // With no resource-type filter, show the In-House vs Outsource split (two
+    // extra fetches). With one selected, a single section driven by `overall`.
+    const split = !filters.resource_type;
     setLoading(true);
-    Promise.all([api.get(url('')), api.get(url('inhouse')), api.get(url('outsource'))])
-      .then(([o, i, s]) => { setOverall(o.data); setInhouse(i.data); setOutsource(s.data); })
+    const reqs = [api.get(build())];
+    if (split) reqs.push(api.get(build('inhouse')), api.get(build('outsource')));
+    Promise.all(reqs)
+      .then(res => { setOverall(res[0].data); if (split) { setInhouse(res[1].data); setOutsource(res[2].data); } })
       .catch(logError).finally(() => setLoading(false));
   }, [filters]);
 
@@ -217,13 +241,24 @@ export default function TrainingDashboardPage() {
                   <option value="">All Training Types</option>
                   {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                <select className="form-select" style={sel} value={filters.resource_type} onChange={e => setFilters(f => ({ ...f, resource_type: e.target.value }))}>
+                  <option value="">All Resources</option>
+                  <option value="inhouse">In-House</option>
+                  <option value="outsource">Outsource</option>
+                  <option value="intern">Intern</option>
+                </select>
+                <input className="form-input" list="dash-organizations" style={sel} placeholder="All Organizations"
+                  value={filters.organization} onChange={e => setFilters(f => ({ ...f, organization: e.target.value }))} />
+                <datalist id="dash-organizations">
+                  {(opts.organizations || []).map(o => <option key={o} value={o} />)}
+                </datalist>
                 <select className="form-select" style={sel} value={filters.employment_status} onChange={e => setFilters(f => ({ ...f, employment_status: e.target.value }))}>
                   <option value="">All Statuses</option>
                   <option value="active">Active</option>
                   <option value="exit">Exit</option>
                 </select>
                 <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
-                  onClick={() => setFilters({ client: '', project: '', course_id: '', employment_status: 'active' })}>✕ Clear</button>
+                  onClick={() => setFilters(DEFAULT_FILTERS)}>✕ Clear</button>
                 {loading && <span style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</span>}
               </div>
             </div>
@@ -253,11 +288,20 @@ export default function TrainingDashboardPage() {
           </div>
         </div>
 
-        {/* Charts, split by resource */}
-        <Section icon="ti-building" label="In-House" />
-        <ChartsRow d={inhouse} />
-        <Section icon="ti-briefcase" label="Outsource" />
-        <ChartsRow d={outsource} />
+        {/* Charts — one section per selected resource type, else In-House vs Outsource */}
+        {filters.resource_type ? (
+          <>
+            <Section icon={RT_ICON[filters.resource_type] || 'ti-users'} label={RT_LABEL[filters.resource_type] || 'Resources'} />
+            <ChartsRow d={overall} />
+          </>
+        ) : (
+          <>
+            <Section icon="ti-building" label="In-House" />
+            <ChartsRow d={inhouse} />
+            <Section icon="ti-briefcase" label="Outsource" />
+            <ChartsRow d={outsource} />
+          </>
+        )}
       </div>
     </>
   );
