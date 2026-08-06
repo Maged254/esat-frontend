@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useId } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
 
@@ -10,10 +10,13 @@ const C = {
   pending:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#FCEBEB' }, // reddish (Pending)
 };
 
-const Gradients = () => (
+// Gradient ids are made unique per chart (pfx) — otherwise every chart shares
+// `grad-valid` etc., SVG resolves url(#id) to the first one document-wide, and
+// when charts mount/unmount on filter change the bars lose their fill (grey).
+const Gradients = ({ pfx }) => (
   <defs>
     {['valid', 'expiring', 'pending'].map(k => (
-      <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="1" y2="0">
+      <linearGradient key={k} id={`grad-${k}-${pfx}`} x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stopColor={C[k].from} />
         <stop offset="100%" stopColor={C[k].to} />
       </linearGradient>
@@ -77,23 +80,24 @@ const PieTip = ({ active, payload, total }) => {
 // fits the page; when there are more bars than fit, the list scrolls inside.
 const BARS_MAX_H = 320;
 function ValidityBars({ data, nameKey }) {
+  const pfx = useId().replace(/[:]/g, ''); // unique, SVG-id-safe gradient namespace per chart
   if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   const innerH = Math.max(data.length * 44 + 20, 130);
   return (
     <div style={{ maxHeight: BARS_MAX_H, overflowY: 'auto', overflowX: 'hidden' }}>
       <ResponsiveContainer width="100%" height={innerH}>
         <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
-          <Gradients />
+          <Gradients pfx={pfx} />
           <XAxis type="number" hide />
           <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
           <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
-          <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
+          <Bar dataKey="valid" name="Valid" stackId="a" fill={`url(#grad-valid-${pfx})`} radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
             <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
           </Bar>
-          <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
+          <Bar dataKey="expiring" name="About to Expire" stackId="a" fill={`url(#grad-expiring-${pfx})`} isAnimationActive={false}>
             <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
           </Bar>
-          <Bar dataKey="pending" name="Pending" stackId="a" fill="url(#grad-pending)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+          <Bar dataKey="pending" name="Pending" stackId="a" fill={`url(#grad-pending-${pfx})`} radius={[0, 4, 4, 0]} isAnimationActive={false}>
             <LabelList dataKey="pending" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
             <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
           </Bar>
