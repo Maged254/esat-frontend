@@ -20,6 +20,37 @@ function ClassificationTag({ value }) {
   return <span className="tag" style={{ ...s, whiteSpace: 'nowrap' }}>{value}</span>;
 }
 
+// Searchable combobox: type to filter, click to pick. `options` is [{value, badge?}]
+// where badge is {text, style}. Used for the Add-form Organization / Department /
+// Project / Client fields, which have long, admin-managed lists.
+function Combobox({ value, onChange, options, placeholder = 'Type to search…', error, noMatch = '' }) {
+  const [open, setOpen] = useState(false);
+  const q = (value || '').trim().toLowerCase();
+  const list = options.filter(o => o.value.toLowerCase().includes(q));
+  return (
+    <div style={{ position: 'relative' }}>
+      <input className="form-input" value={value || ''} placeholder={placeholder} autoComplete="off"
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        style={error ? { borderColor: '#e24b4a' } : undefined} />
+      {open && (list.length > 0 || noMatch) && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: 2, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.16)', maxHeight: 220, overflowY: 'auto' }}>
+          {list.length === 0 && noMatch && <div style={{ padding: '8px 12px', fontSize: 12, color: '#9ca3af' }}>{noMatch}</div>}
+          {list.map(o => (
+            <div key={o.value} onMouseDown={() => { onChange(o.value); setOpen(false); }}
+              style={{ padding: '8px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', borderTop: '1px solid #f3f4f6' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F0F7FF'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+              <span>{o.value}</span>
+              {o.badge && <span className="tag" style={{ fontSize: 10, whiteSpace: 'nowrap', ...o.badge.style }}>{o.badge.text}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {error && <div style={{ fontSize: 11, color: '#e24b4a', marginTop: 3 }}>{error}</div>}
+    </div>
+  );
+}
+
 // Employment status tag with a modern hover tooltip: for Active shows when/who
 // added the employee; for Exit shows when/who exited them.
 function StatusCell({ status, createdAt, createdBy, exitDate, exitedBy }) {
@@ -285,6 +316,21 @@ export function EmployeesPage({ outsource = false }) {
     const errs = {};
     for (const k in required) { if (!String(addForm[k] || '').trim()) errs[k] = `${required[k]} is required`; }
     if (addForm.national_id && !/^\d+$/.test(addForm.national_id.trim())) errs.national_id = 'Use digits only';
+    // Combobox fields must resolve to a value from their (admin-managed) list; accept
+    // a case-insensitive typed match and send the canonical value.
+    const canon = {};
+    if (addType === 'outsource' && String(addForm.organization || '').trim()) {
+      const match = manageableOrgs.find(o => o.name.trim().toLowerCase() === String(addForm.organization).trim().toLowerCase());
+      if (!match) errs.organization = 'Pick a registered organization from the list';
+      else canon.organization = match.name;
+    }
+    for (const [field, opts] of [['department', orgLists.department], ['project', orgLists.project], ['client', orgLists.client]]) {
+      const v = String(addForm[field] || '').trim();
+      if (!v) continue; // empty is caught by the required check
+      const match = opts.find(o => o.toLowerCase() === v.toLowerCase());
+      if (!match) errs[field] = 'Pick from the list';
+      else canon[field] = match;
+    }
     if (!addFile) errs.file = 'A National ID PDF is required';
     else if (!(/\.pdf$/i.test(addFile.name) || addFile.type === 'application/pdf')) errs.file = 'File must be a PDF';
     else if (addFile.size > 1024 * 1024) errs.file = 'File must be 1MB or smaller';
@@ -292,7 +338,7 @@ export function EmployeesPage({ outsource = false }) {
     setAddSaving(true);
     try {
       const fd = new FormData();
-      Object.entries(addForm).forEach(([k, v]) => fd.append(k, v));
+      Object.entries({ ...addForm, ...canon }).forEach(([k, v]) => fd.append(k, v));
       fd.append('resource_type', addType);
       fd.append('national_id_doc', addFile);
       const resp = await fetch(`${api.defaults.baseURL}/employees/manual`, {
@@ -306,6 +352,7 @@ export function EmployeesPage({ outsource = false }) {
       const msg = e.message || 'Failed to add employee';
       if (/national id/i.test(msg)) setAddErrors({ national_id: msg });
       else if (/employment id/i.test(msg)) setAddErrors({ employee_number: msg });
+      else if (/organization|outsource entit/i.test(msg)) setAddErrors({ organization: msg });
       else setAddErrors({ _server: msg });
     }
     setAddSaving(false);
@@ -802,35 +849,24 @@ export function EmployeesPage({ outsource = false }) {
               </div>}
               {addType==='outsource' && <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Organization (Entity) <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.organization} onChange={ev=>setAddField('organization',ev.target.value)} style={addErrors.organization?{borderColor:'#e24b4a'}:undefined}>
-                  <option value="">Select…</option>
-                  {manageableOrgs.map(o=><option key={o.id} value={o.name}>{o.name} — {o.type==='services'?'Services':'Vehicle Supplier'}</option>)}
-                </select>
-                {addErrors.organization && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.organization}</div>}
+                <Combobox value={addForm.organization} onChange={v=>setAddField('organization',v)} error={addErrors.organization}
+                  noMatch="No match — add it in Admin → Outsource Entities"
+                  options={manageableOrgs.map(o=>({ value:o.name, badge:{ text:o.type==='services'?'Services':'Vehicle Supplier', style:{ background:o.type==='services'?'#e0e7ff':'#dcfce7', color:o.type==='services'?'#3730a3':'#166534' } } }))} />
               </div>}
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.department} onChange={ev=>setAddField('department',ev.target.value)} style={addErrors.department?{borderColor:'#e24b4a'}:undefined}>
-                  <option value="">Select…</option>
-                  {orgLists.department.map(d=><option key={d} value={d}>{d}</option>)}
-                </select>
-                {addErrors.department && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.department}</div>}
+                <Combobox value={addForm.department} onChange={v=>setAddField('department',v)} error={addErrors.department}
+                  options={orgLists.department.map(d=>({ value:d }))} />
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project Name <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.project} onChange={ev=>setAddField('project',ev.target.value)} style={addErrors.project?{borderColor:'#e24b4a'}:undefined}>
-                  <option value="">Select…</option>
-                  {orgLists.project.map(p=><option key={p} value={p}>{p}</option>)}
-                </select>
-                {addErrors.project && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.project}</div>}
+                <Combobox value={addForm.project} onChange={v=>setAddField('project',v)} error={addErrors.project}
+                  options={orgLists.project.map(p=>({ value:p }))} />
               </div>
               <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client <span style={{color:'#e24b4a'}}>*</span></div>
-                <select className="form-input" value={addForm.client} onChange={ev=>setAddField('client',ev.target.value)} style={addErrors.client?{borderColor:'#e24b4a'}:undefined}>
-                  <option value="">Select…</option>
-                  {orgLists.client.map(c=><option key={c} value={c}>{c}</option>)}
-                </select>
-                {addErrors.client && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{addErrors.client}</div>}
+                <Combobox value={addForm.client} onChange={v=>setAddField('client',v)} error={addErrors.client}
+                  options={orgLists.client.map(c=>({ value:c }))} />
               </div>
               {addType!=='intern' && <div>
                 <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Job Title <span style={{color:'#e24b4a'}}>*</span></div>
