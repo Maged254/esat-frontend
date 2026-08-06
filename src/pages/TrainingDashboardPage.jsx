@@ -1,45 +1,89 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
 
-const VALID = '#1D9E75';   // green
-const EXPIRING = '#F59E0B'; // amber
-const EXPIRED = '#E24B4A';  // red
+const C = {
+  valid:    { solid: '#16a34a', from: '#34d399', to: '#059669', tint: '#dcfce7' },
+  expiring: { solid: '#d97706', from: '#fbbf24', to: '#d97706', tint: '#fef3c7' },
+  expired:  { solid: '#dc2626', from: '#f87171', to: '#dc2626', tint: '#fee2e2' },
+  navy:     { solid: '#042C53', from: '#3b82f6', to: '#1d4ed8', tint: '#e0e7ff' },
+};
 
-const KPI = ({ label, value, color }) => (
-  <div className="card" style={{ padding: '18px 20px', textAlign: 'center' }}>
-    <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600, lineHeight: 1.3, minHeight: 34 }}>{label}</div>
-    <div style={{ fontSize: 40, fontWeight: 800, color, marginTop: 6 }}>{value ?? 0}</div>
-  </div>
+// Gradient defs shared by the charts.
+const Gradients = () => (
+  <defs>
+    {['valid', 'expiring', 'expired'].map(k => (
+      <linearGradient key={k} id={`grad-${k}`} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor={C[k].from} />
+        <stop offset="100%" stopColor={C[k].to} />
+      </linearGradient>
+    ))}
+  </defs>
 );
 
-// Horizontal stacked validity bar chart (per course / per project).
-function ValidityBars({ data, nameKey }) {
-  if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 24, textAlign: 'center' }}>No certificate data.</div>;
+const KPI = ({ label, value, kind, icon }) => {
+  const c = C[kind];
   return (
-    <ResponsiveContainer width="100%" height={Math.max(data.length * 34 + 24, 120)}>
-      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 46, left: 8, bottom: 4 }} barCategoryGap={6}>
+    <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14, borderTop: `3px solid ${c.solid}` }}>
+      <div style={{ width: 46, height: 46, borderRadius: 13, background: c.tint, color: c.solid, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`ti ${icon}`} style={{ fontSize: 24 }} aria-hidden="true"></i>
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12.5, color: '#6b7280', fontWeight: 600, lineHeight: 1.35 }}>{label}</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: c.solid, marginTop: 2, lineHeight: 1 }}>{value ?? 0}</div>
+      </div>
+    </div>
+  );
+};
+
+const trunc = (s, n = 24) => (s && s.length > n ? s.slice(0, n - 1) + '…' : s);
+
+const BarTip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const total = payload.reduce((s, p) => s + (p.value || 0), 0);
+  return (
+    <div style={{ background: '#0f2a4a', color: '#fff', borderRadius: 8, padding: '8px 11px', fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.28)' }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>{label} <span style={{ opacity: 0.6 }}>· {total}</span></div>
+      {payload.map(p => <div key={p.name}><span style={{ opacity: 0.7 }}>{p.name}:</span> <b>{p.value}</b></div>)}
+    </div>
+  );
+};
+
+// Horizontal stacked validity bars (per course / per project), gradient-filled.
+function ValidityBars({ data, nameKey }) {
+  if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>;
+  return (
+    <ResponsiveContainer width="100%" height={Math.max(data.length * 38 + 20, 130)}>
+      <BarChart layout="vertical" data={data} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={9}>
+        <Gradients />
         <XAxis type="number" hide />
-        <YAxis type="category" dataKey={nameKey} width={150} tick={{ fontSize: 11, fill: '#374151' }} interval={0} />
-        <Tooltip cursor={{ fill: '#f8fafc' }} />
-        <Bar dataKey="valid" stackId="a" fill={VALID} isAnimationActive={false}>
-          <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} formatter={v => v > 0 ? v : ''} />
+        <YAxis type="category" dataKey={nameKey} width={150} tickLine={false} axisLine={false}
+          tick={{ fontSize: 11, fill: '#374151' }} interval={0} tickFormatter={v => trunc(v)} />
+        <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
+        <Bar dataKey="valid" name="Valid" stackId="a" fill="url(#grad-valid)" radius={[4, 0, 0, 4]} isAnimationActive={false}
+          background={{ fill: '#f1f5f9', radius: 5 }}>
+          <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
         </Bar>
-        <Bar dataKey="expiring" stackId="a" fill={EXPIRING} isAnimationActive={false}>
-          <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} formatter={v => v > 0 ? v : ''} />
+        <Bar dataKey="expiring" name="About to Expire" stackId="a" fill="url(#grad-expiring)" isAnimationActive={false}>
+          <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
         </Bar>
-        <Bar dataKey="expired" stackId="a" fill={EXPIRED} isAnimationActive={false}>
-          <LabelList dataKey="expired" position="center" fill="#fff" fontSize={11} formatter={v => v > 0 ? v : ''} />
-          <LabelList dataKey="total" position="right" fontSize={12} fontWeight={700} fill="#374151" />
+        <Bar dataKey="expired" name="Expired" stackId="a" fill="url(#grad-expired)" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+          <LabelList dataKey="expired" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+          <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
+const ChartCard = ({ title, children }) => (
+  <div className="card" style={{ padding: 20 }}>
+    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 12 }}>{title}</div>
+    {children}
+  </div>
+);
+
 export default function TrainingDashboardPage() {
-  const navigate = useNavigate();
   const [filters, setFilters] = useState({ client: '', project: '', course_id: '', resource_type: 'inhouse', employment_status: 'active' });
   const [data, setData] = useState({ kpis: {}, pending_reasons: [], by_course: [], by_project: [] });
   const [courses, setCourses] = useState([]);
@@ -63,13 +107,13 @@ export default function TrainingDashboardPage() {
   }, [filters]);
 
   const k = data.kpis || {};
-  const pieData = [
-    { name: 'Valid', value: k.valid || 0, color: VALID },
-    { name: 'About to Expire', value: k.expiring || 0, color: EXPIRING },
-    { name: 'Expired', value: k.expired || 0, color: EXPIRED },
+  const donut = [
+    { name: 'Valid', value: k.valid || 0, color: C.valid.solid },
+    { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid },
+    { name: 'Expired', value: k.expired || 0, color: C.expired.solid },
   ];
   const pendingTotal = (data.pending_reasons || []).reduce((s, r) => s + r.count, 0);
-  const sel = { height: 30, padding: '4px 8px', fontSize: 12 };
+  const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
 
   return (
     <div className="content graphs-content">
@@ -80,85 +124,103 @@ export default function TrainingDashboardPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select className="form-select" style={sel} value={filters.client} onChange={e => setFilters(f => ({ ...f, client: e.target.value }))}>
-            <option value="">All Clients</option>
-            {opts.clients.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="form-select" style={sel} value={filters.project} onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}>
-            <option value="">All Projects</option>
-            {opts.projects.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-          <select className="form-select" style={sel} value={filters.course_id} onChange={e => setFilters(f => ({ ...f, course_id: e.target.value }))}>
-            <option value="">All Training Types</option>
-            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select className="form-select" style={sel} value={filters.resource_type} onChange={e => setFilters(f => ({ ...f, resource_type: e.target.value }))}>
-            <option value="">All Resources</option>
-            <option value="inhouse">Inhouse</option>
-            <option value="outsource">Outsource</option>
-            <option value="intern">Intern</option>
-          </select>
-          <select className="form-select" style={sel} value={filters.employment_status} onChange={e => setFilters(f => ({ ...f, employment_status: e.target.value }))}>
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="exit">Exit</option>
-          </select>
-          <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
-            onClick={() => setFilters({ client: '', project: '', course_id: '', resource_type: 'inhouse', employment_status: 'active' })}>✕ Clear</button>
-          {loading && <span style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</span>}
+      {/* Filters — the standard card used across the app */}
+      <div className="card" style={{ marginBottom: 20, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
+        <div className="card-body">
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <select className="form-select" style={sel} value={filters.client} onChange={e => setFilters(f => ({ ...f, client: e.target.value }))}>
+                <option value="">All Clients</option>
+                {opts.clients.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select className="form-select" style={sel} value={filters.project} onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}>
+                <option value="">All Projects</option>
+                {opts.projects.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select className="form-select" style={sel} value={filters.course_id} onChange={e => setFilters(f => ({ ...f, course_id: e.target.value }))}>
+                <option value="">All Training Types</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select className="form-select" style={sel} value={filters.resource_type} onChange={e => setFilters(f => ({ ...f, resource_type: e.target.value }))}>
+                <option value="">All Resources</option>
+                <option value="inhouse">Inhouse</option>
+                <option value="outsource">Outsource</option>
+                <option value="intern">Intern</option>
+              </select>
+              <select className="form-select" style={sel} value={filters.employment_status} onChange={e => setFilters(f => ({ ...f, employment_status: e.target.value }))}>
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="exit">Exit</option>
+              </select>
+              <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
+                onClick={() => setFilters({ client: '', project: '', course_id: '', resource_type: 'inhouse', employment_status: 'active' })}>✕ Clear</button>
+              {loading && <span style={{ fontSize: 12, color: '#9ca3af' }}>Loading…</span>}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* KPI row + pending reasons */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.4fr', gap: 14, marginBottom: 16 }}>
-        <KPI label="Current Requested Trainings" value={k.total} color="#042C53" />
-        <KPI label="Valid Certificates" value={k.valid} color={VALID} />
-        <KPI label="About to Expire Certificates" value={k.expiring} color={EXPIRING} />
-        <KPI label="Expired Certificates" value={k.expired} color={EXPIRED} />
-        <div className="card" style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', gap: 10, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .3, borderBottom: '1px solid #e5e7eb', paddingBottom: 6, marginBottom: 4 }}>
-            <span style={{ width: 40, textAlign: 'right' }}>Count</span><span>Pending Reason</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.35fr', gap: 18, marginBottom: 20 }}>
+        <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
+        <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
+        <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
+        <KPI label="Expired Certificates" value={k.expired} kind="expired" icon="ti-alert-triangle" />
+        <div className="card" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
+            <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
           </div>
-          <div style={{ maxHeight: 130, overflowY: 'auto' }}>
+          <div style={{ maxHeight: 128, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
             {(data.pending_reasons || []).map(r => (
-              <div key={r.reason} style={{ display: 'flex', gap: 10, fontSize: 12.5, padding: '2px 0', color: '#374151' }}>
-                <span style={{ width: 40, textAlign: 'right', fontWeight: 600, color: '#042C53' }}>{r.count}</span><span>{r.reason}</span>
+              <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
+                <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.expiring.tint, color: C.expiring.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.count}</span>
+                <span>{r.reason}</span>
               </div>
             ))}
             {!data.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
           </div>
-          {pendingTotal > 0 && <div style={{ borderTop: '1px solid #e5e7eb', marginTop: 4, paddingTop: 4, fontSize: 12.5, fontWeight: 700, color: '#042C53' }}>{pendingTotal}</div>}
+          {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 8, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a' }}>{pendingTotal} total</div>}
         </div>
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 14 }}>
-        <div className="card">
-          <div className="card-title" style={{ fontSize: 14, textAlign: 'center', marginBottom: 6 }}>Total Validity</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18 }}>
+        <ChartCard title="Total Validity">
           {(k.total || 0) === 0
             ? <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No certificate data.</div>
-            : <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90}
-                    label={({ percent }) => `${(percent * 100).toFixed(1)}%`} isAnimationActive={false}>
-                    {pieData.map(d => <Cell key={d.name} fill={d.color} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>}
-        </div>
-        <div className="card">
-          <div className="card-title" style={{ fontSize: 14, textAlign: 'center', marginBottom: 6 }}>Validity per Training Type</div>
+            : <>
+                <div style={{ position: 'relative' }}>
+                  <ResponsiveContainer width="100%" height={230}>
+                    <PieChart>
+                      <Pie data={donut.filter(d => d.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                        innerRadius={62} outerRadius={92} paddingAngle={donut.filter(d => d.value > 0).length > 1 ? 2 : 0}
+                        cornerRadius={4} stroke="none" isAnimationActive={false}>
+                        {donut.filter(d => d.value > 0).map(d => <Cell key={d.name} fill={d.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v, n) => [`${v} · ${((v / (k.total || 1)) * 100).toFixed(1)}%`, n]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{k.total}</div>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Certificates</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+                  {donut.map(d => (
+                    <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+                      <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{d.value}</b>
+                    </span>
+                  ))}
+                </div>
+              </>}
+        </ChartCard>
+        <ChartCard title="Validity per Training Type">
           <ValidityBars data={data.by_course || []} nameKey="course" />
-        </div>
-        <div className="card">
-          <div className="card-title" style={{ fontSize: 14, textAlign: 'center', marginBottom: 6 }}>Validity per Project</div>
+        </ChartCard>
+        <ChartCard title="Validity per Project">
           <ValidityBars data={data.by_project || []} nameKey="project" />
-        </div>
+        </ChartCard>
       </div>
     </div>
   );
