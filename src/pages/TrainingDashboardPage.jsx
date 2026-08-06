@@ -230,24 +230,27 @@ export default function TrainingDashboardPage() {
           </div>
         </div>
 
-        {/* KPI row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+        {/* KPI row + pending reasons */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.3fr', gap: 16, marginBottom: 22 }}>
           <KPI label="Current Requested Trainings" value={k.total} kind="navy" icon="ti-clipboard-list" />
           <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" />
           <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" />
           <KPI label="Pending Certificates" value={pendingTotal} kind="pending" icon="ti-hourglass" />
-        </div>
-
-        {/* Pending reasons — horizontal chip strip */}
-        <div className="card" style={{ padding: '12px 18px', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, flexShrink: 0 }}>Pending Reasons</span>
-          {(overall.pending_reasons || []).map(r => (
-            <span key={r.reason} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#374151', background: '#f8fafc', border: '1px solid #eef1f5', borderRadius: 20, padding: '4px 12px 4px 4px' }}>
-              <span style={{ minWidth: 22, height: 22, borderRadius: 11, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.count}</span>
-              {r.reason}
-            </span>
-          ))}
-          {!overall.pending_reasons?.length && <span style={{ fontSize: 12, color: '#9ca3af' }}>No pending trainings.</span>}
+          <div className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
+              <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
+            </div>
+            <div style={{ maxHeight: 128, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {(overall.pending_reasons || []).map(r => (
+                <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
+                  <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{r.count}</span>
+                  <span>{r.reason}</span>
+                </div>
+              ))}
+              {!overall.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
+            </div>
+            {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 8, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a' }}>{pendingTotal} total</div>}
+          </div>
         </div>
 
         {/* Charts, split by resource */}
