@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useId, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
+import TRAINING_ICONS from '../trainingIcons';
+import { resolveIconKey } from '../components/TrainingIcon';
 
 const C = {
   valid:    { solid: '#16a34a', from: '#34d399', to: '#059669', tint: '#dcfce7' },
@@ -44,20 +46,18 @@ const KPI = ({ label, value, kind, icon, active, onClick }) => {
   );
 };
 
-// Y-axis tick that wraps a long name onto up to two lines (so nothing is trimmed).
-const WrapTick = ({ x, y, payload }) => {
-  const words = String(payload.value).split(' ');
+// Wrap a long name onto up to `maxLines` lines (last line ellipsised).
+const wrapLines = (text, maxChars = 19, maxLines = 2) => {
+  const words = String(text).split(' ');
   const lines = []; let cur = '';
-  words.forEach(w => { const t = (cur ? cur + ' ' : '') + w; if (t.length > 19 && cur) { lines.push(cur); cur = w; } else cur = t; });
+  words.forEach(w => { const t = (cur ? cur + ' ' : '') + w; if (t.length > maxChars && cur) { lines.push(cur); cur = w; } else cur = t; });
   if (cur) lines.push(cur);
-  const two = lines.slice(0, 2);
-  if (lines.length > 2) two[1] = two[1].slice(0, 16) + '…';
-  return (
-    <text x={x} y={y} textAnchor="end" fill="#374151" fontSize={11}>
-      {two.map((ln, i) => <tspan key={i} x={x} dy={i === 0 ? (two.length > 1 ? -3 : 4) : 13}>{ln}</tspan>)}
-    </text>
-  );
+  const out = lines.slice(0, maxLines);
+  if (lines.length > maxLines) out[maxLines - 1] = out[maxLines - 1].slice(0, maxChars - 1) + '…';
+  return out;
 };
+const stripParen = (s) => String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); // "Foo (KPLC)" -> "Foo"
+const truncate = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
 
 const BarTip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -115,15 +115,51 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
   const overflow = innerH > BARS_MAX_H;
   const hidden = Math.max(0, rows.length - Math.floor((BARS_MAX_H - 20) / 44));
   const m = METRIC_META[metric];
+  const isCourse = nameKey === 'course';
+  const isProject = nameKey === 'project';
+  const AXIS_W = isCourse ? 150 : 130; // tighter than before; labels are left-aligned
+  const renderTick = ({ x, y, payload }) => {
+    const left = 4; // label area starts at the chart's left edge (avoids clipping)
+    const row = rows[payload.index] || {};
+    if (isCourse) {
+      const key = resolveIconKey(row.icon, stripParen(payload.value));
+      const icon = key && TRAINING_ICONS[key];
+      const tx = left + (icon ? 22 : 0);
+      const lines = wrapLines(payload.value, 17);
+      return (
+        <g>
+          {icon && <svg x={left} y={y - 8} width={16} height={16} viewBox={icon.vb}><path d={icon.d} fill="#475569" fillRule="evenodd" /></svg>}
+          <text x={tx} y={y} textAnchor="start" fill="#374151" fontSize={11}>
+            {lines.map((ln, i) => <tspan key={i} x={tx} dy={i === 0 ? (lines.length > 1 ? -3 : 4) : 13}>{ln}</tspan>)}
+          </text>
+        </g>
+      );
+    }
+    if (isProject) {
+      const client = row.client;
+      return (
+        <text x={left} y={y} textAnchor="start" fill="#374151" fontSize={11}>
+          <tspan x={left} dy={client ? -3 : 4}>{truncate(payload.value, 20)}</tspan>
+          {client && <tspan x={left} dy={13} fill="#9ca3af" fontSize={10}>{truncate(client, 22)}</tspan>}
+        </text>
+      );
+    }
+    const lines = wrapLines(payload.value, 19);
+    return (
+      <text x={x} y={y} textAnchor="end" fill="#374151" fontSize={11}>
+        {lines.map((ln, i) => <tspan key={i} x={x} dy={i === 0 ? (lines.length > 1 ? -3 : 4) : 13}>{ln}</tspan>)}
+      </text>
+    );
+  };
   return (
     <>
       <div style={{ position: 'relative' }}>
         <div style={{ maxHeight: BARS_MAX_H, overflowY: overflow ? 'scroll' : 'hidden', overflowX: 'hidden' }}>
           <ResponsiveContainer width="100%" height={innerH}>
-        <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
+        <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 2, bottom: 4 }} barCategoryGap={10}>
           <Gradients pfx={pfx} />
           <XAxis type="number" hide />
-          <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
+          <YAxis type="category" dataKey={nameKey} width={AXIS_W} tickLine={false} axisLine={false} interval={0} tick={renderTick} />
           <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
           {single ? (
             <Bar dataKey={metric} name={m.name} fill={`url(#grad-${m.grad}-${pfx})`} radius={[4, 4, 4, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
@@ -312,6 +348,7 @@ export default function TrainingDashboardPage() {
 
   const k = overall.kpis || {};
   const pendingTotal = (overall.pending_reasons || []).reduce((s, r) => s + r.count, 0);
+  const reasonsOverflow = (overall.pending_reasons?.length || 0) > 4; // panel fits ~4 rows
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
 
   return (
@@ -369,15 +406,19 @@ export default function TrainingDashboardPage() {
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
               <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
             </div>
-            <div style={{ maxHeight: 128, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
-              {(overall.pending_reasons || []).map(r => (
-                <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
-                  <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{fmt(r.count)}</span>
-                  <span>{r.reason}</span>
-                </div>
-              ))}
-              {!overall.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
+            <div style={{ position: 'relative' }}>
+              <div style={{ maxHeight: 128, overflowY: reasonsOverflow ? 'scroll' : 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {(overall.pending_reasons || []).map(r => (
+                  <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
+                    <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{fmt(r.count)}</span>
+                    <span>{r.reason}</span>
+                  </div>
+                ))}
+                {!overall.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
+              </div>
+              {reasonsOverflow && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 18, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.96))', pointerEvents: 'none' }} />}
             </div>
+            {reasonsOverflow && <div style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'center', marginTop: 3 }}>▾ scroll for more</div>}
             {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 8, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a' }}>{fmt(pendingTotal)} total</div>}
           </div>
         </div>
