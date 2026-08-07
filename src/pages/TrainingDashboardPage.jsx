@@ -28,11 +28,11 @@ const Gradients = ({ pfx }) => (
   </defs>
 );
 
-const KPI = ({ label, value, kind, icon, active, onClick }) => {
+const KPI = ({ label, value, sub, kind, icon, active, onClick }) => {
   const c = C[kind];
   return (
     <div className="card" onClick={onClick}
-      style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14, borderTop: `3px solid ${c.solid}`,
+      style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderTop: `3px solid ${c.solid}`,
         cursor: onClick ? 'pointer' : 'default', background: active ? c.tint : '',
         outline: active ? `2px solid ${c.solid}` : '', transition: 'outline .1s, background .1s' }}>
       <div style={{ width: 46, height: 46, borderRadius: 13, background: c.tint, color: c.solid, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -41,6 +41,7 @@ const KPI = ({ label, value, kind, icon, active, onClick }) => {
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 12.5, color: '#6b7280', fontWeight: 600, lineHeight: 1.35 }}>{label}</div>
         <div style={{ fontSize: 32, fontWeight: 800, color: c.solid, marginTop: 2, lineHeight: 1 }}>{fmt(value ?? 0)}</div>
+        {sub && <div style={{ fontSize: 10.5, color: '#9ca3af', fontWeight: 500, marginTop: 4, lineHeight: 1.3 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -91,7 +92,7 @@ const PieTip = ({ active, payload, total }) => {
 
 // Fixed viewport height for the bar charts so every card is the same size and
 // fits the page; when there are more bars than fit, the list scrolls inside.
-const BARS_MAX_H = 320;
+const BARS_MAX_H = 370;
 
 // In-bar number: only drawn when the segment is wide enough to hold it legibly
 // (~7px/char + padding). Narrow slivers are left blank — the tooltip still shows
@@ -191,8 +192,8 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
 }
 
 const ChartCard = ({ title, children }) => (
-  <div className="card" style={{ padding: 20 }}>
-    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 12 }}>{title}</div>
+  <div className="card" style={{ padding: '16px 18px' }}>
+    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 10 }}>{title}</div>
     {children}
   </div>
 );
@@ -218,13 +219,16 @@ function Donut({ k, metric = 'all' }) {
   const rows = single ? all.filter(d => d.key === metric) : all;
   const grand = all.reduce((s, r) => s + r.value, 0);
   const center = single ? (rows[0]?.value || 0) : grand;
+  // Compliance = valid + about-to-expire (i.e. everyone holding a still-valid
+  // certificate) over the total, shown in green so it reads at a glance.
+  const compliance = grand ? Math.round(((k.valid || 0) + (k.expiring || 0)) / grand * 100) : 0;
   if (grand === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   if (single && center === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>None in this category.</div>;
   const shown = rows.filter(d => d.value > 0);
   return (
     <>
       <div style={{ position: 'relative' }}>
-        <ResponsiveContainer width="100%" height={230}>
+        <ResponsiveContainer width="100%" height={260}>
           <PieChart>
             <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={92}
               paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}
@@ -239,6 +243,13 @@ function Donut({ k, metric = 'all' }) {
           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
         </div>
       </div>
+      {!single && (
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+            <i className="ti ti-shield-check" style={{ fontSize: 15 }} aria-hidden="true"></i>{compliance}% Compliant
+          </span>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
         {rows.map(d => (
           <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
@@ -251,7 +262,7 @@ function Donut({ k, metric = 'all' }) {
 }
 
 const ChartsRow = ({ d, metric }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 20 }}>
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 14 }}>
     <ChartCard title="Total Validity"><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
     <ChartCard title="Validity per Training Type"><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} /></ChartCard>
     <ChartCard title="Validity per Project"><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} /></ChartCard>
@@ -259,9 +270,9 @@ const ChartsRow = ({ d, metric }) => (
 );
 
 const Section = ({ icon, label }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 2px 14px' }}>
-    <i className={`ti ${icon}`} style={{ fontSize: 18, color: '#042C53' }} aria-hidden="true"></i>
-    <span style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>{label}</span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 2px 8px' }}>
+    <i className={`ti ${icon}`} style={{ fontSize: 17, color: '#042C53' }} aria-hidden="true"></i>
+    <span style={{ fontSize: 14.5, fontWeight: 700, color: '#0f2a4a' }}>{label}</span>
     <span style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
   </div>
 );
@@ -302,8 +313,8 @@ function MultiSelect({ label, options, selected, onChange, width = 165 }) {
 const EMPTY = { kpis: {}, pending_reasons: [], by_course: [], by_project: [] };
 
 const RT_LABEL = { inhouse: 'In-House', outsource: 'Outsource', intern: 'Interns' };
-const RT_ICON = { inhouse: 'ti-building', outsource: 'ti-briefcase', intern: 'ti-school' };
-const DEFAULT_FILTERS = { client: [], project: [], course_id: '', organization: '', resource_type: '', employment_status: 'active' };
+const RT_ICON = { inhouse: 'ti-building', outsource: 'ti-users-group', intern: 'ti-school' };
+const DEFAULT_FILTERS = { client: [], project: [], course_id: '', organization: '', resource_type: '', employment_status: 'active', pending_reason: '' };
 
 export default function TrainingDashboardPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -311,6 +322,7 @@ export default function TrainingDashboardPage() {
   const [inhouse, setInhouse] = useState(EMPTY);
   const [outsource, setOutsource] = useState(EMPTY);
   const [courses, setCourses] = useState([]);
+  const [pendingReasons, setPendingReasons] = useState([]);
   const [opts, setOpts] = useState({ projects: [], clients: [], organizations: [] });
   const [loading, setLoading] = useState(true);
   // Which KPI is focused: 'all' (Current Requested) filters nothing; a specific
@@ -320,6 +332,7 @@ export default function TrainingDashboardPage() {
 
   useEffect(() => {
     api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
+    api.get('/training-pending-reasons').then(r => setPendingReasons(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setOpts(r.data)).catch(logError);
   }, []);
 
@@ -331,6 +344,7 @@ export default function TrainingDashboardPage() {
       if (filters.course_id) p.append('course_id', filters.course_id);
       if (filters.organization) p.append('organization', filters.organization);
       if (filters.employment_status) p.append('employment_status', filters.employment_status);
+      if (filters.pending_reason) p.append('pending_reason', filters.pending_reason);
       const rt = rtOverride !== undefined ? rtOverride : filters.resource_type;
       if (rt) p.append('resource_type', rt);
       return `/training-records/dashboard?${p.toString()}`;
@@ -378,6 +392,10 @@ export default function TrainingDashboardPage() {
                   <option value="outsource">Outsource</option>
                   <option value="intern">Intern</option>
                 </select>
+                <select className="form-select" style={sel} value={filters.pending_reason} onChange={e => setFilters(f => ({ ...f, pending_reason: e.target.value }))}>
+                  <option value="">All Pending Reasons</option>
+                  {pendingReasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
+                </select>
                 <input className="form-input" list="dash-organizations" style={sel} placeholder="All Organizations"
                   value={filters.organization} onChange={e => setFilters(f => ({ ...f, organization: e.target.value }))} />
                 <datalist id="dash-organizations">
@@ -398,10 +416,10 @@ export default function TrainingDashboardPage() {
 
         {/* KPI row + pending reasons */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.3fr', gap: 16, marginBottom: 22 }}>
-          <KPI label="Current Requested Trainings" value={k.all_records ?? k.total} kind="navy" icon="ti-clipboard-list" active={metric === 'all'} onClick={() => setMetric('all')} />
-          <KPI label="Valid Certificates" value={k.valid} kind="valid" icon="ti-circle-check" active={metric === 'valid'} onClick={() => pickMetric('valid')} />
-          <KPI label="About to Expire" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" active={metric === 'expiring'} onClick={() => pickMetric('expiring')} />
-          <KPI label="Pending Certificates" value={pendingTotal} kind="pending" icon="ti-hourglass" active={metric === 'pending'} onClick={() => pickMetric('pending')} />
+          <KPI label="Current Requested Trainings" sub="All needed trainings" value={k.all_records ?? k.total} kind="navy" icon="ti-clipboard-list" active={metric === 'all'} onClick={() => setMetric('all')} />
+          <KPI label="Valid Certificates" sub="Valid — over 60 days to expiry" value={k.valid} kind="valid" icon="ti-circle-check" active={metric === 'valid'} onClick={() => pickMetric('valid')} />
+          <KPI label="About to Expire" sub="Valid — under 60 days to expiry" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" active={metric === 'expiring'} onClick={() => pickMetric('expiring')} />
+          <KPI label="Pending Certificates" sub="Invalid — need action" value={pendingTotal} kind="pending" icon="ti-hourglass" active={metric === 'pending'} onClick={() => pickMetric('pending')} />
           <div className="card" style={{ padding: '16px 18px' }}>
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
               <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
@@ -431,9 +449,9 @@ export default function TrainingDashboardPage() {
           </>
         ) : (
           <>
-            <Section icon="ti-building" label="In-House" />
+            <Section icon={RT_ICON.inhouse} label="In-House" />
             <ChartsRow d={inhouse} metric={metric} />
-            <Section icon="ti-briefcase" label="Outsource" />
+            <Section icon={RT_ICON.outsource} label="Outsource" />
             <ChartsRow d={outsource} metric={metric} />
           </>
         )}
