@@ -228,10 +228,11 @@ function Donut({ k, metric = 'all' }) {
   // percentage radii — so the legend never clips no matter how short the card is.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* When the compliance pill is shown, the ring sizes to a square at the top
-          (so leftover space becomes a gap the pill can center in); otherwise it
-          just flex-fills. */}
-      <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flex: '0 1 auto', width: '100%', aspectRatio: '1 / 1' }) }}>
+      {/* Equal flex spacers (empty one above the ring, the pill's centering box
+          below it) keep the donut vertically CENTERED as before, while the
+          compliance pill centers in the space between the ring and the legend. */}
+      {!single && <div style={{ flex: 1, minHeight: 0 }} />}
+      <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flexShrink: 1, width: '100%', aspectRatio: '1 / 1' }) }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <defs>
@@ -253,7 +254,7 @@ function Donut({ k, metric = 'all' }) {
         </div>
       </div>
       {!single && (
-        <div style={{ textAlign: 'center', margin: 'auto 0', flexShrink: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '4px 14px', borderRadius: 999 }}>
             <i className="ti ti-shield-check" style={{ fontSize: 15 }} aria-hidden="true"></i>{compliance}% Compliant
           </span>
