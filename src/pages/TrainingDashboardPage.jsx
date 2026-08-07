@@ -87,6 +87,17 @@ const PieTip = ({ active, payload, total }) => {
 // Fixed viewport height for the bar charts so every card is the same size and
 // fits the page; when there are more bars than fit, the list scrolls inside.
 const BARS_MAX_H = 320;
+
+// In-bar number: only drawn when the segment is wide enough to hold it legibly
+// (~7px/char + padding). Narrow slivers are left blank — the tooltip still shows
+// every value on hover.
+const BarValueLabel = (props) => {
+  const { x, y, width, height, value } = props;
+  const w = Number(width) || 0;
+  if (!value || value <= 0) return null;
+  if (w < String(value).length * 7 + 8) return null;
+  return <text x={x + w / 2} y={y + height / 2} fill="#fff" fontSize={11} fontWeight={600} textAnchor="middle" dominantBaseline="central">{value}</text>;
+};
 function ValidityBars({ data, nameKey }) {
   const pfx = useId().replace(/[:]/g, ''); // unique, SVG-id-safe gradient namespace per chart
   if (!data.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
@@ -100,13 +111,13 @@ function ValidityBars({ data, nameKey }) {
           <YAxis type="category" dataKey={nameKey} width={146} tickLine={false} axisLine={false} interval={0} tick={<WrapTick />} />
           <Tooltip content={<BarTip />} cursor={{ fill: '#f1f5f9' }} />
           <Bar dataKey="valid" name="Valid" stackId="a" fill={`url(#grad-valid-${pfx})`} radius={[4, 0, 0, 4]} isAnimationActive={false} background={{ fill: '#f1f5f9', radius: 5 }}>
-            <LabelList dataKey="valid" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+            <LabelList dataKey="valid" content={BarValueLabel} />
           </Bar>
           <Bar dataKey="expiring" name="About to Expire" stackId="a" fill={`url(#grad-expiring-${pfx})`} isAnimationActive={false}>
-            <LabelList dataKey="expiring" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+            <LabelList dataKey="expiring" content={BarValueLabel} />
           </Bar>
           <Bar dataKey="pending" name="Pending" stackId="a" fill={`url(#grad-pending-${pfx})`} radius={[0, 4, 4, 0]} isAnimationActive={false}>
-            <LabelList dataKey="pending" position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={v => v > 0 ? v : ''} />
+            <LabelList dataKey="pending" content={BarValueLabel} />
             <LabelList dataKey="total" position="right" fontSize={12} fontWeight={800} fill="#0f2a4a" />
           </Bar>
         </BarChart>
@@ -121,6 +132,17 @@ const ChartCard = ({ title, children }) => (
     {children}
   </div>
 );
+
+// Percentage drawn inside each donut slice (hidden on slices too small to fit —
+// those still show in the tooltip and legend).
+const PieSlicePct = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  if (!percent || percent < 0.06) return null;
+  const RAD = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RAD);
+  const y = cy + r * Math.sin(-midAngle * RAD);
+  return <text x={x} y={y} fill="#fff" fontSize={11} fontWeight={700} textAnchor="middle" dominantBaseline="central">{Math.round(percent * 100)}%</text>;
+};
 
 function Donut({ k }) {
   const rows = [
@@ -137,7 +159,8 @@ function Donut({ k }) {
         <ResponsiveContainer width="100%" height={230}>
           <PieChart>
             <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={92}
-              paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}>
+              paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}
+              label={PieSlicePct} labelLine={false}>
               {shown.map(d => <Cell key={d.name} fill={d.color} />)}
             </Pie>
             <Tooltip content={<PieTip total={total} />} wrapperStyle={{ zIndex: 60 }} />
@@ -151,7 +174,7 @@ function Donut({ k }) {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
         {rows.map(d => (
           <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-            <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{d.value}</b>
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{d.value}</b> <span style={{ opacity: 0.6 }}>({total ? Math.round(d.value / total * 100) : 0}%)</span>
           </span>
         ))}
       </div>
