@@ -204,6 +204,7 @@ const PieSlicePct = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) =>
 };
 
 function Donut({ k, metric = 'all' }) {
+  const pfx = useId().replace(/[:]/g, ''); // unique filter id per donut instance
   const all = [
     { name: 'Valid', value: k.valid || 0, color: C.valid.solid, key: 'valid' },
     { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid, key: 'expiring' },
@@ -226,10 +227,15 @@ function Donut({ k, metric = 'all' }) {
       <div style={{ position: 'relative', flex: 1, minHeight: 90 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%"
-              paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}
+            <defs>
+              <filter id={`donutShadow-${pfx}`} x="-50%" y="-50%" width="200%" height="200%">
+                <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#1f2937" floodOpacity="0.18" />
+              </filter>
+            </defs>
+            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="86%"
+              paddingAngle={shown.length > 1 ? 3 : 0} cornerRadius={8} stroke="none" isAnimationActive={false}
               label={single ? false : PieSlicePct} labelLine={false}>
-              {shown.map(d => <Cell key={d.name} fill={d.color} />)}
+              {shown.map(d => <Cell key={d.name} fill={d.color} style={{ filter: `url(#donutShadow-${pfx})` }} />)}
             </Pie>
             <Tooltip content={<PieTip total={center} />} wrapperStyle={{ zIndex: 60 }} />
           </PieChart>
