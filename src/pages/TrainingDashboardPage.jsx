@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useId } from 'react';
+import React, { useEffect, useState, useId, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
 
@@ -112,10 +112,14 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
   const rows = single ? data.filter(d => (d[metric] || 0) > 0).sort((a, b) => (b[metric] || 0) - (a[metric] || 0)) : data;
   if (!rows.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   const innerH = Math.max(rows.length * 44 + 20, 130);
+  const overflow = innerH > BARS_MAX_H;
+  const hidden = Math.max(0, rows.length - Math.floor((BARS_MAX_H - 20) / 44));
   const m = METRIC_META[metric];
   return (
-    <div style={{ maxHeight: BARS_MAX_H, overflowY: 'auto', overflowX: 'hidden' }}>
-      <ResponsiveContainer width="100%" height={innerH}>
+    <>
+      <div style={{ position: 'relative' }}>
+        <div style={{ maxHeight: BARS_MAX_H, overflowY: overflow ? 'scroll' : 'hidden', overflowX: 'hidden' }}>
+          <ResponsiveContainer width="100%" height={innerH}>
         <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 6, bottom: 4 }} barCategoryGap={10}>
           <Gradients pfx={pfx} />
           <XAxis type="number" hide />
@@ -141,8 +145,12 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
             </>
           )}
         </BarChart>
-      </ResponsiveContainer>
-    </div>
+          </ResponsiveContainer>
+        </div>
+        {overflow && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.94))', pointerEvents: 'none' }} />}
+      </div>
+      {overflow && <div style={{ textAlign: 'center', fontSize: 11, color: '#6b7280', marginTop: 6, fontWeight: 600 }}>▾ {hidden} more — scroll</div>}
+    </>
   );
 }
 
@@ -222,11 +230,44 @@ const Section = ({ icon, label }) => (
   </div>
 );
 
+// Checkbox multi-select dropdown (used for Clients / Projects).
+function MultiSelect({ label, options, selected, onChange, width = 165 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+  const toggle = (v) => onChange(selected.includes(v) ? selected.filter(x => x !== v) : [...selected, v]);
+  const summary = !selected.length ? label : selected.length === 1 ? selected[0] : `${selected.length} selected`;
+  return (
+    <div ref={ref} style={{ position: 'relative', width }}>
+      <button type="button" onClick={() => setOpen(o => !o)}
+        style={{ height: 30, padding: '4px 8px', fontSize: 12, width, textAlign: 'left', background: '#fff', border: '1px solid #d1d5db', borderRadius: 6, color: selected.length ? '#111827' : '#6b7280', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</span><span style={{ opacity: .55, flexShrink: 0 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', zIndex: 60, top: 'calc(100% + 2px)', left: 0, width: Math.max(width, 190), maxHeight: 250, overflowY: 'auto', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', padding: 4 }}>
+          {selected.length > 0 && <div onClick={() => onChange([])} style={{ fontSize: 11, color: '#A32D2D', padding: '4px 6px', cursor: 'pointer', fontWeight: 600 }}>✕ Clear ({selected.length})</div>}
+          {options.map(o => (
+            <label key={o} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 6px', fontSize: 12, cursor: 'pointer', borderRadius: 4 }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F0F7FF')} onMouseLeave={e => (e.currentTarget.style.background = '')}>
+              <input type="checkbox" checked={selected.includes(o)} onChange={() => toggle(o)} style={{ margin: 0 }} />{o}
+            </label>
+          ))}
+          {!options.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: 6 }}>No options</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const EMPTY = { kpis: {}, pending_reasons: [], by_course: [], by_project: [] };
 
 const RT_LABEL = { inhouse: 'In-House', outsource: 'Outsource', intern: 'Interns' };
 const RT_ICON = { inhouse: 'ti-building', outsource: 'ti-briefcase', intern: 'ti-school' };
-const DEFAULT_FILTERS = { client: '', project: '', course_id: '', organization: '', resource_type: '', employment_status: 'active' };
+const DEFAULT_FILTERS = { client: [], project: [], course_id: '', organization: '', resource_type: '', employment_status: 'active' };
 
 export default function TrainingDashboardPage() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -249,8 +290,8 @@ export default function TrainingDashboardPage() {
   useEffect(() => {
     const build = (rtOverride) => {
       const p = new URLSearchParams();
-      if (filters.client) p.append('clients', filters.client);
-      if (filters.project) p.append('projects', filters.project);
+      if (filters.client.length) p.append('clients', filters.client.join(','));
+      if (filters.project.length) p.append('projects', filters.project.join(','));
       if (filters.course_id) p.append('course_id', filters.course_id);
       if (filters.organization) p.append('organization', filters.organization);
       if (filters.employment_status) p.append('employment_status', filters.employment_status);
@@ -288,14 +329,8 @@ export default function TrainingDashboardPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0, paddingTop: 6 }}>Filter</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                <select className="form-select" style={sel} value={filters.client} onChange={e => setFilters(f => ({ ...f, client: e.target.value }))}>
-                  <option value="">All Clients</option>
-                  {opts.clients.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <select className="form-select" style={sel} value={filters.project} onChange={e => setFilters(f => ({ ...f, project: e.target.value }))}>
-                  <option value="">All Projects</option>
-                  {opts.projects.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <MultiSelect label="All Clients" options={opts.clients} selected={filters.client} onChange={v => setFilters(f => ({ ...f, client: v }))} width={150} />
+                <MultiSelect label="All Projects" options={opts.projects} selected={filters.project} onChange={v => setFilters(f => ({ ...f, project: v }))} width={165} />
                 <select className="form-select" style={sel} value={filters.course_id} onChange={e => setFilters(f => ({ ...f, course_id: e.target.value }))}>
                   <option value="">All Training Types</option>
                   {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
