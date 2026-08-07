@@ -388,9 +388,11 @@ export default function UpdateTrainingRecordsPage() {
         )}
 
         {!selectedCourse && (
-          <div className="card">
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 108px)' }}>
             <div className="card-header"><span className="card-title">Select a training type</span></div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18, padding: 20 }}>
+            {/* Grid fills the rest of the page: rows stretch (auto-rows 1fr) so the
+                tiles use the whole height instead of clustering at the top. */}
+            <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gridAutoRows: '1fr', gap: 18, padding: 20 }}>
               {courses.map(c => {
                 const hovered = hoveredId === c.id;
                 return (
@@ -399,8 +401,8 @@ export default function UpdateTrainingRecordsPage() {
                     onMouseEnter={() => setHoveredId(c.id)}
                     onMouseLeave={() => setHoveredId(null)}
                     style={{
-                      textAlign: 'center', cursor: 'pointer',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                      textAlign: 'center', cursor: 'pointer', height: '100%',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16,
                       padding: '32px 22px', borderRadius: 18,
                       border: `1.5px solid ${hovered ? 'var(--eg-navy)' : '#e5e7eb'}`,
                       background: hovered ? '#F0F7FF' : 'white',
