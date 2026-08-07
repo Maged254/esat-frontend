@@ -99,6 +99,7 @@ export default function UpdateTrainingRecordsPage() {
   const [certBlob, setCertBlob] = useState(null);       // object URL of the fetched file
   const [certLoading, setCertLoading] = useState(false);
   const [certViewError, setCertViewError] = useState('');
+  const [certRotating, setCertRotating] = useState(false);
 
   const isImageCert = (name) => /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name || '');
   // The clean, SharePoint-style filename for downloads: "<Name> (<date>).<ext>".
@@ -137,6 +138,23 @@ export default function UpdateTrainingRecordsPage() {
     const a = document.createElement('a');
     a.href = certBlob; a.download = certFilename(rec);
     document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  // Rotate the PDF 90° server-side (saved back to R2 under the same key), then
+  // reload the preview so the correction shows immediately.
+  const rotateCert = async (rec) => {
+    setCertRotating(true); setCertViewError('');
+    try {
+      const res = await fetch(`${api.defaults.baseURL}/training-records/${rec.id}/certificate/rotate`, {
+        method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('esat_token')}` },
+      });
+      if (!res.ok) throw new Error();
+      await openCert(rec);
+    } catch {
+      setCertViewError('Could not rotate the certificate.');
+    } finally {
+      setCertRotating(false);
+    }
   };
 
   useEffect(() => {
@@ -561,6 +579,9 @@ export default function UpdateTrainingRecordsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: '#0f2a4a' }}>{selectedCourse?.name} — Certificate<div style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>{certPreview.employee_name}</div></div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                {certBlob && !isImageCert(certPreview.original_filename) && (
+                  <button className="btn btn-sm" onClick={() => rotateCert(certPreview)} disabled={certRotating} title="Rotate 90° and save">{certRotating ? '⟳ Rotating…' : '⟳ Rotate'}</button>
+                )}
                 <button className="btn btn-sm" onClick={() => downloadCert(certPreview)} disabled={!certBlob}>↓ Download</button>
                 <button className="btn btn-sm" onClick={closeCert}>✕ Close</button>
               </div>
