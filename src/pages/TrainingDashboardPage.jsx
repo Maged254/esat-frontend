@@ -207,7 +207,7 @@ const PieSlicePct = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) =>
   return <text x={x} y={y} fill="#fff" fontSize={11} fontWeight={700} textAnchor="middle" dominantBaseline="central">{Math.round(percent * 100)}%</text>;
 };
 
-function Donut({ k, metric = 'all' }) {
+function Donut({ k, metric = 'all', twoUp = false }) {
   const pfx = useId().replace(/[:]/g, ''); // unique filter id per donut instance
   const all = [
     { name: 'Valid', value: k.valid || 0, color: C.valid.solid, key: 'valid' },
@@ -226,33 +226,66 @@ function Donut({ k, metric = 'all' }) {
   const shown = rows.filter(d => d.value > 0);
   // The ring flex-fills whatever height is left after the pill + legend, using
   // percentage radii — so the legend never clips no matter how short the card is.
+  // The ring (donut + centered total) — reused by both layouts.
+  const chart = (
+    <>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <defs>
+            <filter id={`donutShadow-${pfx}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#1f2937" floodOpacity="0.18" />
+            </filter>
+          </defs>
+          <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="86%"
+            paddingAngle={shown.length > 1 ? 3 : 0} cornerRadius={8} stroke="none" isAnimationActive={false}
+            label={single ? false : PieSlicePct} labelLine={false}>
+            {shown.map(d => <Cell key={d.name} fill={d.color} style={{ filter: `url(#donutShadow-${pfx})` }} />)}
+          </Pie>
+          <Tooltip content={<PieTip total={center} />} wrapperStyle={{ zIndex: 60 }} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
+        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
+      </div>
+    </>
+  );
+  const legend = (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6, flexShrink: 0 }}>
+      {rows.map(d => (
+        <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
+          <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{fmt(d.value)}</b>{!single && <span style={{ opacity: 0.6 }}> ({grand ? Math.round(d.value / grand * 100) : 0}%)</span>}
+        </span>
+      ))}
+    </div>
+  );
+
+  // Double mode (two resource sections): put the pie on the left (shifted a bit
+  // left of centre) with a compact compliance badge to its RIGHT, legend below —
+  // saves the vertical room the short cards don't have, keeping the pie big.
+  if (!single && twoUp) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ position: 'relative', flex: 1, height: '100%', minWidth: 0 }}>{chart}</div>
+          <div title="Valid + About to Expire ÷ Total" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: C.valid.solid, background: C.valid.tint, borderRadius: 12, padding: '8px 10px' }}>
+            <i className="ti ti-shield-check" style={{ fontSize: 18 }} aria-hidden="true"></i>
+            <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.1 }}>{compliance}%</span>
+            <span style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1 }}>Compliant</span>
+          </div>
+        </div>
+        {legend}
+      </div>
+    );
+  }
+
+  // Single mode (one section, fills the page) and metric-focused view: pie stays
+  // vertically centred; when the compliance pill is shown it centres in the gap
+  // between the ring and the legend.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      {/* Equal flex spacers (empty one above the ring, the pill's centering box
-          below it) keep the donut vertically CENTERED as before, while the
-          compliance pill centers in the space between the ring and the legend. */}
       {!single && <div style={{ flex: 1, minHeight: 0 }} />}
-      <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flexShrink: 1, width: '100%', aspectRatio: '1 / 1' }) }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <defs>
-              <filter id={`donutShadow-${pfx}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#1f2937" floodOpacity="0.18" />
-              </filter>
-            </defs>
-            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="86%"
-              paddingAngle={shown.length > 1 ? 3 : 0} cornerRadius={8} stroke="none" isAnimationActive={false}
-              label={single ? false : PieSlicePct} labelLine={false}>
-              {shown.map(d => <Cell key={d.name} fill={d.color} style={{ filter: `url(#donutShadow-${pfx})` }} />)}
-            </Pie>
-            <Tooltip content={<PieTip total={center} />} wrapperStyle={{ zIndex: 60 }} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
-        </div>
-      </div>
+      <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flexShrink: 1, width: '100%', aspectRatio: '1 / 1' }) }}>{chart}</div>
       {!single && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '4px 14px', borderRadius: 999 }}>
@@ -260,22 +293,16 @@ function Donut({ k, metric = 'all' }) {
           </span>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6, flexShrink: 0 }}>
-        {rows.map(d => (
-          <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-            <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{fmt(d.value)}</b>{!single && <span style={{ opacity: 0.6 }}> ({grand ? Math.round(d.value / grand * 100) : 0}%)</span>}
-          </span>
-        ))}
-      </div>
+      {legend}
     </div>
   );
 }
 
-const ChartsRow = ({ d, metric, chartH }) => {
+const ChartsRow = ({ d, metric, chartH, twoUp }) => {
   const areaH = Math.max(120, chartH - 62); // card height minus padding + title = the chart area
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
-      <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
+      <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} twoUp={twoUp} /></ChartCard>
       <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} availH={areaH} /></ChartCard>
       <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} availH={areaH} /></ChartCard>
     </div>
@@ -482,9 +509,9 @@ export default function TrainingDashboardPage() {
           ) : (
             <>
               <Section icon={RT_ICON.inhouse} label="In-House" />
-              <ChartsRow d={inhouse} metric={metric} chartH={chartH} />
+              <ChartsRow d={inhouse} metric={metric} chartH={chartH} twoUp />
               <Section icon={RT_ICON.outsource} label="Outsource" />
-              <ChartsRow d={outsource} metric={metric} chartH={chartH} />
+              <ChartsRow d={outsource} metric={metric} chartH={chartH} twoUp />
             </>
           )}
         </div>
