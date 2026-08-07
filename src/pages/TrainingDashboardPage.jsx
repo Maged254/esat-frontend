@@ -106,17 +106,15 @@ const METRIC_META = { valid: { name: 'Valid', grad: 'valid' }, expiring: { name:
 // Uniform bar-row height shared by every bar chart on the page.
 const ROW_H = 44;
 
-function ValidityBars({ data, nameKey, metric = 'all', maxH = 370 }) {
+function ValidityBars({ data, nameKey, metric = 'all' }) {
   const pfx = useId().replace(/[:]/g, ''); // unique, SVG-id-safe gradient namespace per chart
   const single = metric !== 'all';
   const rows = single ? data.filter(d => (d[metric] || 0) > 0).sort((a, b) => (b[metric] || 0) - (a[metric] || 0)) : data;
   if (!rows.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   // Every bar is a fixed ROW_H tall so bar thickness is identical across all the
-  // bar charts on the page. The chart renders at its natural height; the fixed-
-  // height card centers it (balanced whitespace) or scrolls it when it overflows.
+  // bar charts. The chart renders at its natural height and the fixed-height card
+  // shows a scrollbar on the right when there are more bars than fit.
   const innerH = Math.max(rows.length * ROW_H + 20, 130);
-  const overflow = innerH > maxH;
-  const hidden = Math.max(0, rows.length - Math.floor((maxH - 20) / ROW_H));
   const m = METRIC_META[metric];
   const isCourse = nameKey === 'course';
   const isProject = nameKey === 'project';
@@ -155,10 +153,8 @@ function ValidityBars({ data, nameKey, metric = 'all', maxH = 370 }) {
     );
   };
   return (
-    <>
-      <div style={{ position: 'relative' }}>
-        <div style={{ maxHeight: maxH, overflowY: overflow ? 'scroll' : 'hidden', overflowX: 'hidden' }}>
-          <ResponsiveContainer width="100%" height={innerH}>
+    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+      <ResponsiveContainer width="100%" height={innerH}>
         <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 2, bottom: 4 }} barCategoryGap={10}>
           <Gradients pfx={pfx} />
           <XAxis type="number" hide />
@@ -184,19 +180,15 @@ function ValidityBars({ data, nameKey, metric = 'all', maxH = 370 }) {
             </>
           )}
         </BarChart>
-          </ResponsiveContainer>
-        </div>
-        {overflow && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 26, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.94))', pointerEvents: 'none' }} />}
-      </div>
-      {overflow && <div style={{ textAlign: 'center', fontSize: 11, color: '#6b7280', marginTop: 6, fontWeight: 600 }}>▾ {hidden} more — scroll</div>}
-    </>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
 const ChartCard = ({ title, height, children }) => (
   <div className="card" style={{ padding: '16px 18px', height, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
     <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 10, flexShrink: 0 }}>{title}</div>
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>{children}</div>
+    <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
   </div>
 );
 
@@ -265,19 +257,13 @@ function Donut({ k, metric = 'all' }) {
   );
 }
 
-const ChartsRow = ({ d, metric, chartH }) => {
-  // The card is a fixed height; subtract padding + title to get the chart area,
-  // then reserve room in the donut card for its pill + legend.
-  const areaH = Math.max(160, chartH - 62);
-  const barsH = Math.max(140, areaH - 22);  // leave room for the "N more — scroll" caption
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
-      <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
-      <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} maxH={barsH} /></ChartCard>
-      <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} maxH={barsH} /></ChartCard>
-    </div>
-  );
-};
+const ChartsRow = ({ d, metric, chartH }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
+    <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
+    <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} /></ChartCard>
+    <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} /></ChartCard>
+  </div>
+);
 
 const Section = ({ icon, label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 2px 8px' }}>
@@ -375,11 +361,13 @@ export default function TrainingDashboardPage() {
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
   const KPI_H = 156; // sized so the pending-reason panel shows exactly 4 rows
   // Size the chart sections so the WHOLE dashboard fits in the viewport (no page
-  // scroll): measure where the sections start, then split the remaining height
-  // between them. Bar charts keep their internal scrollbars for the overflow.
+  // scroll). Always size for the TWO-section layout so the per-section height is
+  // FIXED and identical regardless of filters (a single-resource view just leaves
+  // space below). Only the viewport height (resize) changes it. Bar charts keep an
+  // internal scrollbar for their overflow.
+  const SECTIONS = 2;
   const sectionsRef = useRef(null);
-  const [chartH, setChartH] = useState(340);
-  const sectionCount = filters.resource_type ? 1 : 2;
+  const [chartH, setChartH] = useState(300);
   useLayoutEffect(() => {
     const compute = () => {
       const el = sectionsRef.current;
@@ -387,12 +375,12 @@ export default function TrainingDashboardPage() {
       const top = el.getBoundingClientRect().top;      // viewport-relative start of the sections
       const chrome = 34 + 16;                           // each section: header + row gap
       const avail = window.innerHeight - top - 18;      // leave a small bottom margin
-      setChartH(Math.max(230, Math.floor((avail - sectionCount * chrome) / sectionCount)));
+      setChartH(Math.max(230, Math.floor((avail - SECTIONS * chrome) / SECTIONS)));
     };
     compute();
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
-  }, [sectionCount, loading]);
+  }, []);
 
   return (
     <>
