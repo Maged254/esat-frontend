@@ -268,7 +268,9 @@ function Donut({ k, metric = 'all', twoUp = false }) {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ position: 'relative', flex: 1, height: '100%', minWidth: 0 }}>{chart}</div>
-          <div title="Valid + About to Expire ÷ Total" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: C.valid.solid, background: C.valid.tint, borderRadius: 12, padding: '8px 10px' }}>
+          {/* translateX nudges the badge left into the middle of the gap right of
+              the pie WITHOUT reflowing (so the pie keeps its exact size/position). */}
+          <div title="Valid + About to Expire ÷ Total" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: C.valid.solid, background: C.valid.tint, borderRadius: 12, padding: '8px 10px', transform: 'translateX(-14px)' }}>
             <i className="ti ti-shield-check" style={{ fontSize: 18 }} aria-hidden="true"></i>
             <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.1 }}>{compliance}%</span>
             <span style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1 }}>Compliant</span>
