@@ -12,7 +12,7 @@ const NAV = [
   { to: '/training/dashboard', label: 'Training Dashboard', icon: 'ti-gauge', roles: ['admin','ehs_manager','ehs_officer','supervisor','project_director'] },
   { section: 'Resources', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director','fleet'] },
   { to: '/employees', label: 'Employees', icon: 'ti-users', exact: true, roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
-  { to: '/outsource', label: 'Outsource', icon: 'ti-briefcase', roles: ['admin','supervisor','fleet'] },
+  { to: '/outsource', label: 'Outsource', icon: 'ti-users-group', roles: ['admin','supervisor','fleet'] },
   { to: '/casuals', label: 'Casuals', icon: 'ti-user-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/employees/change-log', label: 'Change History', icon: 'ti-list-details', roles: ['admin','hr'] },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useId, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useId, useRef } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
 import TRAINING_ICONS from '../trainingIcons';
@@ -28,11 +28,11 @@ const Gradients = ({ pfx }) => (
   </defs>
 );
 
-const KPI = ({ label, value, sub, kind, icon, active, onClick }) => {
+const KPI = ({ label, value, sub, kind, icon, active, onClick, height }) => {
   const c = C[kind];
   return (
     <div className="card" onClick={onClick}
-      style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderTop: `3px solid ${c.solid}`,
+      style={{ padding: '16px 20px', height, display: 'flex', alignItems: 'center', gap: 14, borderTop: `3px solid ${c.solid}`,
         cursor: onClick ? 'pointer' : 'default', background: active ? c.tint : '',
         outline: active ? `2px solid ${c.solid}` : '', transition: 'outline .1s, background .1s' }}>
       <div style={{ width: 46, height: 46, borderRadius: 13, background: c.tint, color: c.solid, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -90,10 +90,6 @@ const PieTip = ({ active, payload, total }) => {
   );
 };
 
-// Fixed viewport height for the bar charts so every card is the same size and
-// fits the page; when there are more bars than fit, the list scrolls inside.
-const BARS_MAX_H = 370;
-
 // In-bar number: only drawn when the segment is wide enough to hold it legibly
 // (~7px/char + padding). Narrow slivers are left blank — the tooltip still shows
 // every value on hover.
@@ -107,14 +103,20 @@ const BarValueLabel = (props) => {
 };
 const METRIC_META = { valid: { name: 'Valid', grad: 'valid' }, expiring: { name: 'About to Expire', grad: 'expiring' }, pending: { name: 'Pending', grad: 'pending' } };
 
-function ValidityBars({ data, nameKey, metric = 'all' }) {
+// Uniform bar-row height shared by every bar chart on the page.
+const ROW_H = 44;
+
+function ValidityBars({ data, nameKey, metric = 'all', maxH = 370 }) {
   const pfx = useId().replace(/[:]/g, ''); // unique, SVG-id-safe gradient namespace per chart
   const single = metric !== 'all';
   const rows = single ? data.filter(d => (d[metric] || 0) > 0).sort((a, b) => (b[metric] || 0) - (a[metric] || 0)) : data;
   if (!rows.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
-  const innerH = Math.max(rows.length * 44 + 20, 130);
-  const overflow = innerH > BARS_MAX_H;
-  const hidden = Math.max(0, rows.length - Math.floor((BARS_MAX_H - 20) / 44));
+  // Every bar is a fixed ROW_H tall so bar thickness is identical across all the
+  // bar charts on the page. The chart renders at its natural height; the fixed-
+  // height card centers it (balanced whitespace) or scrolls it when it overflows.
+  const innerH = Math.max(rows.length * ROW_H + 20, 130);
+  const overflow = innerH > maxH;
+  const hidden = Math.max(0, rows.length - Math.floor((maxH - 20) / ROW_H));
   const m = METRIC_META[metric];
   const isCourse = nameKey === 'course';
   const isProject = nameKey === 'project';
@@ -155,7 +157,7 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
   return (
     <>
       <div style={{ position: 'relative' }}>
-        <div style={{ maxHeight: BARS_MAX_H, overflowY: overflow ? 'scroll' : 'hidden', overflowX: 'hidden' }}>
+        <div style={{ maxHeight: maxH, overflowY: overflow ? 'scroll' : 'hidden', overflowX: 'hidden' }}>
           <ResponsiveContainer width="100%" height={innerH}>
         <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 2, bottom: 4 }} barCategoryGap={10}>
           <Gradients pfx={pfx} />
@@ -191,10 +193,10 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
   );
 }
 
-const ChartCard = ({ title, children }) => (
-  <div className="card" style={{ padding: '16px 18px' }}>
-    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 10 }}>{title}</div>
-    {children}
+const ChartCard = ({ title, height, children }) => (
+  <div className="card" style={{ padding: '16px 18px', height, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f2a4a', textAlign: 'center', marginBottom: 10, flexShrink: 0 }}>{title}</div>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>{children}</div>
   </div>
 );
 
@@ -225,12 +227,14 @@ function Donut({ k, metric = 'all' }) {
   if (grand === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   if (single && center === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>None in this category.</div>;
   const shown = rows.filter(d => d.value > 0);
+  // The ring flex-fills whatever height is left after the pill + legend, using
+  // percentage radii — so the legend never clips no matter how short the card is.
   return (
-    <>
-      <div style={{ position: 'relative' }}>
-        <ResponsiveContainer width="100%" height={260}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: 90 }}>
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={92}
+            <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%"
               paddingAngle={shown.length > 1 ? 2 : 0} cornerRadius={4} stroke="none" isAnimationActive={false}
               label={single ? false : PieSlicePct} labelLine={false}>
               {shown.map(d => <Cell key={d.name} fill={d.color} />)}
@@ -239,35 +243,41 @@ function Donut({ k, metric = 'all' }) {
           </PieChart>
         </ResponsiveContainer>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
           <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
         </div>
       </div>
       {!single && (
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '5px 14px', borderRadius: 999 }}>
+        <div style={{ textAlign: 'center', marginTop: 6, flexShrink: 0 }}>
+          <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '4px 14px', borderRadius: 999 }}>
             <i className="ti ti-shield-check" style={{ fontSize: 15 }} aria-hidden="true"></i>{compliance}% Compliant
           </span>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6, flexShrink: 0 }}>
         {rows.map(d => (
           <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
             <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{fmt(d.value)}</b>{!single && <span style={{ opacity: 0.6 }}> ({grand ? Math.round(d.value / grand * 100) : 0}%)</span>}
           </span>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 
-const ChartsRow = ({ d, metric }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 14 }}>
-    <ChartCard title="Total Validity"><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
-    <ChartCard title="Validity per Training Type"><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} /></ChartCard>
-    <ChartCard title="Validity per Project"><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} /></ChartCard>
-  </div>
-);
+const ChartsRow = ({ d, metric, chartH }) => {
+  // The card is a fixed height; subtract padding + title to get the chart area,
+  // then reserve room in the donut card for its pill + legend.
+  const areaH = Math.max(160, chartH - 62);
+  const barsH = Math.max(140, areaH - 22);  // leave room for the "N more — scroll" caption
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
+      <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
+      <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} maxH={barsH} /></ChartCard>
+      <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} maxH={barsH} /></ChartCard>
+    </div>
+  );
+};
 
 const Section = ({ icon, label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 2px 8px' }}>
@@ -364,6 +374,26 @@ export default function TrainingDashboardPage() {
   const pendingTotal = (overall.pending_reasons || []).reduce((s, r) => s + r.count, 0);
   const reasonsOverflow = (overall.pending_reasons?.length || 0) > 4; // panel fits ~4 rows
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
+  const KPI_H = 130;
+  // Size the chart sections so the WHOLE dashboard fits in the viewport (no page
+  // scroll): measure where the sections start, then split the remaining height
+  // between them. Bar charts keep their internal scrollbars for the overflow.
+  const sectionsRef = useRef(null);
+  const [chartH, setChartH] = useState(340);
+  const sectionCount = filters.resource_type ? 1 : 2;
+  useLayoutEffect(() => {
+    const compute = () => {
+      const el = sectionsRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;      // viewport-relative start of the sections
+      const chrome = 34 + 16;                           // each section: header + row gap
+      const avail = window.innerHeight - top - 18;      // leave a small bottom margin
+      setChartH(Math.max(230, Math.floor((avail - sectionCount * chrome) / sectionCount)));
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, [sectionCount, loading]);
 
   return (
     <>
@@ -415,17 +445,17 @@ export default function TrainingDashboardPage() {
         </div>
 
         {/* KPI row + pending reasons */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.3fr', gap: 16, marginBottom: 22 }}>
-          <KPI label="Current Requested Trainings" sub="All needed trainings" value={k.all_records ?? k.total} kind="navy" icon="ti-clipboard-list" active={metric === 'all'} onClick={() => setMetric('all')} />
-          <KPI label="Valid Certificates" sub="Valid — over 60 days to expiry" value={k.valid} kind="valid" icon="ti-circle-check" active={metric === 'valid'} onClick={() => pickMetric('valid')} />
-          <KPI label="About to Expire" sub="Valid — under 60 days to expiry" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" active={metric === 'expiring'} onClick={() => pickMetric('expiring')} />
-          <KPI label="Pending Certificates" sub="Invalid — need action" value={pendingTotal} kind="pending" icon="ti-hourglass" active={metric === 'pending'} onClick={() => pickMetric('pending')} />
-          <div className="card" style={{ padding: '16px 18px' }}>
-            <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) 1.3fr', gap: 16, marginBottom: 20 }}>
+          <KPI label="Current Requested Trainings" sub="All needed trainings" value={k.all_records ?? k.total} kind="navy" icon="ti-clipboard-list" active={metric === 'all'} onClick={() => setMetric('all')} height={KPI_H} />
+          <KPI label="Valid Certificates" sub="Valid — over 60 days to expiry" value={k.valid} kind="valid" icon="ti-circle-check" active={metric === 'valid'} onClick={() => pickMetric('valid')} height={KPI_H} />
+          <KPI label="About to Expire" sub="Valid — under 60 days to expiry" value={k.expiring} kind="expiring" icon="ti-clock-exclamation" active={metric === 'expiring'} onClick={() => pickMetric('expiring')} height={KPI_H} />
+          <KPI label="Pending Certificates" sub="Invalid — need action" value={pendingTotal} kind="pending" icon="ti-hourglass" active={metric === 'pending'} onClick={() => pickMetric('pending')} height={KPI_H} />
+          <div className="card" style={{ padding: '14px 18px', height: KPI_H, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6, flexShrink: 0 }}>
               <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
             </div>
-            <div style={{ position: 'relative' }}>
-              <div style={{ maxHeight: 128, overflowY: reasonsOverflow ? 'scroll' : 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+              <div style={{ height: '100%', overflowY: reasonsOverflow ? 'scroll' : 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {(overall.pending_reasons || []).map(r => (
                   <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
                     <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{fmt(r.count)}</span>
@@ -436,25 +466,26 @@ export default function TrainingDashboardPage() {
               </div>
               {reasonsOverflow && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 18, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.96))', pointerEvents: 'none' }} />}
             </div>
-            {reasonsOverflow && <div style={{ fontSize: 10.5, color: '#9ca3af', textAlign: 'center', marginTop: 3 }}>▾ scroll for more</div>}
-            {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 8, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a' }}>{fmt(pendingTotal)} total</div>}
+            {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 6, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a', flexShrink: 0 }}>{fmt(pendingTotal)} total{reasonsOverflow ? '  ·  ▾ scroll' : ''}</div>}
           </div>
         </div>
 
         {/* Charts — one section per selected resource type, else In-House vs Outsource */}
-        {filters.resource_type ? (
-          <>
-            <Section icon={RT_ICON[filters.resource_type] || 'ti-users'} label={RT_LABEL[filters.resource_type] || 'Resources'} />
-            <ChartsRow d={overall} metric={metric} />
-          </>
-        ) : (
-          <>
-            <Section icon={RT_ICON.inhouse} label="In-House" />
-            <ChartsRow d={inhouse} metric={metric} />
-            <Section icon={RT_ICON.outsource} label="Outsource" />
-            <ChartsRow d={outsource} metric={metric} />
-          </>
-        )}
+        <div ref={sectionsRef}>
+          {filters.resource_type ? (
+            <>
+              <Section icon={RT_ICON[filters.resource_type] || 'ti-users'} label={RT_LABEL[filters.resource_type] || 'Resources'} />
+              <ChartsRow d={overall} metric={metric} chartH={chartH} />
+            </>
+          ) : (
+            <>
+              <Section icon={RT_ICON.inhouse} label="In-House" />
+              <ChartsRow d={inhouse} metric={metric} chartH={chartH} />
+              <Section icon={RT_ICON.outsource} label="Outsource" />
+              <ChartsRow d={outsource} metric={metric} chartH={chartH} />
+            </>
+          )}
+        </div>
       </div>
     </>
   );
