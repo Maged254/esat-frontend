@@ -106,15 +106,17 @@ const METRIC_META = { valid: { name: 'Valid', grad: 'valid' }, expiring: { name:
 // Uniform bar-row height shared by every bar chart on the page.
 const ROW_H = 44;
 
-function ValidityBars({ data, nameKey, metric = 'all' }) {
+function ValidityBars({ data, nameKey, metric = 'all', availH = 9999 }) {
   const pfx = useId().replace(/[:]/g, ''); // unique, SVG-id-safe gradient namespace per chart
   const single = metric !== 'all';
   const rows = single ? data.filter(d => (d[metric] || 0) > 0).sort((a, b) => (b[metric] || 0) - (a[metric] || 0)) : data;
   if (!rows.length) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   // Every bar is a fixed ROW_H tall so bar thickness is identical across all the
-  // bar charts. The chart renders at its natural height and the fixed-height card
-  // shows a scrollbar on the right when there are more bars than fit.
+  // bar charts. The chart renders at its natural height; when it fits the card the
+  // bars are centered vertically, and when it overflows the card scrolls (from the
+  // top, so the scrollbar reaches every bar).
   const innerH = Math.max(rows.length * ROW_H + 20, 130);
+  const overflow = innerH > availH;
   const m = METRIC_META[metric];
   const isCourse = nameKey === 'course';
   const isProject = nameKey === 'project';
@@ -153,7 +155,8 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
     );
   };
   return (
-    <div style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <div style={{ height: '100%', overflowY: overflow ? 'auto' : 'hidden', overflowX: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: overflow ? 'flex-start' : 'center' }}>
+      <div style={{ flexShrink: 0, width: '100%', height: innerH }}>
       <ResponsiveContainer width="100%" height={innerH}>
         <BarChart layout="vertical" data={rows} margin={{ top: 4, right: 44, left: 2, bottom: 4 }} barCategoryGap={10}>
           <Gradients pfx={pfx} />
@@ -181,6 +184,7 @@ function ValidityBars({ data, nameKey, metric = 'all' }) {
           )}
         </BarChart>
       </ResponsiveContainer>
+      </div>
     </div>
   );
 }
@@ -224,7 +228,10 @@ function Donut({ k, metric = 'all' }) {
   // percentage radii — so the legend never clips no matter how short the card is.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div style={{ position: 'relative', flex: 1, minHeight: 90 }}>
+      {/* When the compliance pill is shown, the ring sizes to a square at the top
+          (so leftover space becomes a gap the pill can center in); otherwise it
+          just flex-fills. */}
+      <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flex: '0 1 auto', width: '100%', aspectRatio: '1 / 1' }) }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <defs>
@@ -246,7 +253,7 @@ function Donut({ k, metric = 'all' }) {
         </div>
       </div>
       {!single && (
-        <div style={{ textAlign: 'center', marginTop: 6, flexShrink: 0 }}>
+        <div style={{ textAlign: 'center', margin: 'auto 0', flexShrink: 0 }}>
           <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '4px 14px', borderRadius: 999 }}>
             <i className="ti ti-shield-check" style={{ fontSize: 15 }} aria-hidden="true"></i>{compliance}% Compliant
           </span>
@@ -263,13 +270,16 @@ function Donut({ k, metric = 'all' }) {
   );
 }
 
-const ChartsRow = ({ d, metric, chartH }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
-    <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
-    <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} /></ChartCard>
-    <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} /></ChartCard>
-  </div>
-);
+const ChartsRow = ({ d, metric, chartH }) => {
+  const areaH = Math.max(120, chartH - 62); // card height minus padding + title = the chart area
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1.3fr', gap: 18, marginBottom: 16 }}>
+      <ChartCard title="Total Validity" height={chartH}><Donut k={d.kpis || {}} metric={metric} /></ChartCard>
+      <ChartCard title="Validity per Training Type" height={chartH}><ValidityBars data={d.by_course || []} nameKey="course" metric={metric} availH={areaH} /></ChartCard>
+      <ChartCard title="Validity per Project" height={chartH}><ValidityBars data={d.by_project || []} nameKey="project" metric={metric} availH={areaH} /></ChartCard>
+    </div>
+  );
+};
 
 const Section = ({ icon, label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '0 2px 8px' }}>
