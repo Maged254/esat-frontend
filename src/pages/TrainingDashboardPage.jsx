@@ -367,11 +367,12 @@ export default function TrainingDashboardPage() {
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
   const KPI_H = 156; // sized so the pending-reason panel shows exactly 4 rows
   // Size the chart sections so the WHOLE dashboard fits in the viewport (no page
-  // scroll). Always size for the TWO-section layout so the per-section height is
-  // FIXED and identical regardless of filters (a single-resource view just leaves
-  // space below). Only the viewport height (resize) changes it. Bar charts keep an
-  // internal scrollbar for their overflow.
-  const SECTIONS = 2;
+  // scroll): split the space below the KPI row across however many sections are
+  // shown — so a single-resource view fills the page, and the two-section view
+  // gives both an equal, fixed height. Height tracks the section count and the
+  // viewport only (NOT the other filters, which just change row counts inside the
+  // fixed-height cards); bar charts scroll internally for their overflow.
+  const sectionCount = filters.resource_type ? 1 : 2;
   const sectionsRef = useRef(null);
   const [chartH, setChartH] = useState(300);
   useLayoutEffect(() => {
@@ -381,12 +382,12 @@ export default function TrainingDashboardPage() {
       const top = el.getBoundingClientRect().top;      // viewport-relative start of the sections
       const chrome = 34 + 16;                           // each section: header + row gap
       const avail = window.innerHeight - top - 18;      // leave a small bottom margin
-      setChartH(Math.max(230, Math.floor((avail - SECTIONS * chrome) / SECTIONS)));
+      setChartH(Math.max(230, Math.floor((avail - sectionCount * chrome) / sectionCount)));
     };
     compute();
     window.addEventListener('resize', compute);
     return () => window.removeEventListener('resize', compute);
-  }, []);
+  }, [sectionCount]);
 
   return (
     <>
