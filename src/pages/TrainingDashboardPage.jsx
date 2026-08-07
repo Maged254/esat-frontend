@@ -372,9 +372,8 @@ export default function TrainingDashboardPage() {
 
   const k = overall.kpis || {};
   const pendingTotal = (overall.pending_reasons || []).reduce((s, r) => s + r.count, 0);
-  const reasonsOverflow = (overall.pending_reasons?.length || 0) > 4; // panel fits ~4 rows
   const sel = { height: 30, padding: '4px 8px', fontSize: 12, width: 165 };
-  const KPI_H = 130;
+  const KPI_H = 156; // sized so the pending-reason panel shows exactly 4 rows
   // Size the chart sections so the WHOLE dashboard fits in the viewport (no page
   // scroll): measure where the sections start, then split the remaining height
   // between them. Bar charts keep their internal scrollbars for the overflow.
@@ -454,19 +453,16 @@ export default function TrainingDashboardPage() {
             <div style={{ display: 'flex', gap: 12, fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: .4, borderBottom: '1px solid #eef1f5', paddingBottom: 8, marginBottom: 6, flexShrink: 0 }}>
               <span style={{ width: 34, textAlign: 'right', flexShrink: 0 }}>Count</span><span>Pending Reason</span>
             </div>
-            <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
-              <div style={{ height: '100%', overflowY: reasonsOverflow ? 'scroll' : 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {(overall.pending_reasons || []).map(r => (
-                  <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
-                    <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{fmt(r.count)}</span>
-                    <span>{r.reason}</span>
-                  </div>
-                ))}
-                {!overall.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
-              </div>
-              {reasonsOverflow && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 18, background: 'linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.96))', pointerEvents: 'none' }} />}
+            {/* Fixed height (shows 4 rows); scrollbar appears on the right when there are more. */}
+            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {(overall.pending_reasons || []).map(r => (
+                <div key={r.reason} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 12.5, color: '#374151' }}>
+                  <span style={{ minWidth: 26, height: 20, padding: '0 6px', borderRadius: 10, background: C.pending.tint, color: C.pending.solid, fontWeight: 700, fontSize: 11.5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{fmt(r.count)}</span>
+                  <span>{r.reason}</span>
+                </div>
+              ))}
+              {!overall.pending_reasons?.length && <div style={{ fontSize: 12, color: '#9ca3af', padding: '6px 0' }}>No pending trainings.</div>}
             </div>
-            {pendingTotal > 0 && <div style={{ borderTop: '1px solid #eef1f5', marginTop: 6, paddingTop: 6, fontSize: 12.5, fontWeight: 800, color: '#0f2a4a', flexShrink: 0 }}>{fmt(pendingTotal)} total{reasonsOverflow ? '  ·  ▾ scroll' : ''}</div>}
           </div>
         </div>
 
