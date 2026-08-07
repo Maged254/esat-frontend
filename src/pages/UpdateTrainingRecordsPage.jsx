@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
@@ -77,6 +77,7 @@ export default function UpdateTrainingRecordsPage() {
   const [reasons, setReasons] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [rows, setRows] = useState([]);
+  const reqRef = useRef(0); // latest row-load request id (drops stale responses)
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
@@ -185,11 +186,11 @@ export default function UpdateTrainingRecordsPage() {
     return p;
   };
 
-  const rowParams = (courseId) => {
+  const rowParams = (courseId, page = 1, pageSize = 100) => {
     // filters.group is either a group key ('valid'|'outstanding'|'expiring'|
     // 'archived'|'all') or "group:substate" to narrow within a group.
     const [grp, sub] = (filters.group || '').split(':');
-    const base = { course_id: courseId, page: '1', pageSize: '100' };
+    const base = { course_id: courseId, page: String(page), pageSize: String(pageSize) };
     if (grp && grp !== 'all') base.group = grp;
     // Sub-state = an extra AND on top of the group, via the existing params.
     if (sub) {
@@ -209,12 +210,31 @@ export default function UpdateTrainingRecordsPage() {
   // stat query ignores the group/sub-state selection entirely.
   const statParams = (courseId) => appendPeopleFilters(new URLSearchParams({ course_id: courseId }));
 
-  const loadRows = (courseId) => {
+  // The /tracker endpoint pages at max 100 rows. A group can hold far more (e.g.
+  // ~200-400 valid certs), so fetch every page and show them all — otherwise rows
+  // are silently hidden and the count reads 100 instead of the real total.
+  const PAGE_SIZE = 100;
+  const loadRows = async (courseId) => {
+    const reqId = ++reqRef.current; // guard against out-of-order responses on rapid filter changes
     setLoading(true);
-    api.get('/training-records/tracker?' + rowParams(courseId))
-      .then(r => setRows(r.data.rows))
-      .catch(() => setRows([]))
-      .finally(() => setLoading(false));
+    try {
+      const first = await api.get('/training-records/tracker?' + rowParams(courseId, 1, PAGE_SIZE));
+      let all = first.data.rows || [];
+      const total = first.data.total || all.length;
+      const pages = Math.ceil(total / PAGE_SIZE);
+      if (pages > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: pages - 1 }, (_, i) =>
+            api.get('/training-records/tracker?' + rowParams(courseId, i + 2, PAGE_SIZE)))
+        );
+        rest.forEach(r => { all = all.concat(r.data.rows || []); });
+      }
+      if (reqId === reqRef.current) setRows(all);
+    } catch {
+      if (reqId === reqRef.current) setRows([]);
+    } finally {
+      if (reqId === reqRef.current) setLoading(false);
+    }
     api.get('/training-records/stats?' + statParams(courseId)).then(r => setStats(r.data)).catch(() => setStats(null));
   };
 
