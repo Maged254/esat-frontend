@@ -539,8 +539,9 @@ export default function UpdateTrainingRecordsPage() {
                         <span className={`tag ${rowTag(r)}`}>{rowLabel(r)}</span>
                         {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
-                        {/* Auto-opened renewal request: show which certificate expired. */}
-                        {r.prior_expiry_date && ['requested', 'scheduled', 'pending'].includes(r.status) ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
+                        {/* Trained before (has a prior certificate): show when it expired, on any
+                            non-completed status — i.e. anything that isn't a valid/expiring cert. */}
+                        {r.prior_expiry_date && r.status !== 'completed' ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                         {r.status === 'completed' && (r.has_certificate
                           ? <button type="button" onClick={() => openCert(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
