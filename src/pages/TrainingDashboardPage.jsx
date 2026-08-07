@@ -268,9 +268,9 @@ function Donut({ k, metric = 'all', twoUp = false }) {
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ position: 'relative', flex: 1, height: '100%', minWidth: 0 }}>{chart}</div>
-          {/* translateX nudges the badge left into the middle of the gap right of
-              the pie WITHOUT reflowing (so the pie keeps its exact size/position). */}
-          <div title="Valid + About to Expire ÷ Total" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: C.valid.solid, background: C.valid.tint, borderRadius: 12, padding: '8px 10px', transform: 'translateX(-14px)' }}>
+          {/* Green outline + soft shadow so the badge catches the eye; it stays in
+              its own space to the right (never overlapping the pie). */}
+          <div title="Valid + About to Expire ÷ Total" style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: C.valid.solid, background: C.valid.tint, border: `2px solid ${C.valid.solid}`, borderRadius: 12, padding: '8px 10px', boxShadow: `0 2px 8px ${C.valid.solid}33` }}>
             <i className="ti ti-shield-check" style={{ fontSize: 18 }} aria-hidden="true"></i>
             <span style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.1 }}>{compliance}%</span>
             <span style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1 }}>Compliant</span>
@@ -290,7 +290,7 @@ function Donut({ k, metric = 'all', twoUp = false }) {
       <div style={{ position: 'relative', minHeight: 90, ...(single ? { flex: 1 } : { flexShrink: 1, width: '100%', aspectRatio: '1 / 1' }) }}>{chart}</div>
       {!single && (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '4px 14px', borderRadius: 999 }}>
+          <span title="Valid + About to Expire ÷ Total" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: C.valid.tint, color: C.valid.solid, fontWeight: 800, fontSize: 13, padding: '5px 15px', borderRadius: 999, border: `2px solid ${C.valid.solid}`, boxShadow: `0 2px 8px ${C.valid.solid}33` }}>
             <i className="ti ti-shield-check" style={{ fontSize: 15 }} aria-hidden="true"></i>{compliance}% Compliant
           </span>
         </div>
