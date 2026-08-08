@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
 
 // Known status values (the lifecycle is still being finalised, so anything
@@ -200,10 +201,9 @@ export default function TrainingTrackerPage() {
     document.body.appendChild(a); a.click(); a.remove();
   };
 
-  const exportCSV = async () => {
+  const exportExcel = async () => {
     setExporting(true);
     try {
-      const labels = ['Employee', 'National ID', 'Employee No', 'Job Title', 'Organization', 'Employment Status', 'Training Type', 'Project', 'Client', 'Status', 'Requested', 'Requested By', 'Scheduled', 'Completed', 'Expiry', 'Expiry State'];
       const all = [];
       let pg = 1;
       // Pull every matching page (backend caps pageSize at 100).
@@ -216,20 +216,54 @@ export default function TrainingTrackerPage() {
         pg += 1;
         if (pg > 100) break; // hard stop
       }
-      const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-      const csvRows = all.map(r => [
-        r.employee_name, r.national_id, r.employee_number, r.job_title,
-        r.organization, (r.employment_status ? titleCase(r.employment_status) : ''), r.course_name,
-        r.project, r.client, (STATUS_META[r.status]?.label || titleCase(r.status)),
-        fmtDate(r.requested_at), r.requested_by_name, fmtDate(r.scheduled_date),
-        fmtDate(r.completed_at), fmtDate(r.expiry_date), r.expiry_state || '',
-      ].map(esc).join(','));
-      const csv = [labels.join(','), ...csvRows].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+      // Blank (not "—") for empty date cells so Excel columns read cleanly.
+      const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Trainings Tracker');
+      ws.columns = [
+        { header: 'Employee', key: 'employee', width: 26 },
+        { header: 'National ID', key: 'national_id', width: 14 },
+        { header: 'Employee No', key: 'employee_no', width: 13 },
+        { header: 'Job Title', key: 'job_title', width: 22 },
+        { header: 'Organization', key: 'organization', width: 24 },
+        { header: 'Employment Status', key: 'employment_status', width: 16 },
+        { header: 'Training Type', key: 'training_type', width: 26 },
+        { header: 'Project', key: 'project', width: 16 },
+        { header: 'Client', key: 'client', width: 14 },
+        { header: 'Status', key: 'status', width: 14 },
+        { header: 'Requested', key: 'requested', width: 12 },
+        { header: 'Requested By', key: 'requested_by', width: 20 },
+        { header: 'Scheduled', key: 'scheduled', width: 12 },
+        { header: 'Completed', key: 'completed', width: 12 },
+        { header: 'Expiry', key: 'expiry', width: 12 },
+        { header: 'Expiry State', key: 'expiry_state', width: 13 },
+      ];
+      all.forEach(r => ws.addRow({
+        employee: r.employee_name || '', national_id: r.national_id || '', employee_no: r.employee_number || '',
+        job_title: r.job_title || '', organization: r.organization || '',
+        employment_status: r.employment_status ? titleCase(r.employment_status) : '',
+        training_type: r.course_name || '', project: r.project || '', client: r.client || '',
+        status: STATUS_META[r.status]?.label || titleCase(r.status),
+        requested: xd(r.requested_at), requested_by: r.requested_by_name || '',
+        scheduled: xd(r.scheduled_date), completed: xd(r.completed_at),
+        expiry: xd(r.expiry_date), expiry_state: r.expiry_state ? titleCase(r.expiry_state) : '',
+      }));
+      // Bold navy header, frozen + filterable.
+      const header = ws.getRow(1);
+      header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      header.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2A4A' } };
+      header.alignment = { vertical: 'middle' };
+      header.height = 20;
+      ws.views = [{ state: 'frozen', ySplit: 1 }];
+      ws.autoFilter = { from: 'A1', to: 'P1' };
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'ESAT_Trainings_Tracker_' + new Date().toISOString().slice(0, 10) + '.csv';
+      a.download = 'OneHub_Trainings_Tracker_' + new Date().toISOString().slice(0, 10) + '.xlsx';
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) { logError(e); alert('Export failed'); }
@@ -245,7 +279,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          <button className="btn" onClick={exportCSV} disabled={exporting}>↓ {exporting ? 'Exporting...' : 'Export CSV'}</button>
+          <button className="btn" onClick={exportExcel} disabled={exporting}>↓ {exporting ? 'Exporting...' : 'Export Excel'}</button>
         </div>
       </div>
 
