@@ -32,7 +32,7 @@ export default function SafetyCommitmentPage() {
       <div style={{ maxWidth:900, width:'100%', opacity:visible?1:0, transform:visible?'translateY(0)':'translateY(20px)', transition:'all 0.6s ease' }}>
 
         <div style={{ textAlign:'center', marginBottom:24, display:'flex', flexDirection:'column', alignItems:'center' }}>
-          <img src="/logo.png" alt="Egypro" style={{ height:64, marginBottom:14 }} onError={e=>{e.target.style.display='none';}} />
+          <img src="/onehub-logo.png" alt="OneHub People" style={{ height:60, marginBottom:14 }} onError={e=>{e.target.style.display='none';}} />
           <div style={{ display:'inline-block', background:'rgba(29,158,117,0.15)', border:'1px solid rgba(29,158,117,0.4)', borderRadius:4, padding:'4px 14px', fontSize:11, fontWeight:700, letterSpacing:3, color:'#1d9e75', textTransform:'uppercase', marginBottom:12 }}>Zero Harm · Getting It Done Together</div>
           <h1 style={{ fontSize:24, fontWeight:800, color:'#ffffff', margin:'0 0 4px 0' }}>8 Absolute Rules</h1>
           <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', margin:0, letterSpacing:1 }}>NO ONE GETS HURT. I DO THE RIGHT THING.</p>
