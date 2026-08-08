@@ -44,7 +44,7 @@ export default function Layout() {
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
         <NavLink to="/" className="sidebar-logo" style={{padding:'34px 0 12px'}}>
-          <img src="/onehub-logo.jpg" alt="OneHub" style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
+          <img src="/onehub-logo.png" alt="OneHub" style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
         </NavLink>
 
         <nav className="nav">
