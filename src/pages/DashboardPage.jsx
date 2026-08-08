@@ -55,8 +55,6 @@ export default function DashboardPage() {
             <div style={{ fontSize: 20, fontWeight: 500 }}>{greeting()}, {user?.name || "Safety Officer"}</div>
             <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{dateStr} · Nairobi</div>
           </div>
-          <img src="/logo.png" alt="Egypro" style={{ height: 40, opacity: 0.6 }}
-               onError={e => { e.target.style.display='none'; }} />
         </div>
 
         <div className="stat-grid">
