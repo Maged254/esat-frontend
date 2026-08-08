@@ -276,7 +276,7 @@ export default function AuditsPage() {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <span className="topbar-breadcrumb">ESAT</span>
+          <span className="topbar-breadcrumb">OneHub</span>
           <span className="topbar-sep">›</span>
           <span className="topbar-title">Auditor Performance</span>
         </div>

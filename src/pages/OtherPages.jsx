@@ -477,7 +477,7 @@ export function EmployeesPage({ outsource = false }) {
     <>
       <div className="topbar">
         <div className="topbar-left">
-          <span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span>
+          <span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span>
           <span className="topbar-title">{outsource ? 'Outsource' : 'Employees'}</span>
         </div>
         <div className="topbar-right">
@@ -1056,7 +1056,7 @@ export function AuditHistoryPage() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Audit/Request History</span></div>
+        <div className="topbar-left"><span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span><span className="topbar-title">Audit/Request History</span></div>
         <div className="topbar-right"><button className="btn" onClick={exportCSV}>↓ Export CSV</button></div>
       </div>
       <div className="content graphs-content">
@@ -1314,7 +1314,7 @@ export function NCRPage() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
+        <div className="topbar-left"><span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
         <div className="topbar-right">
           <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
           {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && !selectingPda && (
@@ -1471,7 +1471,7 @@ export function PurchaseRequestsPage() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Purchase Requests</span></div>
+        <div className="topbar-left"><span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span><span className="topbar-title">Purchase Requests</span></div>
         <div className="topbar-right"><button className="btn btn-primary">+ New Request</button></div>
       </div>
       <div className="content">
@@ -1524,7 +1524,7 @@ export function AdminPage() {
   return (
     <>
       <div className="topbar">
-        <div className="topbar-left"><span className="topbar-breadcrumb">ESAT</span><span className="topbar-sep">›</span><span className="topbar-title">Admin Panel</span></div>
+        <div className="topbar-left"><span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span><span className="topbar-title">Admin Panel</span></div>
       </div>
       <div className="content">
         <div className="two-col">
