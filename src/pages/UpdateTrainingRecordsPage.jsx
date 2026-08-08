@@ -50,7 +50,8 @@ const rowLabel = (r) => {
   return 'Completed';
 };
 const rowExpiryNote = (r) => {
-  if (r.status !== 'completed' || !r.expiry_date) return null;
+  if (r.status !== 'completed') return null;
+  if (!r.expiry_date) return { text: 'No expiry', color: '#9ca3af' }; // no-expiry course
   if (r.expiry_state === 'superseded') return isPastExpiry(r)
     ? { text: `Expired on ${fmtDate(r.expiry_date)}`, color: '#9ca3af' }
     : { text: `Superseded · was valid to ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
@@ -272,20 +273,21 @@ export default function UpdateTrainingRecordsPage() {
   // The chosen group without any ":substate" suffix (drives chip highlight + title).
   const baseGroup = (filters.group || 'all').split(':')[0];
   const validity = selectedCourse?.validity_months;
+  const noExpiry = !!selectedCourse?.no_expiry; // certificate never expires → completion needs no validity
   // A renewal dated on/before the previous completion is rejected, so don't
   // preview an expiry the save can't produce.
   const renewDateInvalid = isRenew && !!form.completed_at && !!modal.completed_at &&
     new Date(form.completed_at) <= new Date(modal.completed_at);
-  const expiryPreview = (outcome === 'completed' && form.completed_at && validity && !renewDateInvalid)
+  const expiryPreview = (outcome === 'completed' && form.completed_at && validity && !noExpiry && !renewDateInvalid)
     ? addMonths(form.completed_at, validity).toLocaleDateString('en-GB') : null;
 
   const canSave = () => {
     if (isRenew) {
-      if (!form.completed_at || validity == null) return false;
+      if (!form.completed_at || (validity == null && !noExpiry)) return false;
       // The server enforces this too; checking here keeps the button honest.
       return !modal.completed_at || new Date(form.completed_at) > new Date(modal.completed_at);
     }
-    if (outcome === 'completed') return !!form.completed_at && validity != null;
+    if (outcome === 'completed') return !!form.completed_at && (validity != null || noExpiry);
     if (outcome === 'pending') return !!form.pending_reason;
     if (outcome === 'scheduled') return !!form.scheduled_date;
     if (outcome === 'not_eligible') return !!form.not_eligible_reason.trim();
@@ -420,8 +422,8 @@ export default function UpdateTrainingRecordsPage() {
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
                       <span style={{ fontWeight: 600, color: '#0f2a4a', fontSize: 17, lineHeight: 1.3 }}>{c.name}</span>
-                      <span style={{ fontSize: 13, color: c.validity_months ? '#6b7280' : '#c0392b' }}>
-                        {c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
+                      <span style={{ fontSize: 13, color: (c.no_expiry || c.validity_months) ? '#6b7280' : '#c0392b' }}>
+                        {c.no_expiry ? 'No expiry' : c.validity_months ? `Valid ${c.validity_months} months` : '⚠ No validity set'}
                       </span>
                       {/* Snapshot: how many valid certificates, and how many still pending. */}
                       <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
@@ -445,10 +447,12 @@ export default function UpdateTrainingRecordsPage() {
               </span>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedCourse.name}</div>
-                <div style={{ fontSize: 12, color: selectedCourse.validity_months ? '#6b7280' : '#c0392b' }}>
-                  {selectedCourse.validity_months
+                <div style={{ fontSize: 12, color: (selectedCourse.no_expiry || selectedCourse.validity_months) ? '#6b7280' : '#c0392b' }}>
+                  {selectedCourse.no_expiry
+                    ? 'No expiry — certificate never expires'
+                    : selectedCourse.validity_months
                     ? `Validity ${selectedCourse.validity_months} months`
-                    : '⚠ No validity period set — completion is blocked until you set one in Admin → Training Courses'}
+                    : '⚠ No validity period set — completion is blocked until you set one (or mark it "No expiry") in Admin → Training Courses'}
                 </div>
               </div>
               {/* The four certificate groups. Each chip is a filter. */}
@@ -646,9 +650,9 @@ export default function UpdateTrainingRecordsPage() {
 
             {outcome === 'completed' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {validity == null && (
+                {validity == null && !noExpiry && (
                   <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, fontSize: 12 }}>
-                    No validity period is set for this training, so an expiry can't be computed. Set one in Admin → Training Courses first.
+                    No validity period is set for this training, so an expiry can't be computed. Set one (or mark it “No expiry”) in Admin → Training Courses first.
                   </div>
                 )}
                 <div className="form-group" style={{ margin: 0 }}>
@@ -657,6 +661,7 @@ export default function UpdateTrainingRecordsPage() {
                   {renewDateInvalid &&
                     <div style={{ fontSize: 12, color: '#c0392b', marginTop: 6 }}>The renewal must be dated after the previous completion ({fmtDate(modal.completed_at)}).</div>}
                   {expiryPreview && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>Expiry will be <b>{expiryPreview}</b> ({validity} months).</div>}
+                  {noExpiry && form.completed_at && !renewDateInvalid && <div style={{ fontSize: 12, color: '#3B6D11', marginTop: 6 }}>This certificate has <b>no expiry</b>.</div>}
                 </div>
 
                 {/* Certificate (PDF only). Optional; needs_certificate just nudges. */}

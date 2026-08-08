@@ -844,8 +844,12 @@ export default function AdminPage() {
                 </div>
                 <div className="form-group" style={{ margin:0, width:170 }}>
                   <label className="form-label">Validity (months)</label>
-                  <input className="form-input" type="number" min="1" value={courseForm.validity_months ?? ''} onChange={e => setCourseForm(f => ({...f, validity_months: e.target.value}))} placeholder="blank = no expiry" />
+                  <input className="form-input" type="number" min="1" value={courseForm.no_expiry ? '' : (courseForm.validity_months ?? '')} disabled={!!courseForm.no_expiry} onChange={e => setCourseForm(f => ({...f, validity_months: e.target.value}))} placeholder={courseForm.no_expiry ? 'No expiry' : 'e.g. 24'} style={courseForm.no_expiry ? { background:'#f3f4f6', color:'#9ca3af' } : undefined} />
                 </div>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, height:38, whiteSpace:'nowrap' }}>
+                  <input type="checkbox" checked={!!courseForm.no_expiry} onChange={e => setCourseForm(f => ({...f, no_expiry: e.target.checked, validity_months: e.target.checked ? '' : f.validity_months}))} style={{ width:16, height:16, accentColor:'#1D9E75' }} />
+                  No expiry
+                </label>
                 <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, height:38, whiteSpace:'nowrap' }}>
                   <input type="checkbox" checked={courseForm.needs_certificate !== false} onChange={e => setCourseForm(f => ({...f, needs_certificate: e.target.checked}))} style={{ width:16, height:16, accentColor:'#1D9E75' }} />
                   Requires certificate
@@ -894,7 +898,7 @@ export default function AdminPage() {
                       {c.name}
                     </span>
                   </td>
-                  <td>{c.validity_months ? `${c.validity_months} mo` : <span style={{ color:'#9ca3af' }}>No expiry</span>}</td>
+                  <td>{c.no_expiry ? <span style={{ color:'#6b7280' }}>No expiry</span> : c.validity_months ? `${c.validity_months} mo` : <span style={{ color:'#c0392b' }}>Not set ⚠</span>}</td>
                   <td>{c.needs_certificate ? 'Required' : <span style={{ color:'#9ca3af' }}>—</span>}</td>
                   <td>{c.record_count > 0 ? c.record_count : <span style={{ color:'#9ca3af' }}>0</span>}</td>
                   <td><span className={`tag ${c.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{c.is_active ? 'Active' : 'Inactive'}</span></td>
