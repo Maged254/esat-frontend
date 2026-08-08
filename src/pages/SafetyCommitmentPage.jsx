@@ -75,8 +75,10 @@ export default function SafetyCommitmentPage() {
             cursor:committed?'default':'pointer',
             boxShadow:'0 4px 20px rgba(29,158,117,0.4)',
             opacity:committed?0.8:1, transition:'all 0.3s ease',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', gap:10,
           }}>
-            {committed ? '✓ Committed — Entering ESAT...' : '🤝 I Commit to Safety — Enter ESAT'}
+            <i className={`ti ${committed ? 'ti-check' : 'ti-shield-check'}`} style={{ fontSize:18 }} aria-hidden="true"></i>
+            {committed ? 'Committed — Entering OneHub…' : 'I Commit to Safety — Enter OneHub'}
           </button>
         </div>
       </div>
