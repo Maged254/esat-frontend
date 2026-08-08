@@ -122,6 +122,29 @@ export default function AdminPage() {
   const [courseForm, setCourseForm] = useState({ name: '', validity_months: '', needs_certificate: true });
   const [courseSaving, setCourseSaving] = useState(false);
   const [courseError, setCourseError] = useState('');
+  const [reordering, setReordering] = useState(false);
+
+  // Move a training up/down in the list. This is the same order the Update
+  // Training Records page shows, so it controls both. We renumber sort_order
+  // sequentially on the reordered list and persist only the courses that moved.
+  const moveCourse = async (course, dir) => {
+    if (reordering) return;
+    const ordered = [...courses].sort((a, b) => ((a.sort_order ?? 99) - (b.sort_order ?? 99)) || a.name.localeCompare(b.name));
+    const i = ordered.findIndex(c => c.id === course.id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ordered.length) return;
+    [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
+    const withOrder = ordered.map((c, idx) => ({ ...c, sort_order: idx }));
+    const changed = withOrder.filter(c => (courses.find(x => x.id === c.id)?.sort_order) !== c.sort_order);
+    setReordering(true);
+    setCourses(withOrder); // optimistic
+    try {
+      await Promise.all(changed.map(c => api.put('/training-courses/' + c.id, c)));
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to reorder');
+      api.get('/training-courses/all').then(r => setCourses(r.data)).catch(logError);
+    } finally { setReordering(false); }
+  };
 
   const saveCourse = async () => {
     if (!courseForm.name.trim()) { setCourseError('Training name is required'); return; }
@@ -888,7 +911,7 @@ export default function AdminPage() {
           <table>
             <thead><tr><th>Training Name</th><th>Validity</th><th>Certificate</th><th>Records</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              {courses.filter(c => !courseSearch || c.name.toLowerCase().includes(courseSearch.toLowerCase())).map(c => (
+              {[...courses].sort((a, b) => ((a.sort_order ?? 99) - (b.sort_order ?? 99)) || a.name.localeCompare(b.name)).filter(c => !courseSearch || c.name.toLowerCase().includes(courseSearch.toLowerCase())).map((c, idx, arr) => (
                 <tr key={c.id}>
                   <td style={{ fontWeight:500 }}>
                     <span style={{ display:'inline-flex', alignItems:'center', gap:10 }}>
@@ -903,7 +926,15 @@ export default function AdminPage() {
                   <td>{c.record_count > 0 ? c.record_count : <span style={{ color:'#9ca3af' }}>0</span>}</td>
                   <td><span className={`tag ${c.is_active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize:10 }}>{c.is_active ? 'Active' : 'Inactive'}</span></td>
                   <td>
-                    <div style={{ display:'flex', gap:6 }}>
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      {!courseSearch && (
+                        <div style={{ display:'flex', gap:2 }}>
+                          <button className="btn btn-secondary" title="Move up" disabled={idx === 0 || reordering}
+                            style={{ fontSize:13, padding:'4px 9px', lineHeight:1 }} onClick={() => moveCourse(c, -1)} aria-label="Move up">↑</button>
+                          <button className="btn btn-secondary" title="Move down" disabled={idx === arr.length - 1 || reordering}
+                            style={{ fontSize:13, padding:'4px 9px', lineHeight:1 }} onClick={() => moveCourse(c, +1)} aria-label="Move down">↓</button>
+                        </div>
+                      )}
                       <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
                         onClick={() => { setEditingCourse(c.id); setCourseForm({ ...c, validity_months: c.validity_months ?? '' }); setCourseError(''); }}>Edit</button>
                       <button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }}
