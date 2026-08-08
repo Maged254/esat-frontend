@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/esat-login-logo.jpg" alt="ESAT" style={{ width: '100%', objectFit:'contain' }}
+          <img src="/onehub-login-logo.jpg" alt="OneHub People" style={{ width: '100%', objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ marginTop: 24, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
-          ESAT v1.0 · Egypro Group
+          OneHub - People
         </p>
       </div>
     </div>
