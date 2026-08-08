@@ -449,7 +449,7 @@ export default function UpdateTrainingRecordsPage() {
                 <div style={{ fontWeight: 600, fontSize: 16, color: '#0f2a4a' }}>{selectedCourse.name}</div>
                 <div style={{ fontSize: 12, color: (selectedCourse.no_expiry || selectedCourse.validity_months) ? '#6b7280' : '#c0392b' }}>
                   {selectedCourse.no_expiry
-                    ? 'No expiry — certificate never expires'
+                    ? 'No expiry'
                     : selectedCourse.validity_months
                     ? `Validity ${selectedCourse.validity_months} months`
                     : '⚠ No validity period set — completion is blocked until you set one (or mark it "No expiry") in Admin → Training Courses'}
