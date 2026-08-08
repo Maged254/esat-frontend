@@ -134,7 +134,9 @@ export default function AdminPage() {
     const j = i + dir;
     if (i < 0 || j < 0 || j >= ordered.length) return;
     [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
-    const withOrder = ordered.map((c, idx) => ({ ...c, sort_order: idx }));
+    // 1-based: the backend stores sort_order with `|| 99`, so 0 would be treated
+    // as "unset" and jump the row to the end. Start at 1 so the first slot sticks.
+    const withOrder = ordered.map((c, idx) => ({ ...c, sort_order: idx + 1 }));
     const changed = withOrder.filter(c => (courses.find(x => x.id === c.id)?.sort_order) !== c.sort_order);
     setReordering(true);
     setCourses(withOrder); // optimistic
