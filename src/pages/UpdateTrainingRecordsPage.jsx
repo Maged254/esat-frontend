@@ -428,6 +428,7 @@ export default function UpdateTrainingRecordsPage() {
                       {/* Snapshot: how many valid certificates, and how many still pending. */}
                       <span style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 2 }}>
                         {summary[c.id]?.valid > 0 && <span className="tag tag-green">{summary[c.id].valid} valid</span>}
+                        {summary[c.id]?.expiring > 0 && <span className="tag tag-amber">{summary[c.id].expiring} expiring soon</span>}
                         {summary[c.id]?.outstanding > 0 && <span className="tag tag-red">{summary[c.id].outstanding} pending</span>}
                       </span>
                     </span>
