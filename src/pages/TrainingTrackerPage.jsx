@@ -47,6 +47,7 @@ const rowExpiryNote = (r) => {
   if (r.expiry_state === 'expiring') return { text: `Expires ${fmtDate(r.expiry_date)}`, color: '#B26B00' };
   return { text: `Valid until ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
 };
+const isImageCert = (name) => /\.(jpe?g|png|heic|heif|gif|webp)$/i.test(name || '');
 
 // Hover tooltip anchored with position:fixed so the table's overflow:auto
 // container never clips it. Used to surface Requested + Last Update (HR).
@@ -68,28 +69,39 @@ function HoverTip({ children, tip }) {
   );
 }
 
-const EMPTY_FILTERS = { status: '', expiry: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
+// filters.group mirrors the Update page: a group key ('valid'|'outstanding'|
+// 'expiring'|'archived'|'all') or "group:substate" to narrow within a group.
+const EMPTY_FILTERS = { group: 'all', pending_reason: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
 
 export default function TrainingTrackerPage() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const pageSize = 25;
-  const [stats, setStats] = useState({ total: 0, requested: 0, scheduled: 0, pending: 0, completed: 0, expiring: 0, expired: 0 });
+  const [stats, setStats] = useState({});
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [courses, setCourses] = useState([]);
+  const [reasons, setReasons] = useState([]);
   const [filterOptions, setFilterOptions] = useState({ projects: [], departments: [], clients: [], organizations: [] });
   const [exporting, setExporting] = useState(false);
 
+  // Certificate preview (view + download only — the Tracker is read-only, so no
+  // upload/rotate/delete, which are the Update page's write actions).
+  const [certPreview, setCertPreview] = useState(null);
+  const [certBlob, setCertBlob] = useState(null);
+  const [certLoading, setCertLoading] = useState(false);
+  const [certViewError, setCertViewError] = useState('');
+
   useEffect(() => {
     api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
+    api.get('/training-pending-reasons').then(r => setReasons(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setFilterOptions(r.data)).catch(logError);
   }, []);
 
-  const buildParams = () => {
-    const p = new URLSearchParams();
-    if (filters.status) p.append('status', filters.status);
-    if (filters.expiry) p.append('expiry', filters.expiry);
+  const baseGroup = (filters.group || 'all').split(':')[0];
+
+  // People-filters shared by the row query, the stats query and the CSV export.
+  const appendPeople = (p) => {
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
@@ -102,21 +114,39 @@ export default function TrainingTrackerPage() {
     return p;
   };
 
+  // Certificate-group selection → backend params (mirrors Update page rowParams).
+  const applyGroup = (p) => {
+    const [grp, sub] = (filters.group || 'all').split(':');
+    if (grp && grp !== 'all') p.append('group', grp);
+    if (sub) {
+      if (grp === 'outstanding') p.append('status', sub);            // requested / scheduled / pending / not_eligible
+      else if (grp === 'archived') {
+        if (sub === 'expired' || sub === 'superseded') p.append('expiry', sub);
+        else if (sub === 'cancelled') p.append('status', 'cancelled');
+        else if (sub === 'exited') p.append('employment_status', 'exit');
+      }
+    }
+    // Pending-reason only applies (and only shows) on All Records / All Pending.
+    if (filters.pending_reason && (filters.group === 'all' || filters.group === 'outstanding')) p.append('pending_reason', filters.pending_reason);
+    return p;
+  };
+
+  const rowParams = () => applyGroup(appendPeople(new URLSearchParams()));
+  // Stat cards always show the group totals for the current people-filters, so
+  // the stats query ignores the group/sub-state selection entirely.
+  const statParams = () => appendPeople(new URLSearchParams());
+
   const load = () => {
-    const p = buildParams();
+    const p = rowParams();
     p.append('page', page); p.append('pageSize', pageSize);
     api.get('/training-records/tracker?' + p).then(r => { setRows(r.data.rows); setTotal(r.data.total); }).catch(logError);
   };
-  const loadStats = () => api.get('/training-records/stats?' + buildParams()).then(r => setStats(r.data)).catch(logError);
+  const loadStats = () => api.get('/training-records/stats?' + statParams()).then(r => setStats(r.data)).catch(logError);
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filters, page]);
   useEffect(() => { setPage(1); loadStats(); /* eslint-disable-next-line */ }, [filters]);
 
   const totalPages = Math.max(Math.ceil(total / pageSize), 1);
-
-  // Stat cards drive the status/expiry filters. Clicking an active card clears it.
-  const setStatus = (s) => setFilters(f => ({ ...f, status: f.status === s ? '' : s, expiry: '' }));
-  const setExpiry = (e) => setFilters(f => ({ ...f, expiry: f.expiry === e ? '' : e, status: '' }));
 
   const statCard = (label, value, opts) => {
     const { active, onClick, color } = opts;
@@ -137,6 +167,39 @@ export default function TrainingTrackerPage() {
     return <span className={`tag ${active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize: 10, marginTop: 3, display: 'inline-block' }}>{active ? 'Active' : titleCase(s)}</span>;
   };
 
+  // --- Certificate viewer (copied from Update page, minus the write actions) ---
+  const certFilename = (rec) => {
+    const ext = (String(rec.original_filename || '').split('.').pop() || 'pdf').toLowerCase();
+    const d = rec.completed_at ? new Date(rec.completed_at).toISOString().slice(0, 10) : '';
+    return `${rec.employee_name}${d ? ` (${d})` : ''}.${ext}`;
+  };
+  // Fetch with the token in a header, wrap the bytes in a local blob: URL, and
+  // render that — no URL/token is ever exposed in the browser.
+  const openCert = async (rec) => {
+    setCertPreview(rec); setCertBlob(null); setCertViewError(''); setCertLoading(true);
+    try {
+      const res = await fetch(`${api.defaults.baseURL}/training-records/${rec.id}/certificate/download?preview=1`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('esat_token')}` },
+      });
+      if (!res.ok) throw new Error();
+      setCertBlob(URL.createObjectURL(await res.blob()));
+    } catch {
+      setCertViewError('Could not load the certificate.');
+    } finally {
+      setCertLoading(false);
+    }
+  };
+  const closeCert = () => {
+    if (certBlob) URL.revokeObjectURL(certBlob);
+    setCertBlob(null); setCertPreview(null); setCertLoading(false); setCertViewError('');
+  };
+  const downloadCert = (rec) => {
+    if (!certBlob) return;
+    const a = document.createElement('a');
+    a.href = certBlob; a.download = certFilename(rec);
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
   const exportCSV = async () => {
     setExporting(true);
     try {
@@ -145,7 +208,7 @@ export default function TrainingTrackerPage() {
       let pg = 1;
       // Pull every matching page (backend caps pageSize at 100).
       for (;;) {
-        const p = buildParams();
+        const p = rowParams();
         p.append('page', pg); p.append('pageSize', 100);
         const res = await api.get('/training-records/tracker?' + p);
         all.push(...res.data.rows);
@@ -187,7 +250,7 @@ export default function TrainingTrackerPage() {
       </div>
 
       <div className="content graphs-content">
-        {/* Filters */}
+        {/* Filters — same search + filter fields as Update Training Records */}
         <div className="card" style={{ marginBottom: 16, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
@@ -224,28 +287,47 @@ export default function TrainingTrackerPage() {
                 <datalist id="tracker-organizations">
                   {filterOptions.organizations.map(o => <option key={o} value={o} />)}
                 </datalist>
-                <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value, expiry: '' }))}>
-                  <option value="">All Status</option>
-                  <option value="requested">Requested</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
+                <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.group} onChange={e => setFilters(p => ({ ...p, group: e.target.value }))} title="Certificate group">
+                  <option value="all">All Records</option>
+                  <optgroup label="Valid Certificates">
+                    <option value="valid">All Valid</option>
+                  </optgroup>
+                  <optgroup label="Pending Certificates">
+                    <option value="outstanding">All Pending</option>
+                    <option value="outstanding:requested">Requested</option>
+                    <option value="outstanding:scheduled">Scheduled</option>
+                    <option value="outstanding:pending">Pending</option>
+                    <option value="outstanding:not_eligible">Not eligible</option>
+                  </optgroup>
+                  <optgroup label="Certificates Expiring Soon">
+                    <option value="expiring">All Expiring soon</option>
+                  </optgroup>
+                  <optgroup label="Archived Certificates">
+                    <option value="archived">All Archived</option>
+                    <option value="archived:expired">Expired</option>
+                    <option value="archived:superseded">Renewed over</option>
+                    <option value="archived:cancelled">Cancelled</option>
+                    <option value="archived:exited">Exited employee</option>
+                  </optgroup>
                 </select>
+                {(filters.group === 'all' || filters.group === 'outstanding') && (
+                  <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.pending_reason} onChange={e => setFilters(p => ({ ...p, pending_reason: e.target.value }))} title="Pending reason">
+                    <option value="">All pending reasons</option>
+                    {reasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
+                  </select>
+                )}
                 <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stat cards */}
-        <div className="stat-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(6,1fr)' }}>
-          {statCard('Total Records', stats.total, { active: !filters.status && !filters.expiry, onClick: () => setFilters(f => ({ ...f, status: '', expiry: '' })), color: 'var(--eg-navy)' })}
-          {statCard('Requested', stats.requested, { active: filters.status === 'requested', onClick: () => setStatus('requested'), color: '#2563eb' })}
-          {statCard('Scheduled', stats.scheduled, { active: filters.status === 'scheduled', onClick: () => setStatus('scheduled'), color: '#0f766e' })}
-          {statCard('Pending', stats.pending, { active: filters.status === 'pending', onClick: () => setStatus('pending'), color: '#A32D2D' })}
-          {statCard('Completed', stats.completed, { active: filters.status === 'completed', onClick: () => setStatus('completed'), color: 'var(--eg-green)' })}
-          {statCard('Expiring ≤60d', stats.expiring, { active: filters.expiry === 'expiring', onClick: () => setExpiry('expiring'), color: '#d97706' })}
+        {/* Stat cards — the four certificate groups; each is a Current Status filter */}
+        <div className="stat-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(4,1fr)' }}>
+          {statCard('Total Records', stats.total ?? 0, { active: baseGroup === 'all', onClick: () => setFilters(f => ({ ...f, group: 'all' })), color: 'var(--eg-navy)' })}
+          {statCard('Valid', stats.grp_valid ?? 0, { active: baseGroup === 'valid', onClick: () => setFilters(f => ({ ...f, group: 'valid' })), color: 'var(--eg-green)' })}
+          {statCard('Pending', stats.grp_outstanding ?? 0, { active: baseGroup === 'outstanding', onClick: () => setFilters(f => ({ ...f, group: 'outstanding' })), color: '#A32D2D' })}
+          {statCard('Expiring Soon', stats.grp_expiring ?? 0, { active: baseGroup === 'expiring', onClick: () => setFilters(f => ({ ...f, group: 'expiring' })), color: '#d97706' })}
         </div>
 
         {/* Table */}
@@ -303,7 +385,7 @@ export default function TrainingTrackerPage() {
                     </td>
                     {/* Project / Client — copied from Update Training Records */}
                     <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
-                    {/* Current Status — copied from Update Training Records (read-only: no cert action) */}
+                    {/* Current Status — copied from Update Training Records (cert = view/download only) */}
                     <td>
                       <span className={`tag ${rowTag(r)}`}>{rowLabel(r)}</span>
                       {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
@@ -311,10 +393,9 @@ export default function TrainingTrackerPage() {
                       {r.prior_expiry_date && r.status !== 'completed' ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
                       {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                       {r.status === 'completed' && (r.has_certificate
-                        ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>📎 Certificate</div>
+                        ? <button type="button" onClick={() => openCert(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
                         : (r.needs_certificate ? <div style={{ fontSize: 11, color: '#B26B00', marginTop: 2 }}>No certificate</div> : ''))}
                       {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
-                      {r.status === 'not_eligible' && r.not_eligible_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.not_eligible_reason}</div> : ''}
                       {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
                     </td>
                   </tr>
@@ -341,6 +422,30 @@ export default function TrainingTrackerPage() {
           )}
         </div>
       </div>
+
+      {/* Certificate preview — rendered from a local blob: URL, so no link/token
+          is ever shown. Images and PDFs both display in-place. View + download
+          only (read-only monitor). */}
+      {certPreview && (
+        <div onClick={closeCert} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 16, padding: 20, maxWidth: '82vw', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f2a4a' }}>{certPreview.course_name} — Certificate<div style={{ fontSize: 12, fontWeight: 400, color: '#6b7280', marginTop: 2 }}>{certPreview.employee_name}</div></div>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button className="btn btn-sm" onClick={() => downloadCert(certPreview)} disabled={!certBlob}>↓ Download</button>
+                <button className="btn btn-sm" onClick={closeCert}>✕ Close</button>
+              </div>
+            </div>
+            {certLoading
+              ? <div style={{ width: '78vw', maxWidth: 780, height: '74vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>Loading certificate…</div>
+              : certViewError
+                ? <div style={{ padding: 40, color: '#c0392b', fontSize: 14 }}>{certViewError}</div>
+                : certBlob && (isImageCert(certPreview.original_filename)
+                    ? <img src={certBlob} alt="Certificate" style={{ maxWidth: '100%', maxHeight: '78vh', borderRadius: 8, display: 'block' }} />
+                    : <iframe title="Certificate" src={certBlob} style={{ width: '78vw', maxWidth: 900, height: '78vh', border: 'none', borderRadius: 8 }} />)}
+          </div>
+        </div>
+      )}
     </>
   );
 }
