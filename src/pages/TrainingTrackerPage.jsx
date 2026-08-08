@@ -16,6 +16,58 @@ const STATUS_META = {
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 
+// --- Current Status rendering, copied from UpdateTrainingRecordsPage so the two
+// pages read a completed record's expiry state identically. ---
+const STATUS_TAG = {
+  requested: 'tag-navy', scheduled: 'tag-navy', pending: 'tag-amber',
+  completed: 'tag-green', cancelled: 'tag-red', cancel: 'tag-red', not_eligible: 'tag-gray', exit: 'tag-gray',
+};
+const isPastExpiry = (r) => r.expiry_date && new Date(r.expiry_date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
+const rowTag = (r) => {
+  if (r.status !== 'completed') return STATUS_TAG[r.status] || 'tag-gray';
+  if (r.expiry_state === 'superseded') return 'tag-gray';
+  if (r.expiry_state === 'expired') return 'tag-red';
+  if (r.expiry_state === 'expiring') return 'tag-amber';
+  return 'tag-green';
+};
+const rowLabel = (r) => {
+  if (r.status !== 'completed') return titleCase(r.status);
+  if (r.expiry_state === 'superseded') return isPastExpiry(r) ? 'Expired' : 'Previous';
+  if (r.expiry_state === 'expired') return 'Expired';
+  if (r.expiry_state === 'expiring') return 'Expiring Soon';
+  return 'Completed';
+};
+const rowExpiryNote = (r) => {
+  if (r.status !== 'completed') return null;
+  if (!r.expiry_date) return { text: 'No expiry', color: '#9ca3af' };
+  if (r.expiry_state === 'superseded') return isPastExpiry(r)
+    ? { text: `Expired on ${fmtDate(r.expiry_date)}`, color: '#9ca3af' }
+    : { text: `Superseded · was valid to ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
+  if (r.expiry_state === 'expired') return { text: `Expired ${fmtDate(r.expiry_date)}`, color: '#c0392b' };
+  if (r.expiry_state === 'expiring') return { text: `Expires ${fmtDate(r.expiry_date)}`, color: '#B26B00' };
+  return { text: `Valid until ${fmtDate(r.expiry_date)}`, color: '#9ca3af' };
+};
+
+// Hover tooltip anchored with position:fixed so the table's overflow:auto
+// container never clips it. Used to surface Requested + Last Update (HR).
+function HoverTip({ children, tip }) {
+  const [pos, setPos] = useState(null);
+  return (
+    <span
+      style={{ position: 'relative', cursor: 'default' }}
+      onMouseEnter={e => { const b = e.currentTarget.getBoundingClientRect(); setPos({ left: b.left, top: b.bottom + 6 }); }}
+      onMouseLeave={() => setPos(null)}
+    >
+      {children}
+      {pos && (
+        <div style={{ position: 'fixed', left: pos.left, top: pos.top, zIndex: 200, background: '#1f2937', color: '#fff', padding: '8px 11px', borderRadius: 6, fontSize: 11, lineHeight: 1.55, boxShadow: '0 6px 20px rgba(0,0,0,.22)', minWidth: 190, maxWidth: 300, pointerEvents: 'none' }}>
+          {tip}
+        </div>
+      )}
+    </span>
+  );
+}
+
 const EMPTY_FILTERS = { status: '', expiry: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
 
 export default function TrainingTrackerPage() {
@@ -78,44 +130,11 @@ export default function TrainingTrackerPage() {
     );
   };
 
-  const renderStatus = (s) => {
-    const m = STATUS_META[s] || { label: titleCase(s), cls: 'tag-gray' };
-    return <span className={`tag ${m.cls}`}>{m.label}</span>;
-  };
-
   // Employee employment status (Active / Exit) shown under the Organization column.
   const renderEmpStatus = (s) => {
     if (!s) return null;
     const active = s === 'active';
     return <span className={`tag ${active ? 'tag-green' : 'tag-gray'}`} style={{ fontSize: 10, marginTop: 3, display: 'inline-block' }}>{active ? 'Active' : titleCase(s)}</span>;
-  };
-
-  const renderExpiry = (r) => {
-    if (r.status !== 'completed' || !r.expiry_date) return <span style={{ color: '#9ca3af' }}>—</span>;
-    const state = r.expiry_state; // 'valid' | 'expiring' | 'expired' | 'superseded'
-    // A superseded record was renewed over: it is history, so it counts as
-    // neither valid nor expired and carries no countdown -- but it keeps its own
-    // label (an expired cert stays "Expired"), just muted.
-    if (state === 'superseded') {
-      const wasExpired = new Date(r.expiry_date).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ color: '#9ca3af' }}>{fmtDate(r.expiry_date)}</span>
-          <span className="tag tag-gray" style={{ fontSize: 10, alignSelf: 'flex-start' }}>{wasExpired ? 'Expired · previous' : 'Previous'}</span>
-        </div>
-      );
-    }
-    const cls = state === 'expired' ? 'tag-red' : state === 'expiring' ? 'tag-amber' : 'tag-green';
-    const days = r.days_to_expiry;
-    const note = state === 'expired'
-      ? `${Math.abs(days)}d ago`
-      : days != null ? `in ${days}d` : '';
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span>{fmtDate(r.expiry_date)}</span>
-        <span className={`tag ${cls}`} style={{ fontSize: 10, alignSelf: 'flex-start' }}>{titleCase(state)}{note ? ` · ${note}` : ''}</span>
-      </div>
-    );
   };
 
   const exportCSV = async () => {
@@ -246,38 +265,61 @@ export default function TrainingTrackerPage() {
                   <th>Training Type</th>
                   <th>Organization</th>
                   <th>Project / Client</th>
-                  <th>Requested</th>
-                  <th>Completed</th>
-                  <th>Expiry</th>
-                  <th>Status</th>
+                  <th>Current Status</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(r => (
                   <tr key={r.id}>
+                    {/* Employee — copied from Update Training Records */}
                     <td>
                       <div className="emp-cell"><div>
-                        <div className="emp-name">{r.employee_name || '—'}</div>
-                        <div className="emp-id">{r.national_id || r.employee_number || '—'}{r.job_title ? ` · ${r.job_title}` : ''}</div>
+                        <div className="emp-name">{r.employee_name}</div>
+                        <div className="emp-id">{r.national_id || r.employee_number || '—'}</div>
+                        {r.job_title ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.job_title}</div> : ''}
                       </div></div>
                     </td>
-                    <td>{r.course_name}</td>
+                    {/* Training Type — hover reveals Requested + Last Update (HR) */}
+                    <td>
+                      <HoverTip tip={
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: .5, textTransform: 'uppercase', opacity: .6 }}>Requested</div>
+                            <div>{fmtDate(r.requested_at)}{r.requested_by_name ? ` · ${r.requested_by_name}` : (r.prior_expiry_date ? ' · Auto · on expiry' : '')}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: .5, textTransform: 'uppercase', opacity: .6 }}>Last Update (HR)</div>
+                            <div>{r.recorded_at ? `${fmtDate(r.recorded_at)}${r.recorded_by_name ? ` · ${r.recorded_by_name}` : ''}` : '—'}</div>
+                          </div>
+                        </div>
+                      }>
+                        <span style={{ borderBottom: '1px dotted #cbd5e1' }}>{r.course_name}</span>
+                      </HoverTip>
+                    </td>
+                    {/* Organization — kept */}
                     <td>
                       <div>{r.organization || '—'}</div>
                       {renderEmpStatus(r.employment_status)}
                     </td>
+                    {/* Project / Client — copied from Update Training Records */}
                     <td>{r.project || '—'}{r.client ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.client}</div> : ''}</td>
-                    <td>{fmtDate(r.requested_at)}{r.requested_by_name ? <div style={{ fontSize: 11, color: '#9ca3af' }}>{r.requested_by_name}</div> : ''}</td>
-                    <td>{fmtDate(r.completed_at)}</td>
-                    <td>{renderExpiry(r)}</td>
+                    {/* Current Status — copied from Update Training Records (read-only: no cert action) */}
                     <td>
-                      {renderStatus(r.status)}
+                      <span className={`tag ${rowTag(r)}`}>{rowLabel(r)}</span>
                       {r.status === 'pending' && r.pending_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.pending_reason}</div> : ''}
+                      {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
+                      {r.prior_expiry_date && r.status !== 'completed' ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
+                      {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
+                      {r.status === 'completed' && (r.has_certificate
+                        ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>📎 Certificate</div>
+                        : (r.needs_certificate ? <div style={{ fontSize: 11, color: '#B26B00', marginTop: 2 }}>No certificate</div> : ''))}
+                      {r.status === 'cancelled' && r.cancel_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.cancel_reason}</div> : ''}
                       {r.status === 'not_eligible' && r.not_eligible_reason ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.not_eligible_reason}</div> : ''}
+                      {r.employment_status === 'exit' ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Employee exited</div> : ''}
                     </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No training records found</td></tr>}
+                {!rows.length && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No training records found</td></tr>}
               </tbody>
             </table>
           </div>
