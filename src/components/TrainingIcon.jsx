@@ -18,6 +18,7 @@ const LEGACY_NAME_TO_KEY = {
   'driving license': 'driving_license',
   'medical certificate': 'medical',
   'ehs induction': 'ehs_induction',
+  'electrical safety': 'electrical_safety',
 };
 
 // Resolve a course's icon: prefer the stored slug (stable across renames);
@@ -33,6 +34,16 @@ export default function TrainingIcon({ iconKey, name, size = 40, color }) {
   const key = resolveIconKey(iconKey, name);
   const icon = key && TRAINING_ICONS[key];
   if (!icon) return <i className="ti ti-certificate" style={{ fontSize: size, color }} aria-hidden="true" />;
+  // Stroke/outline icons (e.g. imported line SVGs) carry raw inner markup and are
+  // drawn with currentColor so they take the same navy/white as the filled ones.
+  if (icon.raw) {
+    return (
+      <svg viewBox={icon.vb} width={size} height={size} fill="none" stroke="currentColor"
+        strokeWidth={icon.sw || 1.9} strokeLinecap="round" strokeLinejoin="round"
+        style={{ color, display: 'block' }} aria-hidden="true" focusable="false"
+        dangerouslySetInnerHTML={{ __html: icon.raw }} />
+    );
+  }
   return (
     <svg viewBox={icon.vb} width={size} height={size} style={{ color, display: 'block' }} aria-hidden="true" focusable="false">
       <path fill="currentColor" fillRule="evenodd" d={icon.d} />
