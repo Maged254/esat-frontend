@@ -36,8 +36,8 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/onehub-login-logo.jpg" alt="OneHub People" style={{ width: '100%', objectFit:'contain' }}
+        <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginTop:-14,marginBottom:26}}>
+          <img src="/onehub-login-logo.jpg" alt="OneHub People" style={{ height: 56, width: 'auto', maxWidth: '100%', objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
