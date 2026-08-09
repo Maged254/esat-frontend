@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
+import { useAuth } from '../utils/AuthContext';
 
 // Known status values (the lifecycle is still being finalised, so anything
 // unrecognised falls back to a neutral title-cased tag).
@@ -75,6 +76,8 @@ function HoverTip({ children, tip }) {
 const EMPTY_FILTERS = { group: 'all', pending_reason: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
 
 export default function TrainingTrackerPage() {
+  const { user } = useAuth();
+  const canExport = ['admin', 'hr'].includes(user?.role);
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -201,30 +204,46 @@ export default function TrainingTrackerPage() {
     document.body.appendChild(a); a.click(); a.remove();
   };
 
+  // Pull every page of one certificate group, restricted to ACTIVE employees.
+  // Keeps the current people-filters (course/project/etc.) but ignores the
+  // on-screen Current Status selection — the export has its own fixed scope.
+  const fetchAllForGroup = async (group) => {
+    const out = [];
+    let pg = 1;
+    for (;;) {
+      const p = appendPeople(new URLSearchParams());
+      p.append('group', group);
+      p.append('employment_status', 'active');
+      p.append('page', pg); p.append('pageSize', 100);
+      const res = await api.get('/training-records/tracker?' + p);
+      out.push(...res.data.rows);
+      if (out.length >= res.data.total || res.data.rows.length === 0) break;
+      pg += 1;
+      if (pg > 100) break; // hard stop
+    }
+    return out;
+  };
+
+  // Export = actionable follow-up list: Pending + Expiring Soon certificates,
+  // active employees only.
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const all = [];
-      let pg = 1;
-      // Pull every matching page (backend caps pageSize at 100).
-      for (;;) {
-        const p = rowParams();
-        p.append('page', pg); p.append('pageSize', 100);
-        const res = await api.get('/training-records/tracker?' + p);
-        all.push(...res.data.rows);
-        if (all.length >= res.data.total || res.data.rows.length === 0) break;
-        pg += 1;
-        if (pg > 100) break; // hard stop
-      }
+      const pending = await fetchAllForGroup('outstanding');   // Pending
+      const expiring = await fetchAllForGroup('expiring');     // Expiring ≤60d
+      // The two groups are disjoint, but dedupe by id defensively.
+      const byId = new Map();
+      [...pending, ...expiring].forEach(r => byId.set(r.id, r));
+      const all = [...byId.values()];
+
       // Blank (not "—") for empty date cells so Excel columns read cleanly.
       const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
 
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet('Trainings Tracker');
+      const ws = wb.addWorksheet('Pending & Expiring');
       ws.columns = [
         { header: 'Employee', key: 'employee', width: 26 },
         { header: 'National ID', key: 'national_id', width: 14 },
-        { header: 'Employee No', key: 'employee_no', width: 13 },
         { header: 'Job Title', key: 'job_title', width: 22 },
         { header: 'Organization', key: 'organization', width: 24 },
         { header: 'Employment Status', key: 'employment_status', width: 16 },
@@ -232,20 +251,19 @@ export default function TrainingTrackerPage() {
         { header: 'Project', key: 'project', width: 16 },
         { header: 'Client', key: 'client', width: 14 },
         { header: 'Status', key: 'status', width: 14 },
-        { header: 'Requested', key: 'requested', width: 12 },
-        { header: 'Requested By', key: 'requested_by', width: 20 },
+        { header: 'Pending Reason', key: 'pending_reason', width: 28 },
         { header: 'Scheduled', key: 'scheduled', width: 12 },
         { header: 'Completed', key: 'completed', width: 12 },
         { header: 'Expiry', key: 'expiry', width: 12 },
         { header: 'Expiry State', key: 'expiry_state', width: 13 },
       ];
       all.forEach(r => ws.addRow({
-        employee: r.employee_name || '', national_id: r.national_id || '', employee_no: r.employee_number || '',
+        employee: r.employee_name || '', national_id: r.national_id || '',
         job_title: r.job_title || '', organization: r.organization || '',
         employment_status: r.employment_status ? titleCase(r.employment_status) : '',
         training_type: r.course_name || '', project: r.project || '', client: r.client || '',
         status: STATUS_META[r.status]?.label || titleCase(r.status),
-        requested: xd(r.requested_at), requested_by: r.requested_by_name || '',
+        pending_reason: r.pending_reason || '',
         scheduled: xd(r.scheduled_date), completed: xd(r.completed_at),
         expiry: xd(r.expiry_date), expiry_state: r.expiry_state ? titleCase(r.expiry_state) : '',
       }));
@@ -256,14 +274,14 @@ export default function TrainingTrackerPage() {
       header.alignment = { vertical: 'middle' };
       header.height = 20;
       ws.views = [{ state: 'frozen', ySplit: 1 }];
-      ws.autoFilter = { from: 'A1', to: 'P1' };
+      ws.autoFilter = { from: 'A1', to: 'N1' };
 
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'OneHub_Trainings_Tracker_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      a.download = 'OneHub_Pending_Expiring_Trainings_' + new Date().toISOString().slice(0, 10) + '.xlsx';
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) { logError(e); alert('Export failed'); }
@@ -279,7 +297,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          <button className="btn" onClick={exportExcel} disabled={exporting}>↓ {exporting ? 'Exporting...' : 'Export Excel'}</button>
+          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports Pending + Expiring Soon certificates for active employees (respects the filters above, ignores the Current Status selection)">↓ {exporting ? 'Exporting...' : 'Export Pending / Expiring'}</button>}
         </div>
       </div>
 
