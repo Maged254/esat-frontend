@@ -351,7 +351,7 @@ export default function AdminPage() {
   };
 
   const toggleActive = async (user) => {
-    const res = await api.put(`/users/${user.id}`, { ...user, password: '' });
+    const res = await api.put(`/users/${user.id}`, { ...user, is_active: !user.is_active, password: '' });
     setUsers(prev => prev.map(u => u.id === user.id ? {...u, is_active: res.data.is_active} : u));
   };
 
