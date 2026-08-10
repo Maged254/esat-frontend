@@ -282,7 +282,9 @@ export function EmployeesPage({ outsource = false }) {
   // Add/Edit Employee are admin-always, or HR with the task assigned (Admin → HR Tasks Managers).
   // On the Outsource page, an outsource subtype-manager (fleet/supervisor) can also add/edit.
   const canAddEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('add_employee')) || (outsource && outsourceAccess.length > 0);
-  const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee')) || (outsource && outsourceAccess.length > 0);
+  // HR's edit_employee task applies to the Employees page only; the Outsource page
+  // is edited by admins and outsource-managers (Fleet) via outsourceAccess.
+  const canEditEmployee = userRole === 'admin' || (!outsource && userRole === 'hr' && hrTasks.includes('edit_employee')) || (outsource && outsourceAccess.length > 0);
   // Organizations the current user may add an outsource resource under (admins: all).
   const manageableOrgs = outsourceEntities.filter(e => userRole === 'admin' || outsourceAccess.includes(e.type));
   const showSanAudit = userRole !== 'hr'; // HR doesn't need the SAN / Last Audit (audit-compliance) column
