@@ -49,16 +49,26 @@ export default function Layout() {
 
         <nav className="nav">
           {NAV.map((item, i) => {
+            // A page is visible when the user can actually reach it:
+            //  - /profile: anyone signed in
+            //  - /admin: admin only (its route uses ProtectedRoute roles=['admin'])
+            //  - everything else: gated by page_access, same as PageGuard — so an
+            //    admin-assigned page shows regardless of the coarse role list.
+            const canSee = (it) =>
+              it.to === '/profile' ? true
+              : it.to === '/admin' ? user?.role === 'admin'
+              : user?.role === 'admin' ? true
+              : Array.isArray(user?.page_access) && user.page_access.includes(it.to);
             if (item.section) {
-              if (item.roles && !item.roles.includes(user?.role)) return null;
+              // Show a section header only if ≥1 real page under it is visible.
+              // /profile is always-on and shouldn't anchor a section (it would
+              // otherwise show the "Admin" header for non-admins).
+              const children = [];
+              for (let j = i + 1; j < NAV.length && !NAV[j].section; j++) children.push(NAV[j]);
+              if (!children.some(it => it.to !== '/profile' && canSee(it))) return null;
               return <div key={i} className="nav-section">{item.section}</div>;
             }
-            if (item.roles && !item.roles.includes(user?.role)) return null;
-            if (
-              user?.role !== 'admin' &&
-              item.to !== '/profile' &&
-              !(Array.isArray(user?.page_access) && user.page_access.includes(item.to))
-            ) return null;
+            if (!canSee(item)) return null;
             return (
               <NavLink
                 key={item.to}
