@@ -300,7 +300,7 @@ export default function UpdateTrainingRecordsPage() {
     // Validate the certificate BEFORE recording the outcome, so a bad file (e.g.
     // over 1MB) never leaves the status changed with the cert missing.
     if (wantsCert) {
-      if (certFile.size > 1024 * 1024) { setError('Certificate must be 1MB or smaller.'); return; }
+      if (certFile.size > 2 * 1024 * 1024) { setError('Certificate must be 2MB or smaller.'); return; }
       const okType = /\.pdf$/i.test(certFile.name) || (certFile.type || '') === 'application/pdf';
       if (!okType) { setError('Certificate must be a PDF.'); return; }
     }
@@ -667,7 +667,7 @@ export default function UpdateTrainingRecordsPage() {
 
                 {/* Certificate (PDF only). Optional; needs_certificate just nudges. */}
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF, up to 1MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
+                  <label className="form-label">Certificate <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 400 }}>— PDF, up to 2MB{selectedCourse?.needs_certificate ? '' : ' · optional'}</span></label>
                   {certHas && !certFile && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, fontSize: 13 }}>
                       <button type="button" onClick={() => openCert(modal)} style={{ color: 'var(--eg-navy)', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13 }}>📎 View current certificate</button>
