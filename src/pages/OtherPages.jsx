@@ -285,6 +285,9 @@ export function EmployeesPage({ outsource = false }) {
   // HR's edit_employee task applies to the Employees page only; the Outsource page
   // is edited by admins and outsource-managers (Fleet) via outsourceAccess.
   const canEditEmployee = userRole === 'admin' || (!outsource && userRole === 'hr' && hrTasks.includes('edit_employee')) || (outsource && outsourceAccess.length > 0);
+  // Per-row edit: admin edits everyone; on the Employees page a non-admin (HR)
+  // may edit only Inhouse/Intern rows — outsource rows are admin-only.
+  const canEditRow = (e) => userRole === 'admin' || (outsource ? canEditEmployee : (canEditEmployee && ['Inhouse','Intern'].includes(e.classification)));
   // Organizations the current user may add an outsource resource under (admins: all).
   const manageableOrgs = outsourceEntities.filter(e => userRole === 'admin' || outsourceAccess.includes(e.type));
   const showSanAudit = userRole !== 'hr'; // HR doesn't need the SAN / Last Audit (audit-compliance) column
@@ -650,7 +653,7 @@ export function EmployeesPage({ outsource = false }) {
                       </div>
                     ) : <span style={{color:'#9ca3af'}}>—</span>}
                   </td>}
-                  {canEditEmployee && <td><button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={userRole!=='admin' && e.employment_status!=='active'} title={(userRole!=='admin' && e.employment_status!=='active')?'Employee has exited — cannot edit':''}>Edit</button></td>}
+                  {canEditEmployee && <td>{canEditRow(e) ? <button className="btn btn-sm" onClick={()=>openEdit(e)} disabled={userRole!=='admin' && e.employment_status!=='active'} title={(userRole!=='admin' && e.employment_status!=='active')?'Employee has exited — cannot edit':''}>Edit</button> : <span style={{color:'#9ca3af'}}>—</span>}</td>}
                   {canAssignPpe && <td>
                     <div style={{display:'flex',gap:6}}>
                       <button className="btn btn-sm" onClick={()=>openPpeAssign(e)} title="Assign PPE" style={{background:e.ppe_assigned?'#d1fae5':undefined,borderColor:e.ppe_assigned?'#1D9E75':undefined,color:e.ppe_assigned?'#1D9E75':undefined}}>PPE</button>
