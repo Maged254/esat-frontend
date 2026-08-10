@@ -563,6 +563,7 @@ export function EmployeesPage({ outsource = false }) {
                   <option value="">All Clients</option>
                   {filterOptions.clients.map(c=><option key={c} value={c}>{c}</option>)}
                 </select>
+                {showSanAudit && <>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:155}} value={filters.san} onChange={e=>setFilters(p=>({...p,san:e.target.value}))}>
                   <option value="">All</option>
                   <option value="yes">Safety Audit Needed</option>
@@ -574,6 +575,7 @@ export function EmployeesPage({ outsource = false }) {
                   <option value="2months">1 - 2 Months</option>
                   <option value="over2months">More than 2 Months</option>
                 </select>
+                </>}
                 <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({status:'active',department:'',resource_type:'',classification:'',search:'',national_id:'',employee_number:'',project:'',client:'',san:'',job_title:'',audit_age:'',activeStat:'active'})}>✕ Clear</button>
               </div>
             </div>
