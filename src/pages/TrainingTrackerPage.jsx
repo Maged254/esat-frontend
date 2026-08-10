@@ -73,7 +73,7 @@ function HoverTip({ children, tip }) {
 
 // filters.group mirrors the Update page: a group key ('valid'|'outstanding'|
 // 'expiring'|'archived'|'all') or "group:substate" to narrow within a group.
-const EMPTY_FILTERS = { group: 'all', pending_reason: '', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
+const EMPTY_FILTERS = { group: 'all', pending_reason: '', employment_status: 'active', search: '', national_id: '', job_title: '', course_id: '', resource_type: '', department: '', project: '', client: '', organization: '' };
 
 export default function TrainingTrackerPage() {
   const { user } = useAuth();
@@ -135,10 +135,20 @@ export default function TrainingTrackerPage() {
     return p;
   };
 
-  const rowParams = () => applyGroup(appendPeople(new URLSearchParams()));
+  const rowParams = () => {
+    const p = applyGroup(appendPeople(new URLSearchParams()));
+    // Honour the Employment Status filter, except when the group already pins
+    // "Exited employee" (archived:exited) — applyGroup sets exit there.
+    if (filters.employment_status && filters.group !== 'archived:exited') p.append('employment_status', filters.employment_status);
+    return p;
+  };
   // Stat cards always show the group totals for the current people-filters, so
   // the stats query ignores the group/sub-state selection entirely.
-  const statParams = () => appendPeople(new URLSearchParams());
+  const statParams = () => {
+    const p = appendPeople(new URLSearchParams());
+    if (filters.employment_status) p.append('employment_status', filters.employment_status);
+    return p;
+  };
 
   const load = () => {
     const p = rowParams();
@@ -335,6 +345,11 @@ export default function TrainingTrackerPage() {
                   <option value="">All Clients</option>
                   {filterOptions.clients.map(cl => <option key={cl} value={cl}>{cl}</option>)}
                 </select>
+                <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 130 }} value={filters.employment_status} onChange={e => setFilters(p => ({ ...p, employment_status: e.target.value }))} title="Employment status">
+                  <option value="active">Active</option>
+                  <option value="exit">Exited</option>
+                  <option value="">All Employees</option>
+                </select>
                 <input className="form-input" list="tracker-organizations" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 170 }} placeholder="All Organizations" value={filters.organization} onChange={e => setFilters(p => ({ ...p, organization: e.target.value }))} />
                 <datalist id="tracker-organizations">
                   {filterOptions.organizations.map(o => <option key={o} value={o} />)}
@@ -376,7 +391,7 @@ export default function TrainingTrackerPage() {
 
         {/* Stat cards — the four certificate groups; each is a Current Status filter */}
         <div className="stat-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(4,1fr)' }}>
-          {statCard('Total Records', stats.total ?? 0, { active: baseGroup === 'all', onClick: () => setFilters(f => ({ ...f, group: 'all' })), color: 'var(--eg-navy)' })}
+          {statCard('Current Requested Trainings', stats.total ?? 0, { active: baseGroup === 'all', onClick: () => setFilters(f => ({ ...f, group: 'all' })), color: 'var(--eg-navy)' })}
           {statCard('Valid', stats.grp_valid ?? 0, { active: baseGroup === 'valid', onClick: () => setFilters(f => ({ ...f, group: 'valid' })), color: 'var(--eg-green)' })}
           {statCard('Pending', stats.grp_outstanding ?? 0, { active: baseGroup === 'outstanding', onClick: () => setFilters(f => ({ ...f, group: 'outstanding' })), color: '#A32D2D' })}
           {statCard('Expiring Soon', stats.grp_expiring ?? 0, { active: baseGroup === 'expiring', onClick: () => setFilters(f => ({ ...f, group: 'expiring' })), color: '#d97706' })}
