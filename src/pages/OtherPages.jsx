@@ -285,7 +285,8 @@ export function EmployeesPage({ outsource = false }) {
   const canEditEmployee = userRole === 'admin' || (userRole === 'hr' && hrTasks.includes('edit_employee')) || (outsource && outsourceAccess.length > 0);
   // Organizations the current user may add an outsource resource under (admins: all).
   const manageableOrgs = outsourceEntities.filter(e => userRole === 'admin' || outsourceAccess.includes(e.type));
-  const colCount = 6 + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
+  const showSanAudit = userRole !== 'hr'; // HR doesn't need the SAN / Last Audit (audit-compliance) column
+  const colCount = (showSanAudit ? 6 : 5) + (canEditEmployee ? 2 : 0) + (canAssignPpe ? 1 : 0);
 
   // Fields the "Update Resource's Details" modal exposes as Before → After rows.
   const editFields = [
@@ -614,7 +615,7 @@ export function EmployeesPage({ outsource = false }) {
             <span className="tag tag-navy" style={{whiteSpace:'nowrap'}}>{total} employee{total===1?'':'s'}</span>
           </div>
           <table className="table-hover-soft">
-            <thead><tr><th>Employee</th><th>Organization</th><th>Classification</th><th>Job Title / Department</th><th>Project / Client</th><th>SAN / Last Audit</th>{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
+            <thead><tr><th>Employee</th><th>Organization</th><th>Classification</th><th>Job Title / Department</th><th>Project / Client</th>{showSanAudit && <th>SAN / Last Audit</th>}{canEditEmployee && <th>Last Update (HR)</th>}{canEditEmployee && <th>Edit</th>}{canAssignPpe && <th>PPE</th>}</tr></thead>
             <tbody>
               {employees.map(e => (
                 <tr key={e.id}>
@@ -633,10 +634,10 @@ export function EmployeesPage({ outsource = false }) {
                     <div>{e.project||'—'}</div>
                     {e.client && <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{e.client}</div>}
                   </td>
-                  <td>
+                  {showSanAudit && <td>
                     <div>{userRole === 'admin' ? <button onClick={()=>toggleSAN(e)} className={`tag ${e.san!==false?'tag-green':'tag-red'}`} style={{border:'none',cursor:'pointer'}}>{e.san!==false?'Yes':'No'}</button> : <span className={`tag ${e.san!==false?'tag-green':'tag-red'}`}>{e.san!==false?'Yes':'No'}</span>}</div>
                     <div style={{marginTop:4,fontSize:11}}>{e.last_audit_date ? <><span className={`dot ${e.days_since_audit>30?'dot-red':'dot-green'}`}></span>{e.days_since_audit}d ago</> : <span style={{color:'#9ca3af'}}>Never</span>}</div>
-                  </td>
+                  </td>}
                   {canEditEmployee && <td>
                     {e.last_edited_by_name ? (
                       <div style={{fontSize:12}} title={e.last_edit_reason ? `Reason: ${e.last_edit_reason}` : ''}>
