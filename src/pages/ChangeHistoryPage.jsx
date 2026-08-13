@@ -10,6 +10,7 @@ const ACTION_META = {
   update:     { label: 'Update',     cls: 'tag-navy' },
   exit:       { label: 'Exit',       cls: 'tag-red' },
   reactivate: { label: 'Reactivate', cls: 'tag-green' },
+  add:        { label: 'Onboarded',  cls: 'tag-green' },
 };
 
 const EMPTY = { from: daysAgo(30), to: today(), action: '', search: '' };
@@ -138,6 +139,7 @@ export default function ChangeHistoryPage() {
             <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} value={filters.action} onChange={e => setFilters(f => ({ ...f, action: e.target.value }))}>
               <option value="">All Actions</option>
               <option value="update">Update</option>
+              <option value="add">Onboarded</option>
               <option value="exit">Exit</option>
               <option value="reactivate">Reactivate</option>
             </select>
