@@ -587,7 +587,11 @@ export default function UpdateTrainingRecordsPage() {
                           // Archived = reference only (expired / replaced / cancelled / exited).
                           // The renewal, when a cert expires, is its own auto-opened request.
                           ? <span style={{ fontSize: 11, color: '#9ca3af' }}>—</span>
-                          : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Update →</button>}
+                          // An expiring-soon (still valid) certificate renews into a NEW record
+                          // instead of overwriting the current one in place.
+                          : (r.status === 'completed' && r.expiry_state === 'expiring')
+                            ? <button className="btn btn-primary btn-sm" onClick={() => openModal(r, 'renew')}>Renew →</button>
+                            : <button className="btn btn-primary btn-sm" onClick={() => openModal(r)}>Update →</button>}
                       </td>
                     </tr>
                   ))}
@@ -640,7 +644,7 @@ export default function UpdateTrainingRecordsPage() {
                 Previous certificate: completed <b>{fmtDate(modal.completed_at)}</b>,
                 {modal.expiry_state === 'expired' ? ' expired ' : ' expires '}
                 <b style={{ color: modal.expiry_state === 'expired' ? '#c0392b' : '#B26B00' }}>{fmtDate(modal.expiry_date)}</b>.
-                <div style={{ marginTop: 4, color: '#6b7280' }}>This creates a <b>new</b> record. The previous certificate stays on file as history, keeping its Expired status.</div>
+                <div style={{ marginTop: 4, color: '#6b7280' }}>This creates a <b>new</b> record. The previous certificate stays on file as history.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
