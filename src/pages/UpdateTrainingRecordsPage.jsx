@@ -460,6 +460,7 @@ export default function UpdateTrainingRecordsPage() {
               {stats && (
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {[
+                    { key: 'all', label: 'All Records', value: stats.total || 0, tag: 'tag-navy' },
                     { key: 'valid', label: 'Valid', value: stats.grp_valid || 0, tag: 'tag-green' },
                     { key: 'outstanding', label: 'Pending', value: stats.grp_outstanding || 0, tag: 'tag-red' },
                     { key: 'expiring', label: 'Expiring ≤60d', value: stats.grp_expiring || 0, tag: 'tag-amber' },
