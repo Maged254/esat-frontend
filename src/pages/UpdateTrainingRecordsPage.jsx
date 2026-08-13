@@ -229,6 +229,10 @@ export default function UpdateTrainingRecordsPage() {
             api.get('/training-records/tracker?' + rowParams(courseId, i + 2, PAGE_SIZE)))
         );
         rest.forEach(r => { all = all.concat(r.data.rows || []); });
+        // Guard against duplicate rows across pages (unstable pagination) — duplicate
+        // React keys corrupt reconciliation and leave stale rows on screen.
+        const seen = new Set();
+        all = all.filter(r => (seen.has(r.id) ? false : (seen.add(r.id), true)));
       }
       if (reqId === reqRef.current) setRows(all);
     } catch {
