@@ -210,7 +210,7 @@ export default function AdminPage() {
   };
 
   const openEdit = (p) => { setEditingPpe(p.id); setPpeForm({ ...p }); };
-  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'body_protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true, needs_pda:false }); };
+  const openNew = () => { setEditingPpe('new'); setPpeForm({ name:'', category:'body_protection', has_size:false, size_type:'clothing', sort_order:99, is_active:true, pda_projects:[] }); };
   const cancelEdit = () => { setEditingPpe(null); setPpeForm({}); };
   const deletePpe = async (id, name) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
@@ -727,12 +727,41 @@ export default function AdminPage() {
                     <input type="checkbox" checked={!!ppeForm.is_active} onChange={e => setPpeForm(f=>({...f, is_active:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
                     Active
                   </label>
-                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer' }}>
-                    <input type="checkbox" checked={!!ppeForm.needs_pda} onChange={e => setPpeForm(f=>({...f, needs_pda:e.target.checked}))} style={{ accentColor:'#1D9E75' }} />
-                    Needs PDA
-                  </label>
                 </div>
               </div>
+              {/* PDA (Project Director Approval) requirement, per project. */}
+              {(() => {
+                const pda = ppeForm.pda_projects || [];
+                const pdaAll = pda.includes('*');
+                const toggleProject = (pr, on) => setPpeForm(f => {
+                  const cur = (f.pda_projects || []).filter(x => x !== '*');
+                  return { ...f, pda_projects: on ? [...cur, pr] : cur.filter(x => x !== pr) };
+                });
+                return (
+                  <div style={{ marginBottom:12 }}>
+                    <label style={{ fontSize:12, fontWeight:600, color:'#64748b', display:'block', marginBottom:2 }}>Needs PDA (Project Director Approval) for</label>
+                    <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6 }}>Requests for this item route through Project Director approval only for the projects selected here. Leave empty for none.</div>
+                    <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', marginBottom:6 }}>
+                      <input type="checkbox" checked={pdaAll} onChange={e => setPpeForm(f => ({ ...f, pda_projects: e.target.checked ? ['*'] : [] }))} style={{ accentColor:'#1D9E75' }} />
+                      All projects
+                    </label>
+                    {!pdaAll && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, maxHeight:150, overflowY:'auto', border:'1px solid #e5e7eb', borderRadius:8, padding:8 }}>
+                        {allProjects.length === 0 && <span style={{ fontSize:12, color:'#94a3b8' }}>No projects found.</span>}
+                        {allProjects.map(pr => {
+                          const on = pda.includes(pr);
+                          return (
+                            <label key={pr} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12, cursor:'pointer', border:`1px solid ${on ? 'var(--eg-navy)' : '#e5e7eb'}`, background: on ? '#eef4ff' : 'white', borderRadius:14, padding:'3px 10px' }}>
+                              <input type="checkbox" checked={on} onChange={e => toggleProject(pr, e.target.checked)} style={{ accentColor:'#1D9E75' }} />
+                              {pr}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <div style={{ display:'flex', gap:8 }}>
                 <button className="btn btn-primary" style={{ fontSize:13 }} onClick={savePpe} disabled={ppeSaving}>{ppeSaving ? 'Saving...' : 'Save'}</button>
                 <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={cancelEdit}>Cancel</button>
@@ -757,7 +786,12 @@ export default function AdminPage() {
                   <td><span className="tag tag-gray" style={{ fontSize:10 }}>{CATEGORY_LABELS[p.category] || p.category}</span></td>
                   <td>{p.has_size ? <span className="tag tag-teal" style={{ fontSize:10 }}>{p.size_type === 'shoe' ? '38–46' : p.size_type === 'harness' ? 'S–XL' : 'S–XXXL'}</span> : '—'}</td>
                   <td>{p.is_active ? <span className="tag tag-green" style={{ fontSize:10 }}>Active</span> : <span className="tag tag-gray" style={{ fontSize:10 }}>Inactive</span>}</td>
-                  <td>{p.needs_pda ? <span className="tag tag-teal" style={{ fontSize:10 }}>Required</span> : '—'}</td>
+                  <td>{(() => {
+                    const pda = p.pda_projects || [];
+                    if (pda.includes('*')) return <span className="tag tag-teal" style={{ fontSize:10 }}>All projects</span>;
+                    if (pda.length) return <span className="tag tag-teal" style={{ fontSize:10 }} title={pda.join(', ')}>{pda.length} project{pda.length > 1 ? 's' : ''}</span>;
+                    return '—';
+                  })()}</td>
                   <td style={{display:'flex',gap:6}}><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px' }} onClick={() => openEdit(p)}>Edit</button><button className="btn btn-secondary" style={{ fontSize:12, padding:'4px 10px', color:'#e53e3e' }} onClick={() => deletePpe(p.id, p.name)}>Delete</button></td>
                 </tr>
               ))}
