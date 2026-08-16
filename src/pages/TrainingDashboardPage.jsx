@@ -196,17 +196,6 @@ const ChartCard = ({ title, height, children }) => (
   </div>
 );
 
-// Percentage drawn inside each donut slice (hidden on slices too small to fit —
-// those still show in the tooltip and legend).
-const PieSlicePct = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (!percent || percent < 0.06) return null;
-  const RAD = Math.PI / 180;
-  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + r * Math.cos(-midAngle * RAD);
-  const y = cy + r * Math.sin(-midAngle * RAD);
-  return <text x={x} y={y} fill="#fff" fontSize={11} fontWeight={700} textAnchor="middle" dominantBaseline="central">{Math.round(percent * 100)}%</text>;
-};
-
 function Donut({ k, metric = 'all', twoUp = false }) {
   const pfx = useId().replace(/[:]/g, ''); // unique filter id per donut instance
   const all = [
@@ -224,8 +213,8 @@ function Donut({ k, metric = 'all', twoUp = false }) {
   if (grand === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   if (single && center === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>None in this category.</div>;
   const shown = rows.filter(d => d.value > 0);
-  // The ring flex-fills whatever height is left after the pill + legend, using
-  // percentage radii — so the legend never clips no matter how short the card is.
+  // The ring flex-fills whatever height is left after the pill, using percentage
+  // radii, so it scales cleanly no matter how short the card is.
   // The ring (donut + centered total) — reused by both layouts.
   const chart = (
     <>
@@ -238,7 +227,7 @@ function Donut({ k, metric = 'all', twoUp = false }) {
           </defs>
           <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="86%"
             paddingAngle={shown.length > 1 ? 3 : 0} cornerRadius={8} stroke="none" isAnimationActive={false}
-            label={single ? false : PieSlicePct} labelLine={false}>
+            label={false} labelLine={false}>
             {shown.map(d => <Cell key={d.name} fill={d.color} style={{ filter: `url(#donutShadow-${pfx})` }} />)}
           </Pie>
           <Tooltip content={<PieTip total={center} />} wrapperStyle={{ zIndex: 60 }} />
@@ -250,19 +239,9 @@ function Donut({ k, metric = 'all', twoUp = false }) {
       </div>
     </>
   );
-  const legend = (
-    <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginTop: 6, flexShrink: 0 }}>
-      {rows.map(d => (
-        <span key={d.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151' }}>
-          <span style={{ width: 11, height: 11, borderRadius: 3, background: d.color, display: 'inline-block' }} />{d.name} <b>{fmt(d.value)}</b>{!single && <span style={{ opacity: 0.6 }}> ({grand ? Math.round(d.value / grand * 100) : 0}%)</span>}
-        </span>
-      ))}
-    </div>
-  );
-
   // Double mode (two resource sections): put the pie on the left (shifted a bit
-  // left of centre) with a compact compliance badge to its RIGHT, legend below —
-  // saves the vertical room the short cards don't have, keeping the pie big.
+  // left of centre) with a compact compliance badge to its RIGHT — saves the
+  // vertical room the short cards don't have, keeping the pie big.
   if (!single && twoUp) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -276,14 +255,13 @@ function Donut({ k, metric = 'all', twoUp = false }) {
             <span style={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1 }}>Compliant</span>
           </div>
         </div>
-        {legend}
       </div>
     );
   }
 
   // Single mode (one section, fills the page) and metric-focused view: pie stays
   // vertically centred; when the compliance pill is shown it centres in the gap
-  // between the ring and the legend.
+  // below the ring.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {!single && <div style={{ flex: 1, minHeight: 0 }} />}
@@ -295,7 +273,6 @@ function Donut({ k, metric = 'all', twoUp = false }) {
           </span>
         </div>
       )}
-      {legend}
     </div>
   );
 }
