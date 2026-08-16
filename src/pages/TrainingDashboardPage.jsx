@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState, useId, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useState, useId, useRef, useCallback } from 'react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import api, { logError } from '../utils/api';
 import TRAINING_ICONS from '../trainingIcons';
@@ -198,6 +198,22 @@ const ChartCard = ({ title, height, children }) => (
 
 function Donut({ k, metric = 'all', twoUp = false }) {
   const pfx = useId().replace(/[:]/g, ''); // unique filter id per donut instance
+  // Measure the ring area so the centre total can scale with the pie. Callback ref so
+  // it attaches when the chart actually mounts (the card renders a "no data" placeholder
+  // first, before the metrics load — a mount-effect would miss the later chart element).
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const roRef = useRef(null);
+  const wrapRef = useCallback((el) => {
+    if (roRef.current) { roRef.current.disconnect(); roRef.current = null; }
+    if (!el) return;
+    const measure = () => { const r = el.getBoundingClientRect(); setSize({ w: r.width, h: r.height }); };
+    measure(); // immediate — reliable even where ResizeObserver is throttled
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      roRef.current = ro;
+    }
+  }, []);
   const all = [
     { name: 'Valid', value: k.valid || 0, color: C.valid.solid, key: 'valid' },
     { name: 'About to Expire', value: k.expiring || 0, color: C.expiring.solid, key: 'expiring' },
@@ -213,19 +229,22 @@ function Donut({ k, metric = 'all', twoUp = false }) {
   if (grand === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>No training data.</div>;
   if (single && center === 0) return <div style={{ color: '#9ca3af', fontSize: 13, padding: 40, textAlign: 'center' }}>None in this category.</div>;
   const shown = rows.filter(d => d.value > 0);
-  // The ring flex-fills whatever height is left after the pill, using percentage
-  // radii, so it scales cleanly no matter how short the card is.
-  // The ring (donut + centered total) — reused by both layouts.
+  // Centre total scales with the pie hole (the measured box minus small chart margins).
+  const plotMin = Math.min(size.w - 12, size.h - 12);
+  const numSize = plotMin > 0 ? Math.max(11, Math.min(48, plotMin * 0.17)) : 22;
+  const subSize = plotMin > 0 ? Math.max(8, Math.min(16, plotMin * 0.072)) : 11;
+
+  // The ring (donut + centred total, breakdown on hover) — reused by both layouts.
   const chart = (
     <>
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart margin={{ top: 6, right: 6, bottom: 6, left: 6 }}>
           <defs>
             <filter id={`donutShadow-${pfx}`} x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="3" stdDeviation="5" floodColor="#1f2937" floodOpacity="0.18" />
             </filter>
           </defs>
-          <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="58%" outerRadius="86%"
+          <Pie data={shown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="56%" outerRadius="84%"
             paddingAngle={shown.length > 1 ? 3 : 0} cornerRadius={8} stroke="none" isAnimationActive={false}
             label={false} labelLine={false}>
             {shown.map(d => <Cell key={d.name} fill={d.color} style={{ filter: `url(#donutShadow-${pfx})` }} />)}
@@ -233,9 +252,11 @@ function Donut({ k, metric = 'all', twoUp = false }) {
           <Tooltip content={<PieTip total={center} />} wrapperStyle={{ zIndex: 60 }} />
         </PieChart>
       </ResponsiveContainer>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-        <div style={{ fontSize: 26, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
-        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
+      {/* Overlay fills the donut area (absolute → no effect on layout); we measure it
+          to scale the centre total with the ring. */}
+      <div ref={wrapRef} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+        <div style={{ fontSize: numSize, fontWeight: 800, color: '#0f2a4a', lineHeight: 1 }}>{fmt(center)}</div>
+        <div style={{ fontSize: subSize, color: '#6b7280', marginTop: 2 }}>{single ? rows[0].name : 'Trainings'}</div>
       </div>
     </>
   );
