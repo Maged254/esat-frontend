@@ -2,6 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <script>
+      // Forward the old domain to the new one (keeps the path/query/hash so deep links
+      // and old email links still land in the right place). Runs before React loads.
+      (function () {
+        if (location.hostname === 'esat.egypro.app') {
+          location.replace('https://onehub.egypro.app' + location.pathname + location.search + location.hash);
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#042C53" />
     <link rel="icon" type="image/jpeg" href="/onehub-favicon.jpg" />
