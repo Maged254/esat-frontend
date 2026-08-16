@@ -1206,6 +1206,11 @@ export function NCRPage() {
   const [selected, setSelected] = useState([]);
   const [selectingPda, setSelectingPda] = useState(false);
   const [selectedPda, setSelectedPda] = useState([]);
+  const [stageMenu, setStageMenu] = useState(null);   // 'safety' | 'pm' — Approve/Reject chooser
+  const [rejecting, setRejecting] = useState(null);   // 'safety' | 'pm' — per-row reject mode
+  const [rejectTarget, setRejectTarget] = useState(null); // the NCR row being rejected
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectSaving, setRejectSaving] = useState(false);
   const [userRole, setUserRole] = useState('');
   const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '', project: '', activeStat: 'pending' });
   const navigate = useNavigate();
@@ -1260,7 +1265,20 @@ export function NCRPage() {
   // Same "recently distributed" window (4 months) and color as the Pending PM tag.
   const isRecentDistribution = (date) => !!date && new Date(date) >= new Date(new Date().setMonth(new Date().getMonth() - 4));
 
+  const openReject = (n) => { setRejectTarget(n); setRejectReason(''); };
+  const submitReject = async () => {
+    if (!rejectTarget || !rejectReason.trim()) return;
+    setRejectSaving(true);
+    try {
+      await api.put(`/ncr/${rejectTarget.id}/status`, { status: 'rejected', reason: rejectReason.trim() });
+      setRejectTarget(null); setRejectReason('');
+      reload();
+    } catch(e) { alert(e.response?.data?.error || 'Reject failed'); }
+    finally { setRejectSaving(false); }
+  };
+
   const statusLabel = (n) =>
+    (n.status==='canceled' && n.reject_reason)?'Rejected':
     n.status==='pending'?'Flagged':
     n.status==='ehs_purchase_requested'?(n.needs_pda?'Pending PM':'EHS Purchase Requested'):
     n.status==='pda_approved'?'Approved (PM)':
@@ -1325,12 +1343,23 @@ export function NCRPage() {
         <div className="topbar-left"><span className="topbar-breadcrumb">OneHub</span><span className="topbar-sep">›</span><span className="topbar-title">NCR List</span></div>
         <div className="topbar-right">
           <button className="btn" onClick={exportCSV}>↓ Export CSV</button>
-          {(userRole === 'ehs_manager' || userRole === 'admin') && !selecting && !selectingPda && (
-            <button className="btn btn-navy" onClick={()=>setSelecting(true)}>✅ Approve (Safety)</button>
-          )}
-          {(userRole === 'project_director' || userRole === 'admin') && !selecting && !selectingPda && (
-            <button className="btn btn-navy" onClick={()=>setSelectingPda(true)}>✅ Approve (PM)</button>
-          )}
+          {(() => {
+            const idle = !selecting && !selectingPda && !rejecting && !stageMenu;
+            const safetyAllowed = userRole === 'ehs_manager' || userRole === 'admin';
+            const pmAllowed = userRole === 'project_director' || userRole === 'admin';
+            return <>
+              {idle && safetyAllowed && <button className="btn btn-navy" onClick={()=>setStageMenu('safety')}>Safety</button>}
+              {idle && pmAllowed && <button className="btn btn-navy" onClick={()=>setStageMenu('pm')}>PM</button>}
+              {stageMenu && (
+                <>
+                  <span style={{fontSize:12,color:'#6b7280'}}>{stageMenu==='safety'?'Safety':'PM'}:</span>
+                  <button className="btn btn-primary" onClick={()=>{ const s=stageMenu; setStageMenu(null); s==='safety'?setSelecting(true):setSelectingPda(true); }}>Approve</button>
+                  <button className="btn" style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}} onClick={()=>{ const s=stageMenu; setStageMenu(null); setRejecting(s); }}>Reject</button>
+                  <button className="btn" onClick={()=>setStageMenu(null)}>✕ Cancel</button>
+                </>
+              )}
+            </>;
+          })()}
           {selecting && (
             <>
               <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected</span>
@@ -1343,6 +1372,12 @@ export function NCRPage() {
               <span style={{fontSize:12,color:'#6b7280'}}>{selectedPda.length} selected</span>
               <button className="btn btn-primary" onClick={approvePda} disabled={selectedPda.length===0}>✓ Approve (PM) ({selectedPda.length})</button>
               <button className="btn" onClick={()=>{setSelectingPda(false);setSelectedPda([]);}}>✕ Cancel</button>
+            </>
+          )}
+          {rejecting && (
+            <>
+              <span style={{fontSize:12,color:'#6b7280'}}>Reject ({rejecting==='safety'?'Safety':'PM'}) — click Reject on a row</span>
+              <button className="btn" onClick={()=>setRejecting(null)}>✕ Done</button>
             </>
           )}
         </div>
@@ -1399,7 +1434,7 @@ export function NCRPage() {
             <span className="card-title">Open NCR items</span>
           </div>
           <table className="table-hover-soft">
-            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Qty</th><th>Project / Client</th><th>Organization</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{userRole === 'admin' && !selecting && !selectingPda && <th></th>}</tr></thead>
+            <thead><tr><th></th><th>Employee</th><th>PPE/Tool Item</th><th>Condition</th><th>Qty</th><th>Project / Client</th><th>Organization</th><th>Flagged</th><th>Status</th>{selecting && <th>Select</th>}{selectingPda && <th>Select PDA</th>}{rejecting && <th>Reject</th>}{userRole === 'admin' && !selecting && !selectingPda && !rejecting && <th></th>}</tr></thead>
             <tbody>
               {items.map(n=>(
                 <tr key={n.id}>
@@ -1437,10 +1472,11 @@ export function NCRPage() {
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
                   </td>
-                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':n.status==='exit'?'tag-gray':'tag-red'}`}>{statusLabel(n)}</span></td>
+                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':n.status==='exit'?'tag-gray':'tag-red'}`}>{statusLabel(n)}</span>{n.status==='canceled' && n.reject_reason && <div style={{fontSize:10,color:'#9ca3af',marginTop:2,maxWidth:160}} title={n.reject_reason}>{n.reject_reason}</div>}</td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {selectingPda && <td style={{textAlign:'center'}}>{n.needs_pda && n.status==='ehs_purchase_requested' && <input type="checkbox" checked={selectedPda.includes(n.id)} onChange={()=>togglePdaSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
-                  {userRole === 'admin' && !selecting && !selectingPda && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
+                  {rejecting && <td style={{textAlign:'center'}}>{((rejecting==='safety' && n.status==='pending') || (rejecting==='pm' && n.needs_pda && n.status==='ehs_purchase_requested')) && <button className="btn" style={{fontSize:11,padding:'3px 10px',background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}} onClick={()=>openReject(n)}>Reject</button>}</td>}
+                  {userRole === 'admin' && !selecting && !selectingPda && !rejecting && <td><button onClick={()=>deleteNCR(n.id)} style={{background:'none',border:'none',cursor:'pointer',color:'#e24b4a',fontSize:16}} title="Delete">🗑</button></td>}
                 </tr>
               ))}
               {!items.length && <tr><td colSpan={8} style={{textAlign:'center',color:'#6b7280',padding:32}}>No NCRs found</td></tr>}
@@ -1464,6 +1500,21 @@ export function NCRPage() {
           </div>
         )}
       </div>
+      {rejectTarget && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}} onClick={()=>!rejectSaving && setRejectTarget(null)}>
+          <div style={{background:'#fff',borderRadius:10,padding:20,width:440,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:15,fontWeight:700,color:'#0f2a4a',marginBottom:6}}>Reject NCR item</div>
+            <div style={{fontSize:13,color:'#6b7280',marginBottom:12}}>{rejectTarget.employee_name} · {rejectTarget.ppe_name}</div>
+            <label style={{fontSize:12,fontWeight:600,color:'#64748b',display:'block',marginBottom:4}}>Reason for rejection <span style={{color:'#e24b4a'}}>*</span></label>
+            <textarea className="form-input" rows={3} autoFocus value={rejectReason} onChange={e=>setRejectReason(e.target.value)} placeholder="Why is this item being rejected?" style={{width:'100%',resize:'vertical'}} />
+            <div style={{fontSize:11,color:'#94a3b8',margin:'6px 0 14px'}}>This closes the item out and cancels its linked PPE/Tool request.</div>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button className="btn" onClick={()=>setRejectTarget(null)} disabled={rejectSaving}>Cancel</button>
+              <button className="btn" style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}} onClick={submitReject} disabled={rejectSaving || !rejectReason.trim()}>{rejectSaving?'Rejecting…':'Reject'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
