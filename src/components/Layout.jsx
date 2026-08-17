@@ -19,7 +19,7 @@ const NAV = [
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/request-ppe', label: 'Request a PPE/Tool', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/training/request', label: 'Request a Training', icon: 'ti-certificate', roles: ['admin','ehs_manager'] },
-  { to: '/training/update', label: 'Update Training Records', icon: 'ti-clipboard-text', roles: ['admin','hr'] },
+  { to: '/training/update', label: 'Update Training Records', icon: 'ti-clipboard-text', roles: ['admin','hr'], roleLocked: true },
   { section: 'Trackers', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
   { to: '/history', label: 'Audit/Request History', icon: 'ti-history', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
@@ -58,6 +58,9 @@ export default function Layout() {
               it.to === '/profile' ? true
               : it.to === '/admin' ? user?.role === 'admin'
               : user?.role === 'admin' ? true
+              // Role-locked items (e.g. Update Training Records) are gated by role, not
+              // by the per-user page_access grant.
+              : it.roleLocked ? (Array.isArray(it.roles) && it.roles.includes(user?.role))
               : Array.isArray(user?.page_access) && user.page_access.includes(it.to);
             if (item.section) {
               // Show a section header only if ≥1 real page under it is visible.

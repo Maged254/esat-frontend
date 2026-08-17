@@ -38,12 +38,15 @@ function ProtectedRoute({ children, roles }) {
   return children;
 }
 
-function PageGuard({ children, pageKey }) {
+function PageGuard({ children, pageKey, roles }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   const pa = Array.isArray(user.page_access) ? user.page_access : [];
   // admin = full access
   if (user.role === 'admin') return children;
+  // Role-locked pages (e.g. Update Training Records) are gated by role, not by the
+  // per-user page_access grant, so they can't be handed to the wrong role.
+  if (roles) return roles.includes(user.role) ? children : <Navigate to={pa.includes('/') ? '/' : (pa[0] || '/profile')} replace />;
   if (pa.includes(pageKey)) return children;
   // blocked: go to Dashboard if allowed, else first allowed page, else profile
   if (pa.includes('/')) return <Navigate to="/" replace />;
@@ -66,7 +69,7 @@ export default function App() {
             <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="request-ppe" element={<PageGuard pageKey="/request-ppe"><RequestPPEPage /></PageGuard>} />
             <Route path="training/request" element={<PageGuard pageKey="/training/request"><RequestTrainingPage /></PageGuard>} />
-            <Route path="training/update" element={<PageGuard pageKey="/training/update"><UpdateTrainingRecordsPage /></PageGuard>} />
+            <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
             <Route path="training/dashboard" element={<PageGuard pageKey="/training/dashboard"><TrainingDashboardPage /></PageGuard>} />
             <Route path="audit/new/:employeeId" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
