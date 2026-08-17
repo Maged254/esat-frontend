@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
+import MultiSelect from '../components/MultiSelect';
 
 const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
@@ -1198,7 +1199,7 @@ export function AuditHistoryPage() {
 export function NCRPage() {
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({ total_open: 0, pending: 0, pending_pm: 0, resolved_this_month: 0 });
-  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [] });
+  const [filterOptions, setFilterOptions] = useState({ ppe_names: [], projects: [], clients: [] });
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const pageSize = 25;
@@ -1212,7 +1213,7 @@ export function NCRPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectSaving, setRejectSaving] = useState(false);
   const [userRole, setUserRole] = useState('');
-  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '', project: '', activeStat: 'pending' });
+  const [filters, setFilters] = useState({ search: '', period: '', ppe: '', status: '', project: [], client: [], activeStat: 'pending' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -1235,7 +1236,8 @@ export function NCRPage() {
     if (filters.search) params.append('search', filters.search);
     if (filters.period) params.append('period', filters.period);
     if (filters.ppe) params.append('ppe', filters.ppe);
-    if (filters.project) params.append('project', filters.project);
+    if (filters.project.length) params.append('projects', filters.project.join(','));
+    if (filters.client.length) params.append('clients', filters.client.join(','));
     const status = effectiveStatus();
     if (status) params.append('status', status);
     return params;
@@ -1388,7 +1390,7 @@ export function NCRPage() {
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
               <span style={{fontSize:12,fontWeight:600,color:'#6b7280',flexShrink:0,paddingTop:6}}>Search</span>
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:200}} placeholder="Search employee..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
+                <input className="form-input" style={{height:30,padding:'4px 8px',fontSize:12,width:220}} placeholder="Search name or national ID..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))} />
               </div>
             </div>
             <div style={{display:'flex',alignItems:'flex-start',gap:12}}>
@@ -1401,7 +1403,7 @@ export function NCRPage() {
                 </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.ppe} onChange={e=>setFilters(p=>({...p,ppe:e.target.value}))}>
                   <option value="">All PPE/Tool Items</option>
-                  {filterOptions.ppe_names.map(p=><option key={p} value={p}>{p}</option>)}
+                  {(filterOptions.ppe_names||[]).map(p=><option key={p} value={p}>{p}</option>)}
                 </select>
                 <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:160}} value={filters.status} onChange={e=>setFilters(p=>({...p,status:e.target.value,activeStat:''}))}>
                   <option value="">All Status</option>
@@ -1414,11 +1416,9 @@ export function NCRPage() {
                   <option value="canceled">Canceled</option>
                   <option value="exit">Exit</option>
                 </select>
-                <select className="form-select" style={{height:30,padding:'4px 8px',fontSize:12,width:130}} value={filters.project} onChange={e=>setFilters(p=>({...p,project:e.target.value}))}>
-                  <option value="">All Projects</option>
-                  {filterOptions.projects.map(p=><option key={p} value={p}>{p}</option>)}
-                </select>
-                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:'',activeStat:''})}>✕ Clear</button>
+                <MultiSelect label="All Projects" options={(filterOptions.projects||[]).map(p=>({value:p,label:p}))} selected={filters.project} onChange={v=>setFilters(p=>({...p,project:v}))} />
+                <MultiSelect label="All Clients" options={(filterOptions.clients||[]).map(c=>({value:c,label:c}))} selected={filters.client} onChange={v=>setFilters(p=>({...p,client:v}))} />
+                <button className="btn" style={{height:30,padding:'4px 12px',fontSize:12}} onClick={()=>setFilters({search:'',period:'',ppe:'',status:'',project:[],client:[],activeStat:''})}>✕ Clear</button>
               </div>
             </div>
           </div>
