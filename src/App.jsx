@@ -66,9 +66,9 @@ export default function App() {
             <Route path="outsource" element={<PageGuard pageKey="/outsource"><OutsourcePage /></PageGuard>} />
             <Route path="casuals" element={<PageGuard pageKey="/casuals"><CasualsPage /></PageGuard>} />
             <Route path="employees/change-log" element={<PageGuard pageKey="/employees/change-log"><ChangeHistoryPage /></PageGuard>} />
-            <Route path="audit/new" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
+            <Route path="audit/new" element={<PageGuard pageKey="/audit/new" roles={['admin','ehs_officer','ehs_manager','supervisor']}><NewAuditPage /></PageGuard>} />
             <Route path="request-ppe" element={<PageGuard pageKey="/request-ppe"><RequestPPEPage /></PageGuard>} />
-            <Route path="training/request" element={<PageGuard pageKey="/training/request"><RequestTrainingPage /></PageGuard>} />
+            <Route path="training/request" element={<PageGuard pageKey="/training/request" roles={['admin','ehs_manager']}><RequestTrainingPage /></PageGuard>} />
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
             <Route path="training/dashboard" element={<PageGuard pageKey="/training/dashboard"><TrainingDashboardPage /></PageGuard>} />
