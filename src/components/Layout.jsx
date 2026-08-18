@@ -32,6 +32,7 @@ const NAV = [
   { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
   { to: '/mobile-lines/available', label: 'Available Lines', icon: 'ti-device-sim', roles: ['admin','hr'], roleLocked: true },
   { to: '/mobile-lines/change-requests', label: 'Change Requests', icon: 'ti-exchange', roles: ['admin','hr','supervisor','project_director'] },
+  { to: '/mobile-lines/operator-email', label: 'Operator Email', icon: 'ti-mail-forward', roles: ['admin'], roleLocked: true },
   { to: '/mobile-lines/catalogue', label: 'Product Catalogue', icon: 'ti-list-details', roles: ['admin'], roleLocked: true },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
