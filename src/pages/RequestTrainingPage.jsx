@@ -90,6 +90,23 @@ export default function RequestTrainingPage() {
     }
   };
 
+  // Undo a removal. The one thing that can fail is the person having picked up
+  // another open request for the same course since, so surface that inline on
+  // the card rather than as a dead-end alert.
+  const [restoringId, setRestoringId] = useState(null);
+  const [restoreError, setRestoreError] = useState({});
+  const restoreRequest = async (r) => {
+    setRestoringId(r.id); setRestoreError(p => ({ ...p, [r.id]: '' }));
+    try {
+      await api.put(`/training-records/${r.id}/restore`);
+      await loadOpenRequests(selectedPerson.id);
+    } catch (e) {
+      setRestoreError(p => ({ ...p, [r.id]: e.response?.data?.error || 'Failed to restore request' }));
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const openRemove = (r) => { setRemoveModal(r); setRemoveReason(''); setRemoveError(''); };
   const confirmRemove = async () => {
     if (!removeReason.trim()) { setRemoveError('A reason is required.'); return; }
@@ -355,6 +372,11 @@ export default function RequestTrainingPage() {
                         Removed by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.cancelled_by_name || '—'}</b>
                         {r.cancelled_at ? ` · ${new Date(r.cancelled_at).toLocaleDateString('en-GB')}` : ''}
                       </div>
+                      <button className="btn btn-sm" style={{ color: 'var(--eg-navy)', borderColor: '#cfe0f2' }}
+                              disabled={restoringId === r.id} onClick={() => restoreRequest(r)}>
+                        {restoringId === r.id ? 'Restoring…' : '↩ Restore Request'}
+                      </button>
+                      {restoreError[r.id] && <div style={{ fontSize: 11, color: '#c0392b' }}>{restoreError[r.id]}</div>}
                     </div>
                   ))}
                 </div>
