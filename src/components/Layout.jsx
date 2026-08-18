@@ -25,6 +25,12 @@ const NAV = [
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/ppe-tracker', label: 'PPE Request Tracker', icon: 'ti-shield-check', roles: ['admin','ehs_manager','scm_officer','supervisor','ehs_officer','project_director'] },
   { to: '/training/tracker', label: 'Trainings Tracker', icon: 'ti-list-check', roles: ['admin','ehs_manager','ehs_officer','supervisor','project_director'] },
+  // Company mobile lines. HR holds line custody; supervisors and project directors
+  // see their own people's lines (the register scopes them server-side). The
+  // catalogue is admin-only and role-locked, like the other admin-owned screens.
+  { section: 'Mobile Lines', roles: ['admin','hr','supervisor','project_director'] },
+  { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
+  { to: '/mobile-lines/catalogue', label: 'Product Catalogue', icon: 'ti-list-details', roles: ['admin'], roleLocked: true },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
   { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director','fleet','hr'] },

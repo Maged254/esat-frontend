@@ -26,6 +26,8 @@ import RequestPPEPage from './pages/RequestPPEPage';
 import RequestTrainingPage from './pages/RequestTrainingPage';
 import UpdateTrainingRecordsPage from './pages/UpdateTrainingRecordsPage';
 import TrainingTrackerPage from './pages/TrainingTrackerPage';
+import MobileLinesPage from './pages/MobileLinesPage';
+import MobileCataloguePage from './pages/MobileCataloguePage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
 
@@ -71,6 +73,8 @@ export default function App() {
             <Route path="training/request" element={<PageGuard pageKey="/training/request" roles={['admin','ehs_manager']}><RequestTrainingPage /></PageGuard>} />
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
+            <Route path="mobile-lines" element={<PageGuard pageKey="/mobile-lines" roles={['admin','hr','supervisor','project_director']}><MobileLinesPage /></PageGuard>} />
+            <Route path="mobile-lines/catalogue" element={<PageGuard pageKey="/mobile-lines/catalogue" roles={['admin']}><MobileCataloguePage /></PageGuard>} />
             <Route path="training/dashboard" element={<PageGuard pageKey="/training/dashboard"><TrainingDashboardPage /></PageGuard>} />
             <Route path="audit/new/:employeeId" element={<PageGuard pageKey="/audit/new"><NewAuditPage /></PageGuard>} />
             <Route path="history" element={<PageGuard pageKey="/history"><AuditHistoryPage /></PageGuard>} />
