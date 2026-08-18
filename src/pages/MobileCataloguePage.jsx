@@ -2,10 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api, { logError } from '../utils/api';
 
 // Telecom product catalogue, admin only. Safaricom and Airtel keep separate
-// lists — a Safaricom line must never be offered an Airtel package — and nothing
-// here is ever deleted: retiring a package means new requests can't pick it,
-// while every historical record that references it still reads correctly.
+// lists — a Safaricom line must never be offered an Airtel package.
+//
+// Retiring an item keeps it out of new requests while every record that already
+// references it goes on reading correctly. Deleting is only offered while
+// nothing references the item at all, which makes it "undo adding it" — for a
+// typo or a duplicate — rather than a way to erase history.
 const OPERATORS = [{ value: 'safaricom', label: 'Safaricom' }, { value: 'airtel', label: 'Airtel' }];
+const title = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 const fmtMoney = (v) => v == null || v === '' ? '—' : Number(v).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 export default function MobileCataloguePage() {
@@ -17,6 +21,7 @@ export default function MobileCataloguePage() {
   const [pkgForm, setPkgForm] = useState({ package_name: '', description: '', monthly_price: '' });
   const [limitForm, setLimitForm] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -49,6 +54,17 @@ export default function MobileCataloguePage() {
       load();
     } catch (e) { setError(e.response?.data?.error || 'Could not add that credit limit'); }
     finally { setSaving(false); }
+  };
+
+  // Deleting is refused by the server the moment anything references the item,
+  // and it says what — more useful than a guess made here.
+  const removeLimit = async (row) => {
+    setError('');
+    if (!window.confirm(`Delete the credit limit ${fmtMoney(row.credit_limit)} permanently?`)) return;
+    try {
+      await api.delete(`/mobile-lines/products/credit-limits/${row.id}`);
+      load();
+    } catch (e) { setError(e.response?.data?.error || 'Could not delete that credit limit'); }
   };
 
   const toggle = async (kind, row) => {
@@ -111,8 +127,9 @@ export default function MobileCataloguePage() {
                       <td style={{ color: '#6b7280' }}>{p.description || '—'}</td>
                       <td>{p.monthly_price != null ? `KES ${fmtMoney(p.monthly_price)}` : '—'}</td>
                       <td><span className={`tag ${p.is_active ? 'tag-green' : 'tag-gray'}`}>{p.is_active ? 'Active' : 'Retired'}</span></td>
-                      <td>
-                        <button className="btn btn-sm" onClick={() => toggle('packages', p)}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <button className="btn btn-sm" onClick={() => setEditing(p)}>Edit</button>
+                        <button className="btn btn-sm" style={{ marginLeft: 6 }} onClick={() => toggle('packages', p)}>
                           {p.is_active ? 'Retire' : 'Restore'}
                         </button>
                       </td>
@@ -145,10 +162,12 @@ export default function MobileCataloguePage() {
                     <tr key={c.id} style={{ opacity: c.is_active ? 1 : 0.55 }}>
                       <td style={{ fontWeight: 600 }}>KES {fmtMoney(c.credit_limit)}</td>
                       <td><span className={`tag ${c.is_active ? 'tag-green' : 'tag-gray'}`}>{c.is_active ? 'Active' : 'Retired'}</span></td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         <button className="btn btn-sm" onClick={() => toggle('credit-limits', c)}>
                           {c.is_active ? 'Retire' : 'Restore'}
                         </button>
+                        <button className="btn btn-sm" style={{ marginLeft: 6, color: '#c0392b', borderColor: '#f0c9c6' }}
+                                onClick={() => removeLimit(c)}>Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -158,11 +177,120 @@ export default function MobileCataloguePage() {
           </div>
         </div>
 
+        {editing && (
+          <EditPackageModal pkg={editing} onClose={() => setEditing(null)}
+                            onSaved={() => { setEditing(null); load(); }} />
+        )}
+
         <div style={{ marginTop: 16, fontSize: 12, color: '#6b7280', maxWidth: 720 }}>
           Retiring a package or credit limit keeps it out of new requests while every record that already
           references it goes on reading correctly. Nothing here is ever deleted.
         </div>
       </div>
     </>
+  );
+}
+
+// Editing a package changes what it IS, from now on. It does not rewrite the
+// past: a line snapshots the monthly price when its configuration is set, and
+// change history stores the values as text — so correcting a price here fixes
+// future cost reporting without altering what previous months actually cost.
+function EditPackageModal({ pkg, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    package_name: pkg.package_name || '',
+    description: pkg.description || '',
+    monthly_price: pkg.monthly_price ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const priceChanged = String(form.monthly_price ?? '') !== String(pkg.monthly_price ?? '');
+
+  const save = async () => {
+    if (!form.package_name.trim()) { setError('A package name is required.'); return; }
+    setSaving(true); setError('');
+    try {
+      await api.patch(`/mobile-lines/products/packages/${pkg.id}`, {
+        package_name: form.package_name.trim(),
+        description: form.description.trim(),
+        monthly_price: form.monthly_price === '' ? null : form.monthly_price,
+      });
+      onSaved();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not save this package');
+    } finally { setSaving(false); }
+  };
+
+  // Deleting is only possible while nothing references the package. The server
+  // decides that and says what is using it, which is more useful than a warning
+  // here that might be out of date.
+  const remove = async () => {
+    setSaving(true); setError('');
+    try {
+      await api.delete(`/mobile-lines/products/packages/${pkg.id}`);
+      onSaved();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not delete this package');
+      setConfirmDelete(false);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+         onClick={onClose}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+           onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Edit package</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>
+          {title(pkg.operator)} · {pkg.is_active ? 'Active' : 'Retired'}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Package name *
+            <input className="form-input" value={form.package_name}
+                   onChange={e => setForm(f => ({ ...f, package_name: e.target.value }))} />
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Description
+            <input className="form-input" value={form.description}
+                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Monthly price
+            <input className="form-input" value={form.monthly_price}
+                   onChange={e => setForm(f => ({ ...f, monthly_price: e.target.value }))} />
+          </label>
+          {priceChanged && (
+            <div style={{ fontSize: 12, color: '#6b7280', background: '#F0F7FF', border: '1px solid #cfe0f2', borderRadius: 6, padding: '8px 10px' }}>
+              The new price applies from now on. Lines already carrying this package keep the cost recorded
+              against them until their configuration next changes, so past reporting is not rewritten.
+            </div>
+          )}
+          {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 18 }}>
+          {confirmDelete ? (
+            <span style={{ fontSize: 12, color: '#A32D2D' }}>Delete “{pkg.package_name}” permanently?</span>
+          ) : (
+            <button className="btn btn-sm" style={{ color: '#c0392b', borderColor: '#f0c9c6' }}
+                    onClick={() => { setError(''); setConfirmDelete(true); }}>Delete</button>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {confirmDelete ? (
+              <>
+                <button className="btn" onClick={() => setConfirmDelete(false)}>Keep it</button>
+                <button className="btn" style={{ color: '#c0392b', borderColor: '#f0c9c6' }}
+                        disabled={saving} onClick={remove}>{saving ? 'Deleting…' : 'Yes, delete'}</button>
+              </>
+            ) : (
+              <>
+                <button className="btn" onClick={onClose}>Cancel</button>
+                <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save package'}</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
