@@ -520,7 +520,9 @@ export default function UpdateTrainingRecordsPage() {
                       </optgroup>
                       <optgroup label="Pending Certificates">
                         <option value="outstanding">All Pending</option>
-                        <option value="outstanding:requested">Requested</option>
+                        {/* No "Requested": nothing opens as `requested` any more --
+                            both a raised request and an expiry-opened renewal start
+                            as Pending, so the filter would always come back empty. */}
                         <option value="outstanding:scheduled">Scheduled</option>
                         <option value="outstanding:pending">Pending</option>
                         <option value="outstanding:not_eligible">Not eligible</option>

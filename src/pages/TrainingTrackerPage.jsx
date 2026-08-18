@@ -361,7 +361,10 @@ export default function TrainingTrackerPage() {
                   </optgroup>
                   <optgroup label="Pending Certificates">
                     <option value="outstanding">All Pending</option>
-                    <option value="outstanding:requested">Requested</option>
+                    {/* No "Requested" option: nothing opens as `requested` any more --
+                        a raised request and an expiry-opened renewal both start as
+                        Pending against the owning team, so the filter would only ever
+                        return an empty table. */}
                     <option value="outstanding:scheduled">Scheduled</option>
                     <option value="outstanding:pending">Pending</option>
                     <option value="outstanding:not_eligible">Not eligible</option>
