@@ -90,9 +90,12 @@ export default function RequestTrainingPage() {
     }
   };
 
-  // Undo a removal. The one thing that can fail is the person having picked up
-  // another open request for the same course since, so surface that inline on
-  // the card rather than as a dead-end alert.
+  // Undo a removal -- admin only, matching the backend. EHS managers can remove a
+  // request but not un-remove one, since restoring erases the removal itself.
+  // The one thing that can fail is the person having picked up another open
+  // request for the same course since, so surface that inline on the card rather
+  // than as a dead-end alert.
+  const isAdmin = (JSON.parse(localStorage.getItem('esat_user') || '{}')).role === 'admin';
   const [restoringId, setRestoringId] = useState(null);
   const [restoreError, setRestoreError] = useState({});
   const restoreRequest = async (r) => {
@@ -372,10 +375,12 @@ export default function RequestTrainingPage() {
                         Removed by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.cancelled_by_name || '—'}</b>
                         {r.cancelled_at ? ` · ${new Date(r.cancelled_at).toLocaleDateString('en-GB')}` : ''}
                       </div>
-                      <button className="btn btn-sm" style={{ color: 'var(--eg-navy)', borderColor: '#cfe0f2' }}
-                              disabled={restoringId === r.id} onClick={() => restoreRequest(r)}>
-                        {restoringId === r.id ? 'Restoring…' : '↩ Restore Request'}
-                      </button>
+                      {isAdmin && (
+                        <button className="btn btn-sm" style={{ color: 'var(--eg-navy)', borderColor: '#cfe0f2' }}
+                                disabled={restoringId === r.id} onClick={() => restoreRequest(r)}>
+                          {restoringId === r.id ? 'Restoring…' : '↩ Restore Request'}
+                        </button>
+                      )}
                       {restoreError[r.id] && <div style={{ fontSize: 11, color: '#c0392b' }}>{restoreError[r.id]}</div>}
                     </div>
                   ))}
