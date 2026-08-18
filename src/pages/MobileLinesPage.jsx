@@ -34,6 +34,7 @@ export default function MobileLinesPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [correcting, setCorrecting] = useState(null);
+  const [releasing, setReleasing] = useState(null);
   const pageSize = 25;
 
   const query = useCallback((extra = {}) => {
@@ -184,14 +185,14 @@ export default function MobileLinesPage() {
                   <th>Mobile Number</th><th>Operator</th><th>Status</th><th>Employee</th>
                   <th>Project / Client</th><th>Package</th><th>Credit Limit</th>
                   <th>CUG</th><th>Roaming</th><th>Assigned</th>
-                  {isAdmin && <th></th>}
+                  {isCustodian && <th></th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={isAdmin ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
+                  <tr><td colSpan={isCustodian ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={isAdmin ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
+                  <tr><td colSpan={isCustodian ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
                     {isCustodian ? 'No mobile lines yet. Import the existing register, or add a line.' : 'No mobile lines for your projects.'}
                   </td></tr>
                 ) : rows.map(r => (
@@ -222,9 +223,14 @@ export default function MobileLinesPage() {
                     <td>{r.cug_enabled ? 'Yes' : 'No'}</td>
                     <td>{r.roaming_enabled ? 'Yes' : 'No'}</td>
                     <td>{fmtDate(r.current_assignment_date)}</td>
-                    {isAdmin && (
-                      <td>
-                        <button className="btn btn-sm" onClick={() => setCorrecting(r)}>Correct</button>
+                    {isCustodian && (
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {r.status === 'assigned' && (
+                          <button className="btn btn-sm" onClick={() => setReleasing(r)}>Release</button>
+                        )}
+                        {isAdmin && (
+                          <button className="btn btn-sm" style={{ marginLeft: 6 }} onClick={() => setCorrecting(r)}>Correct</button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -243,6 +249,10 @@ export default function MobileLinesPage() {
         </div>
       </div>
 
+      {releasing && (
+        <ReleaseModal line={releasing} onClose={() => setReleasing(null)}
+                      onReleased={() => { setReleasing(null); load(); }} />
+      )}
       {correcting && (
         <CorrectionModal line={correcting} options={options}
                          onClose={() => setCorrecting(null)}
@@ -336,6 +346,58 @@ function CorrectionModal({ line, options, onClose, onSaved }) {
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" disabled={saving} onClick={save}>
             {saving ? 'Saving…' : 'Save correction'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Releasing hands the number back to the pool. The configuration stays with the
+// line so the next holder inherits a working setup — which also means it keeps
+// billing, so the reason matters for anyone reading the history later.
+function ReleaseModal({ line, onClose, onReleased }) {
+  const [reason, setReason] = useState('reassignment');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const release = async () => {
+    setSaving(true); setError('');
+    try {
+      await api.post(`/mobile-lines/${line.id}/release`, { release_reason: reason });
+      onReleased();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not release this line');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+         onClick={onClose}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+           onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Release {line.mobile_number}</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>
+          Currently held by {line.employee_name || 'unknown'}
+        </div>
+        <div style={{ fontSize: 12, color: '#6b7280', background: '#F0F7FF', border: '1px solid #cfe0f2', borderRadius: 6, padding: '8px 10px', marginBottom: 14 }}>
+          The line keeps its package, credit limit, CUG and roaming, so it can be handed straight
+          to the next person. It also keeps billing while it sits unassigned.
+        </div>
+        <label style={{ fontSize: 12, fontWeight: 600 }}>Why is it being released?
+          <select className="form-select" value={reason} onChange={e => setReason(e.target.value)}>
+            <option value="reassignment">Reassignment — going to someone else</option>
+            <option value="administrative_correction">Administrative correction — it was recorded against the wrong person</option>
+          </select>
+        </label>
+        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+          A line freed because its holder left the company is released automatically — you do not need to do it here.
+        </div>
+        {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginTop: 12, fontSize: 13 }}>{error}</div>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" disabled={saving} onClick={release}>
+            {saving ? 'Releasing…' : 'Release line'}
           </button>
         </div>
       </div>

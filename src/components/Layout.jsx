@@ -30,6 +30,7 @@ const NAV = [
   // catalogue is admin-only and role-locked, like the other admin-owned screens.
   { section: 'Mobile Lines', roles: ['admin','hr','supervisor','project_director'] },
   { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
+  { to: '/mobile-lines/available', label: 'Available Lines', icon: 'ti-device-sim', roles: ['admin','hr'], roleLocked: true },
   { to: '/mobile-lines/catalogue', label: 'Product Catalogue', icon: 'ti-list-details', roles: ['admin'], roleLocked: true },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
