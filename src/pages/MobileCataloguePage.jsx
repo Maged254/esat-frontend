@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api, { logError } from '../utils/api';
+import MobileLinesTabs from '../components/MobileLinesTabs';
 
 // Telecom product catalogue, admin only. Safaricom and Airtel keep separate
 // lists — a Safaricom line must never be offered an Airtel package.
@@ -116,6 +117,7 @@ export default function MobileCataloguePage() {
       </div>
 
       <div className="content graphs-content">
+        <MobileLinesTabs />
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {OPERATORS.map(o => (
             <button key={o.value}

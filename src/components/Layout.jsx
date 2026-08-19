@@ -14,6 +14,9 @@ const NAV = [
   { to: '/employees', label: 'Employees', icon: 'ti-users', exact: true, roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/outsource', label: 'Outsource', icon: 'ti-users-group', roles: ['admin','supervisor','fleet'] },
   { to: '/casuals', label: 'Casuals', icon: 'ti-user-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
+  // Company mobile lines. One entry: the module's screens are tabs inside the
+  // page, so the sidebar does not carry five near-identical rows.
+  { to: '/mobile-lines', label: 'Mobile Lines', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
   { to: '/employees/change-log', label: 'Change History', icon: 'ti-list-details', roles: ['admin','hr'] },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'], roleLocked: true },
@@ -25,17 +28,6 @@ const NAV = [
   { to: '/ncr', label: 'NCR List', icon: 'ti-alert-triangle', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/ppe-tracker', label: 'PPE Request Tracker', icon: 'ti-shield-check', roles: ['admin','ehs_manager','scm_officer','supervisor','ehs_officer','project_director'] },
   { to: '/training/tracker', label: 'Trainings Tracker', icon: 'ti-list-check', roles: ['admin','ehs_manager','ehs_officer','supervisor','project_director'] },
-  // Company mobile lines. HR holds line custody; supervisors and project directors
-  // see their own people's lines (the register scopes them server-side). The
-  // catalogue is admin-only and role-locked, like the other admin-owned screens.
-  { section: 'Mobile Lines', roles: ['admin','hr','supervisor','project_director'] },
-  // exact: otherwise /mobile-lines matches as a prefix of every sub-page and the
-  // register stays highlighted alongside whichever one you are actually on.
-  { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', exact: true, roles: ['admin','hr','supervisor','project_director'] },
-  { to: '/mobile-lines/available', label: 'Available Lines', icon: 'ti-device-sim', roles: ['admin','hr'], roleLocked: true },
-  { to: '/mobile-lines/change-requests', label: 'Change Requests', icon: 'ti-exchange', roles: ['admin','hr','supervisor','project_director'] },
-  { to: '/mobile-lines/operator-email', label: 'Operator Email', icon: 'ti-mail-forward', roles: ['admin'], roleLocked: true },
-  { to: '/mobile-lines/catalogue', label: 'Product Catalogue', icon: 'ti-list-details', roles: ['admin'], roleLocked: true },
   { section: 'Admin', roles: ['admin'] },
   { to: '/admin', label: 'Admin Panel', icon: 'ti-settings', roles: ['admin'] },
   { to: '/profile', label: 'My Profile', icon: 'ti-user-circle', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director','fleet','hr'] },

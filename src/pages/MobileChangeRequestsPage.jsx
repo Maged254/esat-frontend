@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api, { logError } from '../utils/api';
+import MobileLinesTabs from '../components/MobileLinesTabs';
 
 // Change Requests: the queue, and the place a request is raised.
 //
@@ -68,6 +69,7 @@ export default function MobileChangeRequestsPage() {
       </div>
 
       <div className="content graphs-content">
+        <MobileLinesTabs />
         <div className="card">
           <div className="card-header">
             <span className="card-title">Change Requests</span>

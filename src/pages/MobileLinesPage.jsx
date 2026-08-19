@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
+import MobileLinesTabs from '../components/MobileLinesTabs';
 import MultiSelect from '../components/MultiSelect';
 
 // Company mobile lines. The register is the module's home screen: every line,
@@ -124,6 +125,7 @@ export default function MobileLinesPage() {
       </div>
 
       <div className="content graphs-content">
+        <MobileLinesTabs />
         <div className="stat-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(5,1fr)' }}>
           {statCard('Total Lines', stats.total, 'var(--eg-navy)')}
           {statCard('Assigned', stats.assigned, 'var(--eg-green)')}

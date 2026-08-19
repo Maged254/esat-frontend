@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api, { logError } from '../utils/api';
+import MobileLinesTabs from '../components/MobileLinesTabs';
 
 // HR's working screen: the lines that can be handed to someone. Supervisors and
 // project directors never reach this page — the route is role-guarded and the
@@ -44,6 +45,7 @@ export default function AvailableLinesPage() {
       </div>
 
       <div className="content graphs-content">
+        <MobileLinesTabs />
         <div className="card">
           <div className="card-header">
             <span className="card-title">Available Lines</span>

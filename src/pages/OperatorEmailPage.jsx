@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api, { logError } from '../utils/api';
+import MobileLinesTabs from '../components/MobileLinesTabs';
 
 // Operator email: the queue of approved changes, the batch you read before it
 // goes out, and the switch that decides whether it goes to Safaricom at all.
@@ -60,6 +61,7 @@ export default function OperatorEmailPage() {
       </div>
 
       <div className="content graphs-content">
+        <MobileLinesTabs />
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>}
 
         {/* Go-live state, first thing on the page */}
