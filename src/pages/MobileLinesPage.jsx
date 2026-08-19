@@ -76,8 +76,8 @@ export default function MobileLinesPage() {
       { header: 'Mobile Number', key: 'mobile_number', width: 16 },
       { header: 'Operator', key: 'operator', width: 12 },
       { header: 'Status', key: 'status', width: 12 },
-      { header: 'Employee', key: 'employee_name', width: 28 },
-      { header: 'Employee Number', key: 'employee_number', width: 16 },
+      { header: 'Employee / Holder', key: 'holder', width: 28 },
+      { header: 'National ID', key: 'national_id', width: 16 },
       { header: 'Project', key: 'project', width: 18 },
       { header: 'Client', key: 'client', width: 16 },
       { header: 'Package', key: 'package_name', width: 24 },
@@ -90,6 +90,11 @@ export default function MobileLinesPage() {
     ws.getRow(1).font = { bold: true };
     data.rows.forEach(r => ws.addRow({
       ...r,
+      // Same rule as the table: a function holder has a name but no national ID.
+      holder: r.employee_name || r.holder_name || '',
+      national_id: r.employee_name ? (r.national_id || '') : '',
+      project: r.project || r.holder_project || '',
+      client: r.client || r.holder_client || '',
       operator: title(r.operator), status: title(r.status),
       cug: r.cug_enabled ? 'Yes' : 'No', roaming: r.roaming_enabled ? 'Yes' : 'No',
       assigned_on: r.current_assignment_date ? new Date(r.current_assignment_date).toLocaleDateString('en-GB') : '',
@@ -188,7 +193,7 @@ export default function MobileLinesPage() {
             <table className="table-hover-soft">
               <thead>
                 <tr>
-                  <th>Mobile Number</th><th>Operator</th><th>Status</th><th>Employee</th>
+                  <th>Mobile Number</th><th>Operator</th><th>Status</th><th>Employee / Holder</th>
                   <th>Project / Client</th><th>Package</th><th>Credit Limit</th>
                   <th>CUG</th><th>Roaming</th><th>Assigned</th>
                   {isCustodian && <th></th>}
@@ -211,13 +216,20 @@ export default function MobileLinesPage() {
                     </td>
                     <td>{title(r.operator)}</td>
                     <td><span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{title(r.status)}</span></td>
+                    {/* A line is held by a person or by a function (BTS NOC and
+                        the like). Both read as the holder here; a function has no
+                        national ID, so it says what it is instead. */}
                     <td>
-                      {r.employee_name || <span style={{ color: '#9ca3af' }}>—</span>}
-                      {r.employee_number && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.employee_number}</div>}
+                      {r.employee_name || r.holder_name || <span style={{ color: '#9ca3af' }}>—</span>}
+                      {r.employee_name
+                        ? r.national_id && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.national_id}</div>
+                        : r.holder_name && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Holder</div>}
                     </td>
                     <td>
-                      {r.project || '—'}
-                      {r.client && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.client}</div>}
+                      {r.project || r.holder_project || '—'}
+                      {(r.client || r.holder_client) && (
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.client || r.holder_client}</div>
+                      )}
                     </td>
                     <td>
                       {r.package_name || <span style={{ color: '#c0392b' }}>Not set</span>}
