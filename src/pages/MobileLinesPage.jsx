@@ -35,6 +35,7 @@ export default function MobileLinesPage() {
   const [loading, setLoading] = useState(true);
   const [correcting, setCorrecting] = useState(null);
   const [releasing, setReleasing] = useState(null);
+  const [adding, setAdding] = useState(false);
   const pageSize = 25;
 
   const query = useCallback((extra = {}) => {
@@ -116,6 +117,9 @@ export default function MobileLinesPage() {
           <span className="topbar-breadcrumb">OneHub</span>
           <span className="topbar-sep">›</span>
           <span className="topbar-title">Mobile Lines</span>
+        </div>
+        <div className="topbar-right">
+          {isAdmin && <button className="btn btn-primary" onClick={() => setAdding(true)}>+ Add Line</button>}
         </div>
       </div>
 
@@ -249,6 +253,10 @@ export default function MobileLinesPage() {
         </div>
       </div>
 
+      {adding && (
+        <AddLineModal onClose={() => setAdding(false)}
+                      onAdded={() => { setAdding(false); load(); }} />
+      )}
       {releasing && (
         <ReleaseModal line={releasing} onClose={() => setReleasing(null)}
                       onReleased={() => { setReleasing(null); load(); }} />
@@ -399,6 +407,125 @@ function ReleaseModal({ line, onClose, onReleased }) {
           <button className="btn btn-primary" disabled={saving} onClick={release}>
             {saving ? 'Releasing…' : 'Release line'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Adding a line records a number the company already has. It starts Available —
+// assignment is HR's separate act — and only that operator's active products are
+// offered, because a Safaricom line can never carry an Airtel package.
+function AddLineModal({ onClose, onAdded }) {
+  const [form, setForm] = useState({
+    mobile_number: '', operator: 'safaricom',
+    package_id: '', credit_limit_id: '', cug_enabled: false, roaming_enabled: false, notes: '',
+  });
+  const [products, setProducts] = useState({ packages: [], credit_limits: [] });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [added, setAdded] = useState([]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get(`/mobile-lines/products/packages?operator=${form.operator}`),
+      api.get(`/mobile-lines/products/credit-limits?operator=${form.operator}`),
+    ]).then(([p, c]) => setProducts({ packages: p.data, credit_limits: c.data })).catch(logError);
+    setForm(f => ({ ...f, package_id: '', credit_limit_id: '' }));
+  }, [form.operator]);
+
+  // Entering a register one number at a time means staying in the dialog: save,
+  // confirm, and the form is ready for the next line with the operator kept.
+  const save = async (keepGoing) => {
+    if (!form.mobile_number.trim()) { setError('Enter the mobile number.'); return; }
+    setSaving(true); setError('');
+    try {
+      const { data } = await api.post('/mobile-lines', form);
+      setAdded(a => [data.mobile_number, ...a]);
+      if (keepGoing) {
+        setForm(f => ({ ...f, mobile_number: '', notes: '' }));
+      } else {
+        onAdded();
+      }
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not add this line');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+         onClick={() => (added.length ? onAdded() : onClose())}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 480, maxWidth: '92vw', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+           onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Add a mobile line</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>
+          It starts as Available. Assigning it to someone is a separate step.
+        </div>
+
+        {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>Mobile number *
+              <input className="form-input" autoFocus placeholder="0712345678" value={form.mobile_number}
+                     onChange={e => setForm(f => ({ ...f, mobile_number: e.target.value }))}
+                     onKeyDown={e => { if (e.key === 'Enter') save(true); }} />
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, width: 150 }}>Operator *
+              <select className="form-select" value={form.operator}
+                      onChange={e => setForm(f => ({ ...f, operator: e.target.value }))}>
+                <option value="safaricom">Safaricom</option>
+                <option value="airtel">Airtel</option>
+              </select>
+            </label>
+          </div>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Package
+            <select className="form-select" value={form.package_id}
+                    onChange={e => setForm(f => ({ ...f, package_id: e.target.value }))}>
+              <option value="">Not set</option>
+              {products.packages.map(p => <option key={p.id} value={p.id}>{p.package_name}</option>)}
+            </select>
+            {products.packages.length === 0 && (
+              <span style={{ fontSize: 11, color: '#c0392b' }}>No packages in the {title(form.operator)} catalogue yet — you can add the line now and set this later.</span>
+            )}
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Credit limit
+            <select className="form-select" value={form.credit_limit_id}
+                    onChange={e => setForm(f => ({ ...f, credit_limit_id: e.target.value }))}>
+              <option value="">Not set</option>
+              {products.credit_limits.map(c => <option key={c.id} value={c.id}>{fmtMoney(c.credit_limit)}</option>)}
+            </select>
+          </label>
+          <div style={{ display: 'flex', gap: 24 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input type="checkbox" checked={form.cug_enabled}
+                     onChange={e => setForm(f => ({ ...f, cug_enabled: e.target.checked }))} /> CUG
+            </label>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input type="checkbox" checked={form.roaming_enabled}
+                     onChange={e => setForm(f => ({ ...f, roaming_enabled: e.target.checked }))} /> Roaming
+            </label>
+          </div>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Notes
+            <input className="form-input" value={form.notes}
+                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          </label>
+        </div>
+
+        {added.length > 0 && (
+          <div style={{ marginTop: 14, background: '#EAF3DE', color: '#3B6D11', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+            Added {added.length}: {added.slice(0, 6).join(', ')}{added.length > 6 ? '…' : ''}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button className="btn" onClick={() => (added.length ? onAdded() : onClose())}>
+            {added.length ? 'Done' : 'Cancel'}
+          </button>
+          <button className="btn" disabled={saving} onClick={() => save(true)}>
+            {saving ? 'Saving…' : 'Save & add another'}
+          </button>
+          <button className="btn btn-primary" disabled={saving} onClick={() => save(false)}>Save</button>
         </div>
       </div>
     </div>
