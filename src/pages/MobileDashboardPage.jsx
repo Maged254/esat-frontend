@@ -41,6 +41,17 @@ export default function MobileDashboardPage() {
     ['Partially implemented', w.partially_implemented, '/mobile-lines/change-requests'],
   ];
   const projects = (d?.by_project || []).slice(0, 10).map(p => ({ ...p, monthly: Number(p.monthly) }));
+  // The axis label carries the client under the project, so a reader can tell
+  // BTS - MS for Safaricom from the same project billed to another client.
+  const clientOf = Object.fromEntries(projects.map(p => [p.project, p.client]));
+  const ProjectTick = ({ x, y, payload }) => (
+    <g transform={`translate(${x},${y})`}>
+      <text x={-8} y={clientOf[payload.value] ? -1 : 4} textAnchor="end" fontSize={12} fill="#374151">{payload.value}</text>
+      {clientOf[payload.value] && (
+        <text x={-8} y={12} textAnchor="end" fontSize={10} fill="#9ca3af">{clientOf[payload.value]}</text>
+      )}
+    </g>
+  );
   const packages = (d?.by_package || []).map(p => ({ ...p, lines: Number(p.lines) }));
 
   return (
@@ -121,12 +132,13 @@ export default function MobileDashboardPage() {
                 <span className="card-title">Monthly Cost by Project</span>
                 <span style={{ fontSize: 12, color: '#6b7280' }}>top {projects.length}</span>
               </div>
-              <div style={{ padding: 16, height: Math.max(220, projects.length * 34 + 40) }}>
+              <div style={{ padding: 16, height: Math.max(220, projects.length * 42 + 40) }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={projects} layout="vertical" margin={{ left: 8, right: 60, top: 4, bottom: 4 }}>
                     <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="project" width={130} tick={{ fontSize: 12, fill: '#4b5563' }} />
-                    <Tooltip formatter={(v, k) => k === 'monthly' ? [`KES ${money(v)}`, 'Monthly'] : [v, k]}
+                    <YAxis type="category" dataKey="project" width={150} tickLine={false} tick={<ProjectTick />} />
+                    <Tooltip formatter={(v) => [`KES ${money(v)}`, 'Monthly']}
+                             labelFormatter={l => clientOf[l] ? `${l} · ${clientOf[l]}` : l}
                              labelStyle={{ fontSize: 12 }} contentStyle={{ fontSize: 12 }} />
                     <Bar dataKey="monthly" radius={[0, 4, 4, 0]} barSize={18}>
                       {projects.map((p, i) => <Cell key={p.project} fill={SERIES[i % SERIES.length]} />)}
