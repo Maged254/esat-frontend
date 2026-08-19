@@ -25,6 +25,7 @@ export default function MobileCataloguePage() {
   const [editing, setEditing] = useState(null);
   const [holders, setHolders] = useState([]);
   const [holderForm, setHolderForm] = useState({ name: '', project: '', client: '' });
+  const [editingHolder, setEditingHolder] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -56,13 +57,6 @@ export default function MobileCataloguePage() {
     setError('');
     try { await api.patch(`/mobile-lines/holders/${h.id}`, { project: h.project, client: h.client, is_active: !h.is_active }); loadHolders(); }
     catch (e) { setError(e.response?.data?.error || 'Could not update that holder'); }
-  };
-
-  const removeHolder = async (h) => {
-    setError('');
-    if (!window.confirm(`Delete the holder "${h.name}"?`)) return;
-    try { await api.delete(`/mobile-lines/holders/${h.id}`); loadHolders(); }
-    catch (e) { setError(e.response?.data?.error || 'Could not delete that holder'); }
   };
 
   const addPackage = async () => {
@@ -209,6 +203,11 @@ export default function MobileCataloguePage() {
           </div>
         </div>
 
+        {editingHolder && (
+          <EditHolderModal holder={editingHolder} onClose={() => setEditingHolder(null)}
+                           onSaved={() => { setEditingHolder(null); loadHolders(); }} />
+        )}
+
         {editing && (
           <EditPackageModal pkg={editing} onClose={() => setEditing(null)}
                             onSaved={() => { setEditing(null); load(); }} />
@@ -246,9 +245,10 @@ export default function MobileCataloguePage() {
                     <td>{h.current_line ? `${h.current_line} (${title(h.current_operator)})` : <span style={{ color: '#9ca3af' }}>—</span>}</td>
                     <td><span className={`tag ${h.is_active ? 'tag-green' : 'tag-gray'}`}>{h.is_active ? 'Active' : 'Retired'}</span></td>
                     <td style={{ whiteSpace: 'nowrap' }}>
-                      <button className="btn btn-sm" onClick={() => toggleHolder(h)}>{h.is_active ? 'Retire' : 'Restore'}</button>
-                      <button className="btn btn-sm" style={{ marginLeft: 6, color: '#c0392b', borderColor: '#f0c9c6' }}
-                              onClick={() => removeHolder(h)}>Delete</button>
+                      <button className="btn btn-sm" onClick={() => setEditingHolder(h)}>Edit</button>
+                      <button className="btn btn-sm" style={{ marginLeft: 6 }} onClick={() => toggleHolder(h)}>
+                        {h.is_active ? 'Retire' : 'Restore'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -361,6 +361,108 @@ function EditPackageModal({ pkg, onClose, onSaved }) {
               <>
                 <button className="btn" onClick={onClose}>Cancel</button>
                 <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save package'}</button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// A holder is a long-lived record — a NOC outlives the people who answer it —
+// so its name, project and client need correcting without starting again.
+// Renaming is safe: assignment history keeps a name snapshot from the moment of
+// each assignment, so past records still read as they did then.
+function EditHolderModal({ holder, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name: holder.name || '',
+    project: holder.project || '',
+    client: holder.client || '',
+    notes: holder.notes || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const save = async () => {
+    if (!form.name.trim()) { setError('A holder name is required.'); return; }
+    setSaving(true); setError('');
+    try {
+      await api.patch(`/mobile-lines/holders/${holder.id}`, { ...form, is_active: holder.is_active });
+      onSaved();
+    } catch (e) { setError(e.response?.data?.error || 'Could not save this holder'); }
+    finally { setSaving(false); }
+  };
+
+  // Refused by the server once the holder has ever held a line — retiring is the
+  // answer then, so the history it appears in keeps reading correctly.
+  const remove = async () => {
+    setSaving(true); setError('');
+    try {
+      await api.delete(`/mobile-lines/holders/${holder.id}`);
+      onSaved();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not delete this holder');
+      setConfirmDelete(false);
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+         onClick={onClose}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+           onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Edit holder</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>
+          {holder.current_line ? `Currently holds ${holder.current_line}` : 'Holds no line at the moment'}
+          {holder.is_active ? '' : ' · retired'}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Name *
+            <input className="form-input" value={form.name}
+                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Project
+            <input className="form-input" value={form.project}
+                   onChange={e => setForm(f => ({ ...f, project: e.target.value }))} />
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Client
+            <input className="form-input" value={form.client}
+                   onChange={e => setForm(f => ({ ...f, client: e.target.value }))} />
+          </label>
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Notes
+            <input className="form-input" value={form.notes}
+                   onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+          </label>
+          {form.name.trim() !== holder.name && (
+            <div style={{ fontSize: 12, color: '#6b7280', background: '#F0F7FF', border: '1px solid #cfe0f2', borderRadius: 6, padding: '8px 10px' }}>
+              Renaming affects the register and future assignments. Past assignment history keeps
+              the name recorded at the time, so it still reads correctly.
+            </div>
+          )}
+          {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, fontSize: 13 }}>{error}</div>}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 18 }}>
+          {confirmDelete ? (
+            <span style={{ fontSize: 12, color: '#A32D2D' }}>Delete “{holder.name}” permanently?</span>
+          ) : (
+            <button className="btn btn-sm" style={{ color: '#c0392b', borderColor: '#f0c9c6' }}
+                    onClick={() => { setError(''); setConfirmDelete(true); }}>Delete</button>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {confirmDelete ? (
+              <>
+                <button className="btn" onClick={() => setConfirmDelete(false)}>Keep it</button>
+                <button className="btn" style={{ color: '#c0392b', borderColor: '#f0c9c6' }}
+                        disabled={saving} onClick={remove}>{saving ? 'Deleting…' : 'Yes, delete'}</button>
+              </>
+            ) : (
+              <>
+                <button className="btn" onClick={onClose}>Cancel</button>
+                <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save holder'}</button>
               </>
             )}
           </div>
