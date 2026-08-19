@@ -203,8 +203,7 @@ export default function MobileLinesPage() {
             <>Up to <b>KES {fmtMoney(stats.max_assigned)}</b></>, true,
             <>
               {tipRow('Packages', `KES ${fmtMoney(stats.package_assigned)}`)}
-              {tipRow('CUG', `KES ${fmtMoney((stats.cug_assigned || 0) * (stats.cug_monthly_rate ?? 300))}`,
-                      `${stats.cug_assigned || 0} × KES ${fmtMoney(stats.cug_monthly_rate ?? 300)}`)}
+              {tipRow('CUG', `KES ${fmtMoney(stats.cug_cost_assigned)}`, `${stats.cug_assigned || 0} lines`)}
               {tipRow('Credit limits', `KES ${fmtMoney(stats.credit_limit_assigned)}`, 'headroom, not spend')}
             </>)}
           {statCard('Monthly Cost — Idle', `KES ${fmtMoney(stats.monthly_idle)}`, '#A32D2D', 'Available lines still billing')}

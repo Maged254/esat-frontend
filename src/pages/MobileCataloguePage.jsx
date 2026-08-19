@@ -25,6 +25,9 @@ export default function MobileCataloguePage() {
   const [editing, setEditing] = useState(null);
   const [holders, setHolders] = useState([]);
   const [holderForm, setHolderForm] = useState({ name: '', project: '', client: '' });
+  const [opSettings, setOpSettings] = useState([]);
+  const [cugForm, setCugForm] = useState('');
+  const [cugSaved, setCugSaved] = useState(false);
   const [editingHolder, setEditingHolder] = useState(null);
 
   const load = useCallback(() => {
@@ -37,6 +40,26 @@ export default function MobileCataloguePage() {
   }, [operator]);
 
   useEffect(() => { load(); }, [load]);
+
+  // The CUG charge belongs to the operator, so it follows the operator tab.
+  const loadOpSettings = useCallback(() => {
+    api.get('/mobile-lines/operator-settings').then(r => {
+      setOpSettings(r.data);
+      const mine = r.data.find(x => x.operator === operator);
+      setCugForm(mine ? String(Number(mine.cug_monthly_price)) : '');
+      setCugSaved(false);
+    }).catch(logError);
+  }, [operator]);
+  useEffect(() => { loadOpSettings(); }, [loadOpSettings]);
+
+  const saveCug = async () => {
+    setError('');
+    try {
+      await api.patch(`/mobile-lines/operator-settings/${operator}`, { cug_monthly_price: cugForm });
+      setCugSaved(true);
+      loadOpSettings();
+    } catch (e) { setError(e.response?.data?.error || 'Could not save the CUG charge'); }
+  };
   // Holders are not operator-specific, so they load once rather than per tab.
   const loadHolders = useCallback(() => {
     api.get('/mobile-lines/holders').then(r => setHolders(r.data)).catch(logError);
@@ -123,6 +146,32 @@ export default function MobileCataloguePage() {
         {error && (
           <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>{error}</div>
         )}
+
+        {/* Not a catalogue item — a per-line monthly charge that rides on top of
+            whatever package a line has, so it sits above the two lists. */}
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <span className="card-title">{title(operator)} charges</span>
+            {(() => { const m = opSettings.find(x => x.operator === operator); return m?.updated_by_name
+              ? <span style={{ fontSize: 12, color: '#6b7280' }}>last set by {m.updated_by_name}</span> : null; })()}
+          </div>
+          <div style={{ padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+              CUG subscription
+              <input className="form-input" style={{ height: 32, fontSize: 12, width: 130 }}
+                     value={cugForm} onChange={e => { setCugForm(e.target.value); setCugSaved(false); }}
+                     onKeyDown={e => { if (e.key === 'Enter') saveCug(); }} />
+            </label>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>KES per line, per month</span>
+            <button className="btn btn-primary btn-sm" onClick={saveCug}>Save</button>
+            {cugSaved && <span style={{ fontSize: 12, color: 'var(--eg-green)' }}>✓ Saved</span>}
+          </div>
+          <div style={{ padding: '0 16px 14px', fontSize: 11, color: '#9ca3af', maxWidth: 720 }}>
+            Charged on every {title(operator)} line with CUG switched on, on top of its package. Changing it
+            re-prices the whole register from now on — it is what makes the Monthly Cost figures true, so it is
+            recorded against your name.
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)' }}>
           <div className="card">
