@@ -330,6 +330,17 @@ function DetailModal({ request, isAdmin, currentUserId, onClose, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const pending = request.status === 'pending_approval';
+  // Confirming is only possible once the operator has actually been asked.
+  const confirmable = isAdmin && ['sent_to_operator', 'partially_implemented'].includes(request.status);
+  const [outcome, setOutcome] = useState({});   // itemId -> 'implemented' | 'not_implemented'
+  const [reasons, setReasons] = useState({});   // itemId -> why it was not implemented
+  const awaiting = (request.items || []).filter(i => i.implementation_status === 'awaiting');
+  const decided = awaiting.filter(i => outcome[i.id]);
+  const missingReason = decided.some(i => outcome[i.id] === 'not_implemented' && !(reasons[i.id] || '').trim());
+
+  const confirm = () => act('confirm', {
+    items: decided.map(i => ({ id: i.id, status: outcome[i.id], reason: reasons[i.id] })),
+  });
 
   useEffect(() => {
     if (isAdmin && pending) {
@@ -392,7 +403,10 @@ function DetailModal({ request, isAdmin, currentUserId, onClose, onChanged }) {
 
         <div style={{ marginTop: 16, border: '1px solid #eef2f6', borderRadius: 8, overflow: 'hidden' }}>
           <table className="table-hover-soft" style={{ margin: 0 }}>
-            <thead><tr><th>Item</th><th>Current</th><th>Requested</th>{isAdmin && pending && <th>Approve as</th>}</tr></thead>
+            <thead><tr><th>Item</th><th>Current</th><th>Requested</th>
+              {isAdmin && pending && <th>Approve as</th>}
+              {(confirmable || request.status === 'implemented') && <th>Operator did</th>}
+            </tr></thead>
             <tbody>
               {(request.items || []).map(i => (
                 <tr key={i.id}>
@@ -422,6 +436,34 @@ function DetailModal({ request, isAdmin, currentUserId, onClose, onChanged }) {
                       )}
                     </td>
                   )}
+                  {(confirmable || request.status === 'implemented') && (
+                    <td style={{ minWidth: 210 }}>
+                      {i.implementation_status === 'implemented' ? (
+                        <span className="tag tag-green">Implemented</span>
+                      ) : i.implementation_status === 'not_implemented' ? (
+                        <>
+                          <span className="tag tag-gray">Not implemented</span>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{i.not_implemented_reason}</div>
+                        </>
+                      ) : confirmable ? (
+                        <>
+                          <select className="form-select" style={{ height: 30, fontSize: 12 }}
+                                  value={outcome[i.id] || ''}
+                                  onChange={e => setOutcome(o => ({ ...o, [i.id]: e.target.value }))}>
+                            <option value="">Not confirmed yet</option>
+                            <option value="implemented">Implemented</option>
+                            <option value="not_implemented">Not implemented</option>
+                          </select>
+                          {outcome[i.id] === 'not_implemented' && (
+                            <input className="form-input" style={{ height: 30, fontSize: 12, marginTop: 4 }}
+                                   placeholder="Why not? (required)"
+                                   value={reasons[i.id] || ''}
+                                   onChange={e => setReasons(rs => ({ ...rs, [i.id]: e.target.value }))} />
+                          )}
+                        </>
+                      ) : <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -432,6 +474,14 @@ function DetailModal({ request, isAdmin, currentUserId, onClose, onChanged }) {
           <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
             Approving authorises us to ask {title(request.operator)}. It does not change the line — that only happens
             once you confirm what the operator actually did.
+          </div>
+        )}
+
+        {confirmable && (
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 8, background: '#F0F7FF', border: '1px solid #cfe0f2', borderRadius: 6, padding: '8px 10px' }}>
+            Record what {title(request.operator)} actually did. Only the items you mark <b>Implemented</b> change the
+            line; anything marked Not implemented keeps its current value and closes with your reason. Leave an item
+            unconfirmed and the request stays Partially Implemented until it is settled.
           </div>
         )}
 
@@ -455,6 +505,11 @@ function DetailModal({ request, isAdmin, currentUserId, onClose, onChanged }) {
               <button className="btn" style={{ color: '#c0392b', borderColor: '#f0c9c6' }} onClick={() => setRejecting(true)}>Reject</button>
               <button className="btn btn-primary" disabled={busy} onClick={approve}>{busy ? 'Working…' : 'Approve'}</button>
             </>
+          )}
+          {confirmable && (
+            <button className="btn btn-primary" disabled={busy || !decided.length || missingReason} onClick={confirm}>
+              {busy ? 'Saving…' : `Confirm ${decided.length || ''} item${decided.length === 1 ? '' : 's'}`}
+            </button>
           )}
           {rejecting && (
             <>
