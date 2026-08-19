@@ -18,30 +18,53 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const fmtMoney = (v) => v == null || v === '' ? '—' : Number(v).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 // Detail that belongs to a figure but shouldn't compete with it: an ⓘ in the
-// card's corner, revealed on hover. Positioned fixed so the card cannot clip it.
+// card's corner, revealed on hover. Fixed-positioned so the card cannot clip
+// it, but anchored to the icon and clamped to the viewport so it always appears
+// beside the number it explains rather than drifting across the page.
+const TIP_W = 230;
+const place = (el) => {
+  // Anchor to the whole card, not the icon: dropping it under the icon would
+  // cover the figure it is explaining.
+  const card = el.closest('.stat-card') || el;
+  const b = card.getBoundingClientRect();
+  return {
+    top: b.bottom + 6,
+    left: Math.max(8, Math.min(b.right - TIP_W, window.innerWidth - TIP_W - 8)),
+  };
+};
+
 function InfoTip({ children }) {
   const [pos, setPos] = useState(null);
   return (
     <span
       style={{ position: 'absolute', top: 8, right: 10, cursor: 'help', color: '#c3ccd8', fontSize: 13, lineHeight: 1 }}
-      onMouseEnter={e => { const b = e.currentTarget.getBoundingClientRect(); setPos({ right: window.innerWidth - b.right, top: b.bottom + 6 }); }}
+      onMouseEnter={e => setPos(place(e.currentTarget))}
       onMouseLeave={() => setPos(null)}
       tabIndex={0}
-      onFocus={e => { const b = e.currentTarget.getBoundingClientRect(); setPos({ right: window.innerWidth - b.right, top: b.bottom + 6 }); }}
+      onFocus={e => setPos(place(e.currentTarget))}
       onBlur={() => setPos(null)}
       aria-label="How this is calculated"
     >
       <i className="ti ti-info-circle" aria-hidden="true"></i>
       {pos && (
-        <span style={{ position: 'fixed', right: pos.right, top: pos.top, zIndex: 300, background: '#1f2937', color: '#fff',
-                       padding: '8px 11px', borderRadius: 6, fontSize: 11, lineHeight: 1.55, boxShadow: '0 6px 20px rgba(0,0,0,.22)',
-                       minWidth: 190, maxWidth: 280, pointerEvents: 'none', fontWeight: 400, textAlign: 'left', display: 'block' }}>
+        <span style={{ position: 'fixed', left: pos.left, top: pos.top, width: TIP_W, zIndex: 300,
+                       background: '#1f2937', color: '#fff', padding: '9px 11px', borderRadius: 6,
+                       fontSize: 11, lineHeight: 1.5, boxShadow: '0 6px 20px rgba(0,0,0,.22)',
+                       pointerEvents: 'none', fontWeight: 400, textAlign: 'left', display: 'block' }}>
           {children}
         </span>
       )}
     </span>
   );
 }
+
+// One labelled figure per line, so the tip is scanned rather than read.
+const tipRow = (label, value, note) => (
+  <span key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
+    <span style={{ color: '#cbd5e1' }}>{label}{note ? <span style={{ color: '#94a3b8' }}> ({note})</span> : ''}</span>
+    <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{value}</span>
+  </span>
+);
 
 const EMPTY_FILTERS = {
   search: '', operator: [], status: [], project: [], client: [],
@@ -171,10 +194,10 @@ export default function MobileLinesPage() {
           {statCard('Monthly Cost — Assigned', `KES ${fmtMoney(stats.monthly_assigned)}`, 'var(--eg-navy)',
             <>Up to <b>KES {fmtMoney(stats.max_assigned)}</b></>, true,
             <>
-              Packages KES {fmtMoney(stats.package_assigned)}
-              {stats.cug_assigned ? <> · CUG {stats.cug_assigned} × KES {fmtMoney(stats.cug_monthly_rate ?? 300)}</> : ''}
-              <br />
-              “Up to” adds KES {fmtMoney(stats.credit_limit_assigned)} of credit limits — headroom, not spend.
+              {tipRow('Packages', `KES ${fmtMoney(stats.package_assigned)}`)}
+              {tipRow('CUG', `KES ${fmtMoney((stats.cug_assigned || 0) * (stats.cug_monthly_rate ?? 300))}`,
+                      `${stats.cug_assigned || 0} × KES ${fmtMoney(stats.cug_monthly_rate ?? 300)}`)}
+              {tipRow('Credit limits', `KES ${fmtMoney(stats.credit_limit_assigned)}`, 'headroom, not spend')}
             </>)}
           {statCard('Monthly Cost — Idle', `KES ${fmtMoney(stats.monthly_idle)}`, '#A32D2D', 'Available lines still billing')}
         </div>
