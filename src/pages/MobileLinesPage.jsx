@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
 import MobileLinesTabs from '../components/MobileLinesTabs';
@@ -18,9 +19,13 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const fmtMoney = (v) => v == null || v === '' ? '—' : Number(v).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
 // Detail that belongs to a figure but shouldn't compete with it: an ⓘ in the
-// card's corner, revealed on hover. Fixed-positioned so the card cannot clip
-// it, but anchored to the icon and clamped to the viewport so it always appears
-// beside the number it explains rather than drifting across the page.
+// card's corner, revealed on hover.
+//
+// The tip renders through a PORTAL rather than in place. .wf-stat-card lifts
+// itself on hover with a transform, and a transformed element becomes the
+// containing block for position:fixed inside it -- which silently re-anchored
+// the tip to the card and threw it off-screen. Mounting on document.body puts
+// it back in the viewport's coordinate space, where the maths below is true.
 const TIP_W = 230;
 const place = (el) => {
   // Anchor to the whole card, not the icon: dropping it under the icon would
@@ -37,7 +42,11 @@ function InfoTip({ children }) {
   const [pos, setPos] = useState(null);
   return (
     <span
-      style={{ position: 'absolute', top: 8, right: 10, cursor: 'help', color: '#c3ccd8', fontSize: 13, lineHeight: 1 }}
+      // A 13px glyph is a fiddly hover target; the trigger is padded out to a
+      // 26px square so the pointer only has to be near it.
+      style={{ position: 'absolute', top: 4, right: 4, cursor: 'help', color: '#94a3b8', fontSize: 15,
+               width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+               borderRadius: '50%', lineHeight: 1 }}
       onMouseEnter={e => setPos(place(e.currentTarget))}
       onMouseLeave={() => setPos(null)}
       tabIndex={0}
@@ -46,14 +55,13 @@ function InfoTip({ children }) {
       aria-label="How this is calculated"
     >
       <i className="ti ti-info-circle" aria-hidden="true"></i>
-      {pos && (
-        <span style={{ position: 'fixed', left: pos.left, top: pos.top, width: TIP_W, zIndex: 300,
+      {pos && createPortal(
+        <span style={{ position: 'fixed', left: pos.left, top: pos.top, width: TIP_W, zIndex: 1200,
                        background: '#1f2937', color: '#fff', padding: '9px 11px', borderRadius: 6,
                        fontSize: 11, lineHeight: 1.5, boxShadow: '0 6px 20px rgba(0,0,0,.22)',
                        pointerEvents: 'none', fontWeight: 400, textAlign: 'left', display: 'block' }}>
           {children}
-        </span>
-      )}
+        </span>, document.body)}
     </span>
   );
 }
