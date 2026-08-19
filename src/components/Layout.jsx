@@ -29,7 +29,9 @@ const NAV = [
   // see their own people's lines (the register scopes them server-side). The
   // catalogue is admin-only and role-locked, like the other admin-owned screens.
   { section: 'Mobile Lines', roles: ['admin','hr','supervisor','project_director'] },
-  { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
+  // exact: otherwise /mobile-lines matches as a prefix of every sub-page and the
+  // register stays highlighted alongside whichever one you are actually on.
+  { to: '/mobile-lines', label: 'Lines Register', icon: 'ti-device-mobile', exact: true, roles: ['admin','hr','supervisor','project_director'] },
   { to: '/mobile-lines/available', label: 'Available Lines', icon: 'ti-device-sim', roles: ['admin','hr'], roleLocked: true },
   { to: '/mobile-lines/change-requests', label: 'Change Requests', icon: 'ti-exchange', roles: ['admin','hr','supervisor','project_director'] },
   { to: '/mobile-lines/operator-email', label: 'Operator Email', icon: 'ti-mail-forward', roles: ['admin'], roleLocked: true },
