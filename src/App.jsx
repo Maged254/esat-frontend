@@ -31,6 +31,7 @@ import MobileCataloguePage from './pages/MobileCataloguePage';
 import AvailableLinesPage from './pages/AvailableLinesPage';
 import MobileChangeRequestsPage from './pages/MobileChangeRequestsPage';
 import OperatorEmailPage from './pages/OperatorEmailPage';
+import MobileDashboardPage from './pages/MobileDashboardPage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
 
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
             <Route path="mobile-lines" element={<PageGuard pageKey="/mobile-lines" roles={['admin','hr','supervisor','project_director']}><MobileLinesPage /></PageGuard>} />
+            <Route path="mobile-lines/dashboard" element={<PageGuard pageKey="/mobile-lines/dashboard" roles={['admin','hr','supervisor','project_director']}><MobileDashboardPage /></PageGuard>} />
             <Route path="mobile-lines/available" element={<PageGuard pageKey="/mobile-lines/available" roles={['admin','hr']}><AvailableLinesPage /></PageGuard>} />
             <Route path="mobile-lines/change-requests" element={<PageGuard pageKey="/mobile-lines/change-requests" roles={['admin','hr','supervisor','project_director']}><MobileChangeRequestsPage /></PageGuard>} />
             <Route path="mobile-lines/operator-email" element={<PageGuard pageKey="/mobile-lines/operator-email" roles={['admin']}><OperatorEmailPage /></PageGuard>} />
