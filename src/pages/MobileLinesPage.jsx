@@ -236,7 +236,7 @@ export default function MobileLinesPage() {
             <table className="table-hover-soft">
               <thead>
                 <tr>
-                  <th>Mobile Number</th><th>Operator</th><th>Status</th><th>Employee / Holder</th>
+                  <th>Mobile Number</th><th>Employee / Holder</th>
                   <th>Project / Client</th><th>Package</th><th>Credit Limit</th>
                   <th>CUG</th><th>Roaming</th><th>Assigned</th>
                   {isCustodian && <th></th>}
@@ -244,21 +244,26 @@ export default function MobileLinesPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={isCustodian ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
+                  <tr><td colSpan={isCustodian ? 9 : 8} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={isCustodian ? 11 : 10} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
+                  <tr><td colSpan={isCustodian ? 9 : 8} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
                     {isCustodian ? 'No mobile lines yet. Import the existing register, or add a line.' : 'No mobile lines for your projects.'}
                   </td></tr>
                 ) : rows.map(r => (
                   <tr key={r.id}>
-                    <td style={{ fontWeight: 600 }}>
-                      {r.mobile_number}
+                    {/* The number, its operator and its state are one identity,
+                        so they stack in a single column rather than spreading
+                        three across a table that is already wide. */}
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{r.mobile_number}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{title(r.operator)}</div>
+                      <div style={{ marginTop: 4 }}>
+                        <span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{title(r.status)}</span>
+                      </div>
                       {r.pending_changes > 0 && (
-                        <div style={{ fontSize: 11, color: '#d97706', marginTop: 2 }}>Change in progress</div>
+                        <div style={{ fontSize: 11, color: '#d97706', marginTop: 3 }}>Change in progress</div>
                       )}
                     </td>
-                    <td>{title(r.operator)}</td>
-                    <td><span className={`tag ${STATUS_TAG[r.status] || 'tag-gray'}`}>{title(r.status)}</span></td>
                     {/* A line is held by a person or by a function (BTS NOC and
                         the like). Both read as the holder here; a function has no
                         national ID, so it says what it is instead. */}
