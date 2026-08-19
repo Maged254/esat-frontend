@@ -106,11 +106,15 @@ export default function MobileLinesPage() {
     a.click(); URL.revokeObjectURL(url);
   };
 
-  const statCard = (label, value, color, sub) => (
+  const statCard = (label, value, color, sub, strong) => (
     <div className="stat-card wf-stat-card" style={{ borderTopColor: color }}>
       <div className="stat-label">{label}</div>
       <div className="stat-value" style={{ color }}>{value ?? 0}</div>
-      {sub && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{sub}</div>}
+      {sub && (
+        <div style={{ fontSize: strong ? 12 : 11, color: strong ? '#4b5563' : '#9ca3af', marginTop: 3, lineHeight: 1.35 }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 
@@ -135,7 +139,16 @@ export default function MobileLinesPage() {
           {statCard('Total Lines', stats.total, 'var(--eg-navy)')}
           {statCard('Assigned', stats.assigned, 'var(--eg-green)')}
           {statCard('Available', stats.available, '#d97706')}
-          {statCard('Monthly Cost — Assigned', `KES ${fmtMoney(stats.monthly_assigned)}`, 'var(--eg-navy)')}
+          {/* Packages + CUG. The second line is the worst case: every assigned
+              line spending its full credit limit on top of that. */}
+          {statCard('Monthly Cost — Assigned', `KES ${fmtMoney(stats.monthly_assigned)}`, 'var(--eg-navy)',
+            <>
+              <div>Up to <b>KES {fmtMoney(stats.max_assigned)}</b></div>
+              <div style={{ fontSize: 11, color: '#9ca3af' }}>
+                incl. KES {fmtMoney(stats.credit_limit_assigned)} credit limits
+                {stats.cug_assigned ? ` · CUG ${stats.cug_assigned} × ${stats.cug_monthly_rate ?? 300}` : ''}
+              </div>
+            </>, true)}
           {statCard('Monthly Cost — Idle', `KES ${fmtMoney(stats.monthly_idle)}`, '#A32D2D', 'Available lines still billing')}
         </div>
 
