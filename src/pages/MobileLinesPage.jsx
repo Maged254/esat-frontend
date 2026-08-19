@@ -157,15 +157,18 @@ export default function MobileLinesPage() {
             <input className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 240 }}
                    placeholder="Number, name, employee or national ID…"
                    value={filters.search} onChange={e => setFilters(p => ({ ...p, search: e.target.value }))} />
-            <MultiSelect label="Operator" options={OPERATORS.map(o => o.label)}
-                         selected={filters.operator.map(v => title(v))}
-                         onChange={vals => setFilters(p => ({ ...p, operator: vals.map(v => v.toLowerCase()) }))} />
-            <MultiSelect label="Status" options={['Assigned', 'Available', 'Terminated']}
-                         selected={filters.status.map(v => title(v))}
-                         onChange={vals => setFilters(p => ({ ...p, status: vals.map(v => v.toLowerCase()) }))} />
-            <MultiSelect label="Project" options={options.projects}
+            {/* MultiSelect takes {value,label} objects and works in values, not
+                labels — passing bare strings renders blank rows. */}
+            <MultiSelect label="Operator" options={OPERATORS}
+                         selected={filters.operator}
+                         onChange={vals => setFilters(p => ({ ...p, operator: vals }))} />
+            <MultiSelect label="Status"
+                         options={[{ value: 'assigned', label: 'Assigned' }, { value: 'available', label: 'Available' }, { value: 'terminated', label: 'Terminated' }]}
+                         selected={filters.status}
+                         onChange={vals => setFilters(p => ({ ...p, status: vals }))} />
+            <MultiSelect label="Project" options={(options.projects || []).map(v => ({ value: v, label: v }))}
                          selected={filters.project} onChange={vals => setFilters(p => ({ ...p, project: vals }))} />
-            <MultiSelect label="Client" options={options.clients}
+            <MultiSelect label="Client" options={(options.clients || []).map(v => ({ value: v, label: v }))}
                          selected={filters.client} onChange={vals => setFilters(p => ({ ...p, client: vals }))} />
             <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 180 }}
                     value={filters.package_id} onChange={e => setFilters(p => ({ ...p, package_id: e.target.value }))}>
