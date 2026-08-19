@@ -175,8 +175,9 @@ export default function MobileDashboardPage() {
                   </table>
                 </div>
                 <div style={{ padding: '10px 16px', fontSize: 11, color: '#9ca3af' }}>
-                  Monthly includes the KES {money(d.cug_monthly_rate)} CUG subscription per line where it is on,
-                  which is why a package's monthly can exceed its price × lines.
+                  Monthly includes each operator's CUG subscription for every line that has it switched on,
+                  which is why a package's monthly can exceed its price × lines. The rate is set per operator
+                  in Product Catalogue.
                 </div>
               </div>
             </div>
