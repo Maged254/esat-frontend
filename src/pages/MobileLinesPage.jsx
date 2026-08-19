@@ -17,6 +17,32 @@ const title = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUppe
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const fmtMoney = (v) => v == null || v === '' ? '—' : Number(v).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
+// Detail that belongs to a figure but shouldn't compete with it: an ⓘ in the
+// card's corner, revealed on hover. Positioned fixed so the card cannot clip it.
+function InfoTip({ children }) {
+  const [pos, setPos] = useState(null);
+  return (
+    <span
+      style={{ position: 'absolute', top: 8, right: 10, cursor: 'help', color: '#c3ccd8', fontSize: 13, lineHeight: 1 }}
+      onMouseEnter={e => { const b = e.currentTarget.getBoundingClientRect(); setPos({ right: window.innerWidth - b.right, top: b.bottom + 6 }); }}
+      onMouseLeave={() => setPos(null)}
+      tabIndex={0}
+      onFocus={e => { const b = e.currentTarget.getBoundingClientRect(); setPos({ right: window.innerWidth - b.right, top: b.bottom + 6 }); }}
+      onBlur={() => setPos(null)}
+      aria-label="How this is calculated"
+    >
+      <i className="ti ti-info-circle" aria-hidden="true"></i>
+      {pos && (
+        <span style={{ position: 'fixed', right: pos.right, top: pos.top, zIndex: 300, background: '#1f2937', color: '#fff',
+                       padding: '8px 11px', borderRadius: 6, fontSize: 11, lineHeight: 1.55, boxShadow: '0 6px 20px rgba(0,0,0,.22)',
+                       minWidth: 190, maxWidth: 280, pointerEvents: 'none', fontWeight: 400, textAlign: 'left', display: 'block' }}>
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
 const EMPTY_FILTERS = {
   search: '', operator: [], status: [], project: [], client: [],
   package_id: '', credit_limit_id: '', cug: '', roaming: '', unconfigured: '',
@@ -106,8 +132,9 @@ export default function MobileLinesPage() {
     a.click(); URL.revokeObjectURL(url);
   };
 
-  const statCard = (label, value, color, sub, strong) => (
-    <div className="stat-card wf-stat-card" style={{ borderTopColor: color }}>
+  const statCard = (label, value, color, sub, strong, tip) => (
+    <div className="stat-card wf-stat-card" style={{ borderTopColor: color, position: 'relative' }}>
+      {tip && <InfoTip>{tip}</InfoTip>}
       <div className="stat-label">{label}</div>
       <div className="stat-value" style={{ color }}>{value ?? 0}</div>
       {sub && (
@@ -142,13 +169,13 @@ export default function MobileLinesPage() {
           {/* Packages + CUG. The second line is the worst case: every assigned
               line spending its full credit limit on top of that. */}
           {statCard('Monthly Cost — Assigned', `KES ${fmtMoney(stats.monthly_assigned)}`, 'var(--eg-navy)',
+            <>Up to <b>KES {fmtMoney(stats.max_assigned)}</b></>, true,
             <>
-              <div>Up to <b>KES {fmtMoney(stats.max_assigned)}</b></div>
-              <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                incl. KES {fmtMoney(stats.credit_limit_assigned)} credit limits
-                {stats.cug_assigned ? ` · CUG ${stats.cug_assigned} × ${stats.cug_monthly_rate ?? 300}` : ''}
-              </div>
-            </>, true)}
+              Packages KES {fmtMoney(stats.package_assigned)}
+              {stats.cug_assigned ? <> · CUG {stats.cug_assigned} × KES {fmtMoney(stats.cug_monthly_rate ?? 300)}</> : ''}
+              <br />
+              “Up to” adds KES {fmtMoney(stats.credit_limit_assigned)} of credit limits — headroom, not spend.
+            </>)}
           {statCard('Monthly Cost — Idle', `KES ${fmtMoney(stats.monthly_idle)}`, '#A32D2D', 'Available lines still billing')}
         </div>
 
