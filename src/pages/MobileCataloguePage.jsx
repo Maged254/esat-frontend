@@ -22,6 +22,8 @@ export default function MobileCataloguePage() {
   const [limitForm, setLimitForm] = useState('');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [holders, setHolders] = useState([]);
+  const [holderForm, setHolderForm] = useState({ name: '', project: '', client: '' });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -33,6 +35,34 @@ export default function MobileCataloguePage() {
   }, [operator]);
 
   useEffect(() => { load(); }, [load]);
+  // Holders are not operator-specific, so they load once rather than per tab.
+  const loadHolders = useCallback(() => {
+    api.get('/mobile-lines/holders').then(r => setHolders(r.data)).catch(logError);
+  }, []);
+  useEffect(() => { loadHolders(); }, [loadHolders]);
+
+  const addHolder = async () => {
+    if (!holderForm.name.trim()) { setError('A holder name is required.'); return; }
+    setError('');
+    try {
+      await api.post('/mobile-lines/holders', holderForm);
+      setHolderForm({ name: '', project: '', client: '' });
+      loadHolders();
+    } catch (e) { setError(e.response?.data?.error || 'Could not add that holder'); }
+  };
+
+  const toggleHolder = async (h) => {
+    setError('');
+    try { await api.patch(`/mobile-lines/holders/${h.id}`, { project: h.project, client: h.client, is_active: !h.is_active }); loadHolders(); }
+    catch (e) { setError(e.response?.data?.error || 'Could not update that holder'); }
+  };
+
+  const removeHolder = async (h) => {
+    setError('');
+    if (!window.confirm(`Delete the holder "${h.name}"?`)) return;
+    try { await api.delete(`/mobile-lines/holders/${h.id}`); loadHolders(); }
+    catch (e) { setError(e.response?.data?.error || 'Could not delete that holder'); }
+  };
 
   const addPackage = async () => {
     if (!pkgForm.package_name.trim()) { setError('A package name is required.'); return; }
@@ -181,6 +211,49 @@ export default function MobileCataloguePage() {
           <EditPackageModal pkg={editing} onClose={() => setEditing(null)}
                             onSaved={() => { setEditing(null); load(); }} />
         )}
+
+        {/* Non-employee holders: BTS NOC, Fibre NOC and the like. Not operator
+            specific, so they sit outside the Safaricom/Airtel tabs. */}
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="card-header">
+            <span className="card-title">Line Holders</span>
+            <span style={{ fontSize: 12, color: '#6b7280' }}>{holders.filter(h => h.is_active).length} active · for lines that belong to a function, not a person</span>
+          </div>
+          <div style={{ padding: '12px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', borderBottom: '1px solid #f0f0f0' }}>
+            <input className="form-input" style={{ height: 32, fontSize: 12, width: 200 }} placeholder="e.g. BTS NOC"
+                   value={holderForm.name} onChange={e => setHolderForm(f => ({ ...f, name: e.target.value }))} />
+            <input className="form-input" style={{ height: 32, fontSize: 12, width: 170 }} placeholder="Project (optional)"
+                   value={holderForm.project} onChange={e => setHolderForm(f => ({ ...f, project: e.target.value }))} />
+            <input className="form-input" style={{ height: 32, fontSize: 12, width: 150 }} placeholder="Client (optional)"
+                   value={holderForm.client} onChange={e => setHolderForm(f => ({ ...f, client: e.target.value }))} />
+            <button className="btn btn-primary btn-sm" onClick={addHolder}>+ Add</button>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table-hover-soft">
+              <thead><tr><th>Holder</th><th>Project</th><th>Client</th><th>Current Line</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {holders.length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: 20, color: '#9ca3af', fontSize: 13 }}>
+                    No holders yet. Add one to assign a line to a NOC, a team or another function.
+                  </td></tr>
+                ) : holders.map(h => (
+                  <tr key={h.id} style={{ opacity: h.is_active ? 1 : 0.55 }}>
+                    <td style={{ fontWeight: 600 }}>{h.name}</td>
+                    <td>{h.project || '—'}</td>
+                    <td>{h.client || '—'}</td>
+                    <td>{h.current_line ? `${h.current_line} (${title(h.current_operator)})` : <span style={{ color: '#9ca3af' }}>—</span>}</td>
+                    <td><span className={`tag ${h.is_active ? 'tag-green' : 'tag-gray'}`}>{h.is_active ? 'Active' : 'Retired'}</span></td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="btn btn-sm" onClick={() => toggleHolder(h)}>{h.is_active ? 'Retire' : 'Restore'}</button>
+                      <button className="btn btn-sm" style={{ marginLeft: 6, color: '#c0392b', borderColor: '#f0c9c6' }}
+                              onClick={() => removeHolder(h)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         <div style={{ marginTop: 16, fontSize: 12, color: '#6b7280', maxWidth: 720 }}>
           Retiring a package or credit limit keeps it out of new requests while every record that already

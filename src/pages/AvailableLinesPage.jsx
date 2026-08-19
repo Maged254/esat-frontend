@@ -126,6 +126,11 @@ export default function AvailableLinesPage() {
 // cannot be picked — the server refuses it anyway, but being told after clicking
 // is a worse way to learn it.
 function AssignModal({ line, onClose, onAssigned }) {
+  // A line goes either to a person or to a function (BTS NOC and the like).
+  // Holders are admin-only, so HR simply never sees the choice.
+  const isAdmin = (JSON.parse(localStorage.getItem('esat_user') || '{}')).role === 'admin';
+  const [mode, setMode] = useState('employee');
+  const [holders, setHolders] = useState([]);
   const [search, setSearch] = useState('');
   const [employees, setEmployees] = useState([]);
   const [held, setHeld] = useState({});
@@ -152,10 +157,16 @@ function AssignModal({ line, onClose, onAssigned }) {
     return () => clearTimeout(t);
   }, [search]);
 
-  const assign = async (emp) => {
+  useEffect(() => {
+    if (mode === 'holder' && isAdmin) {
+      api.get('/mobile-lines/holders').then(r => setHolders(r.data)).catch(logError);
+    }
+  }, [mode, isAdmin]);
+
+  const assign = async (body) => {
     setSaving(true); setError('');
     try {
-      await api.post(`/mobile-lines/${line.id}/assign`, { employee_id: emp.id });
+      await api.post(`/mobile-lines/${line.id}/assign`, body);
       onAssigned();
     } catch (e) {
       setError(e.response?.data?.error || 'Could not assign this line');
@@ -176,6 +187,37 @@ function AssignModal({ line, onClose, onAssigned }) {
 
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button className={`btn btn-sm ${mode === 'employee' ? 'btn-primary' : ''}`} onClick={() => setMode('employee')}>An employee</button>
+            <button className={`btn btn-sm ${mode === 'holder' ? 'btn-primary' : ''}`} onClick={() => setMode('holder')}>A holder (NOC, team…)</button>
+          </div>
+        )}
+
+        {mode === 'holder' ? (
+          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            {holders.length === 0 ? (
+              <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>
+                No holders yet — add them in Product Catalogue → Line Holders.
+              </div>
+            ) : holders.filter(h => h.is_active).map(h => (
+              <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a' }}>{h.name}</div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                    {[h.project, h.client].filter(Boolean).join(' · ') || '—'}
+                  </div>
+                  {h.current_line && <div style={{ fontSize: 11, color: '#A32D2D', marginTop: 2 }}>Already holds {h.current_line}</div>}
+                </div>
+                <button className="btn btn-sm" disabled={saving || !!h.current_line}
+                        onClick={() => assign({ holder_id: h.id })}>
+                  {h.current_line ? 'Unavailable' : 'Assign'}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+        <>
         <input className="form-input" autoFocus placeholder="Search an employee by name or number…"
                value={search} onChange={e => setSearch(e.target.value)} />
 
@@ -197,13 +239,15 @@ function AssignModal({ line, onClose, onAssigned }) {
                   </div>
                   {has && <div style={{ fontSize: 11, color: '#A32D2D', marginTop: 2 }}>Already holds {has}</div>}
                 </div>
-                <button className="btn btn-sm" disabled={saving || !!has} onClick={() => assign(e)}>
+                <button className="btn btn-sm" disabled={saving || !!has} onClick={() => assign({ employee_id: e.id })}>
                   {has ? 'Unavailable' : 'Assign'}
                 </button>
               </div>
             );
           })}
         </div>
+        </>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
           <button className="btn" onClick={onClose}>Cancel</button>
