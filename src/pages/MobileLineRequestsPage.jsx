@@ -159,6 +159,20 @@ function RaiseModal({ onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  const [held, setHeld] = useState({});     // employee id -> the number they hold
+  const [asked, setAsked] = useState({});    // employee id -> already requested
+
+  // A line can only be requested for someone who has none, so the picker says
+  // which people are ineligible and why, instead of letting the click fail.
+  useEffect(() => {
+    api.get('/mobile-lines?status=assigned&pageSize=300')
+      .then(r => { const m = {}; (r.data.rows || []).forEach(l => { if (l.employee_id) m[l.employee_id] = l.mobile_number; }); setHeld(m); })
+      .catch(logError);
+    api.get('/mobile-line-requests?status=pending')
+      .then(r => { const m = {}; (r.data.rows || []).forEach(x => { m[x.employee_id] = true; }); setAsked(m); })
+      .catch(logError);
+  }, []);
+
   useEffect(() => {
     if (search.trim().length < 2) { setEmployees([]); return; }
     const t = setTimeout(() => {
@@ -192,24 +206,33 @@ function RaiseModal({ onClose, onDone }) {
             <input className="form-input" autoFocus placeholder="Search an employee…"
                    value={search} onChange={e => setSearch(e.target.value)} />
             <div style={{ marginTop: 12, maxHeight: 300, overflowY: 'auto' }}>
-              {employees.map(e => (
-                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a' }}>{e.full_name}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
-                      {[e.national_id, e.job_title, e.project].filter(Boolean).join(' · ')}
+              {employees.map(e => {
+                const blocked = held[e.id] ? `Already holds ${held[e.id]}` : asked[e.id] ? 'Already has an open request' : null;
+                return (
+                  <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a' }}>{e.full_name}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                        {[e.national_id, e.job_title, e.project].filter(Boolean).join(' · ')}
+                      </div>
+                      {blocked && <div style={{ fontSize: 11, color: '#A32D2D', marginTop: 2 }}>{blocked}</div>}
                     </div>
+                    <button className="btn btn-sm" disabled={!!blocked} onClick={() => setPicked(e)}>
+                      {blocked ? 'Not eligible' : 'Select'}
+                    </button>
                   </div>
-                  <button className="btn btn-sm" onClick={() => setPicked(e)}>Select</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </>
         ) : (
-          <label style={{ fontSize: 12, fontWeight: 600 }}>Why do they need one? (optional)
+          <label style={{ fontSize: 12, fontWeight: 600 }}>Why do they need one? *
             <input className="form-input" autoFocus value={reason} placeholder="e.g. new joiner, replacing a faulty handset"
                    onChange={e => setReason(e.target.value)}
-                   onKeyDown={e => { if (e.key === 'Enter') submit(); }} />
+                   onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) submit(); }} />
+            <span style={{ fontSize: 11, color: '#9ca3af' }}>
+              Whoever hands over a line reads this to decide — free numbers are few.
+            </span>
           </label>
         )}
 
@@ -217,7 +240,11 @@ function RaiseModal({ onClose, onDone }) {
           {picked ? <button className="btn" onClick={() => setPicked(null)}>← Someone else</button> : <span />}
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn" onClick={onClose}>Cancel</button>
-            {picked && <button className="btn btn-primary" disabled={busy} onClick={submit}>{busy ? 'Saving…' : 'Raise request'}</button>}
+            {picked && (
+              <button className="btn btn-primary" disabled={busy || !reason.trim()} onClick={submit}>
+                {busy ? 'Saving…' : 'Raise request'}
+              </button>
+            )}
           </div>
         </div>
       </div>
