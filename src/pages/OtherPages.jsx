@@ -177,6 +177,29 @@ export function EmployeesPage({ outsource = false }) {
 
   const reload = () => { load(); loadStats(); };
 
+  // Run an action over the selected rows without letting one refusal hide the
+  // rest: every item is attempted, and the server's own message is kept.
+  const runBulk = async (ids, fn) => {
+    const results = await Promise.allSettled(ids.map(id => fn(id)));
+    const failed = results
+      .map((r, i) => r.status === 'rejected'
+        ? { id: ids[i], msg: r.reason?.response?.data?.error || r.reason?.message || 'Request failed' }
+        : null)
+      .filter(Boolean);
+    return { ok: results.length - failed.length, failed };
+  };
+
+  // Say what happened either way. A silent button is the worst outcome: the
+  // user cannot tell whether it worked, and the reason never reaches them.
+  const reportBulk = (ok, failed, what) => {
+    if (!failed.length) { alert(`${ok} item(s) ${what} successfully.`); return; }
+    const reasons = [...new Set(failed.map(f => f.msg))];
+    alert(
+      (ok ? `${ok} item(s) ${what} successfully.\n\n` : '') +
+      `${failed.length} item(s) could not be ${what}:\n• ` + reasons.join('\n• ')
+    );
+  };
+
   async function openPpeAssign(emp) {
     const [ppeRes, assignRes] = await Promise.all([
       api.get('/ppe'),
@@ -1296,14 +1319,18 @@ export function NCRPage() {
     reload();
   };
 
+  // Approvals go one-by-one and report what actually happened. Promise.all with
+  // no catch meant a single refusal (out of scope, wrong stage, wrong role)
+  // rejected silently and skipped the reload AND the alert -- so the button
+  // simply did nothing, with the reason sitting unread in the response.
   const approvePurchaseRequest = async () => {
     if (selected.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve (Safety) for ${selected.length} item(s)?`)) return;
-    await Promise.all(selected.map(id => api.put(`/ncr/${id}/status`, { status: 'ehs_purchase_requested' })));
+    const { ok, failed } = await runBulk(selected, id => api.put(`/ncr/${id}/status`, { status: 'ehs_purchase_requested' }));
     reload();
     setSelected([]);
     setSelecting(false);
-    alert(`${selected.length} item(s) approved (Safety) successfully.`);
+    reportBulk(ok, failed, 'approved (Safety)');
   };
 
   const togglePdaSelect = (id) => setSelectedPda(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
@@ -1311,11 +1338,11 @@ export function NCRPage() {
   const approvePda = async () => {
     if (selectedPda.length === 0) return;
     if (!window.confirm(`Are you sure you want to approve (PM) for ${selectedPda.length} item(s)?`)) return;
-    await Promise.all(selectedPda.map(id => api.put(`/ncr/${id}/status`, { status: 'pda_approved' })));
+    const { ok, failed } = await runBulk(selectedPda, id => api.put(`/ncr/${id}/status`, { status: 'pda_approved' }));
     reload();
     setSelectedPda([]);
     setSelectingPda(false);
-    alert(`${selectedPda.length} item(s) approved (PM) successfully.`);
+    reportBulk(ok, failed, 'approved (PM)');
   };
 
   const exportCSV = () => {
