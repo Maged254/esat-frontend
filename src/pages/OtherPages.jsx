@@ -1505,7 +1505,20 @@ export function NCRPage() {
                     <div>{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
                     <div style={{fontSize:10,color:'#6b7280',marginTop:2}}>{n.audited_by_name||'—'}</div>
                   </td>
-                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':n.status==='exit'?'tag-gray':'tag-red'}`}>{statusLabel(n)}</span>{n.status==='canceled' && n.reject_reason && <div style={{fontSize:10,color:'#9ca3af',marginTop:2,maxWidth:160}} title={n.reject_reason}>{n.reject_reason}</div>}</td>
+                  <td><span className={`tag ${n.status==='pending'?'tag-amber':n.status==='ehs_purchase_requested'?'tag-navy':n.status==='scm_ordered'?'tag-navy':n.status==='warehouse_available'?'tag-teal':n.status==='distributed'||n.status==='resolved'?'tag-green':n.status==='exit'?'tag-gray':'tag-red'}`}>{statusLabel(n)}</span>{n.status==='canceled' && (
+                    n.reject_reason ? (
+                      // A real rejection: reason, who, and when — the record of a decision.
+                      <div style={{fontSize:10,color:'#9ca3af',marginTop:2,maxWidth:190,lineHeight:1.5}}>
+                        <div style={{color:'#6b7280'}} title={n.reject_reason}>{n.reject_reason}</div>
+                        <div>{n.rejected_by_name || 'unknown'}{n.rejected_at ? ` · ${new Date(n.rejected_at).toLocaleDateString('en-GB')}` : ''}</div>
+                      </div>
+                    ) : (
+                      // Closed before rejections recorded anything — there is no
+                      // person or date stored for these, so say that rather than
+                      // leave a blank that looks like missing data.
+                      <div style={{fontSize:10,color:'#c8ccd2',marginTop:2,maxWidth:190}}>no reason or person recorded</div>
+                    )
+                  )}</td>
                   {selecting && <td style={{textAlign:'center'}}>{n.status==='pending' && <input type="checkbox" checked={selected.includes(n.id)} onChange={()=>toggleSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {selectingPda && <td style={{textAlign:'center'}}>{n.needs_pda && n.status==='ehs_purchase_requested' && <input type="checkbox" checked={selectedPda.includes(n.id)} onChange={()=>togglePdaSelect(n.id)} style={{width:16,height:16,cursor:'pointer',accentColor:'var(--eg-green)'}} />}</td>}
                   {rejecting && <td style={{textAlign:'center'}}>{((rejecting==='safety' && n.status==='pending') || (rejecting==='pm' && n.needs_pda && n.status==='ehs_purchase_requested')) && <button className="btn" style={{fontSize:11,padding:'3px 10px',background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}} onClick={()=>openReject(n)}>Reject</button>}</td>}
