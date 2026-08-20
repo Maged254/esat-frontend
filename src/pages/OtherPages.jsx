@@ -1305,7 +1305,8 @@ export function NCRPage() {
   };
 
   const statusLabel = (n) =>
-    (n.status==='canceled' && n.reject_reason)?'Rejected':
+    (n.status==='canceled' && n.reject_reason)?
+      (n.rejected_stage==='safety'?'Rejected (Safety)':n.rejected_stage==='pm'?'Rejected (PM)':'Rejected'):
     n.status==='pending'?'Flagged':
     n.status==='ehs_purchase_requested'?(n.needs_pda?'Pending PM':'EHS Purchase Requested'):
     n.status==='pda_approved'?'Approved (PM)':
