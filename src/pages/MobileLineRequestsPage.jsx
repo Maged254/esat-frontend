@@ -83,13 +83,13 @@ export default function MobileLineRequestsPage() {
           <div style={{ overflowX: 'auto' }}>
             <table className="table-hover-soft">
               <thead>
-                <tr><th>Employee</th><th>Project / Client</th><th>Reason</th><th>Requested</th><th>Status</th><th></th></tr>
+                <tr><th>Employee</th><th>Project / Client</th><th>Asking For</th><th>Reason</th><th>Requested</th><th>Status</th><th></th></tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={6} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
+                  <tr><td colSpan={7} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>Loading…</td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
+                  <tr><td colSpan={7} style={{ padding: 24, color: '#9ca3af', fontSize: 13 }}>
                     {status === 'pending' ? 'Nobody is waiting for a line.' : 'No requests here.'}
                   </td></tr>
                 ) : rows.map(r => {
@@ -106,7 +106,15 @@ export default function MobileLineRequestsPage() {
                         {r.project_snapshot || '—'}
                         {r.client_snapshot && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.client_snapshot}</div>}
                       </td>
-                      <td style={{ maxWidth: 240, color: '#6b7280' }}>{r.reason || '—'}</td>
+                      <td style={{ maxWidth: 200 }}>
+                        <div style={{ fontWeight: 600, fontSize: 12 }}>
+                          {r.requested_package || '—'}{r.requested_cug ? ' + CUG' : ''}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>
+                          {r.requested_operator === 'safaricom' ? 'Safaricom' : r.requested_operator === 'airtel' ? 'Airtel' : '—'}
+                        </div>
+                      </td>
+                      <td style={{ maxWidth: 220, color: '#6b7280' }}>{r.reason || '—'}</td>
                       <td>
                         {fmtDate(r.requested_at)}
                         <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{r.requested_by_name || '—'}</div>
@@ -156,8 +164,21 @@ function RaiseModal({ onClose, onDone }) {
   const [employees, setEmployees] = useState([]);
   const [picked, setPicked] = useState(null);
   const [reason, setReason] = useState('');
+  const [operator, setOperator] = useState('');
+  const [packageId, setPackageId] = useState('');
+  const [cug, setCug] = useState(false);
+  const [packages, setPackages] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Packages belong to one operator, so the list only loads once a network is
+  // chosen -- and resets if it changes, so a mismatched pair cannot be sent.
+  useEffect(() => {
+    setPackageId('');
+    if (!operator) { setPackages([]); return; }
+    api.get(`/mobile-lines/products/packages?operator=${operator}`)
+      .then(r => setPackages(r.data)).catch(logError);
+  }, [operator]);
 
   const [held, setHeld] = useState({});     // employee id -> the number they hold
   const [asked, setAsked] = useState({});    // employee id -> already requested
@@ -184,7 +205,7 @@ function RaiseModal({ onClose, onDone }) {
 
   const submit = async () => {
     setBusy(true); setError('');
-    try { await api.post('/mobile-line-requests', { employee_id: picked.id, reason }); onDone(); }
+    try { await api.post('/mobile-line-requests', { employee_id: picked.id, reason, operator, package_id: packageId, cug }); onDone(); }
     catch (e) { setError(e.response?.data?.error || 'Could not raise this request'); }
     finally { setBusy(false); }
   };
@@ -226,14 +247,45 @@ function RaiseModal({ onClose, onDone }) {
             </div>
           </>
         ) : (
-          <label style={{ fontSize: 12, fontWeight: 600 }}>Why do they need one? *
-            <input className="form-input" autoFocus value={reason} placeholder="e.g. new joiner, replacing a faulty handset"
-                   onChange={e => setReason(e.target.value)}
-                   onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) submit(); }} />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>
-              Whoever hands over a line reads this to decide — free numbers are few.
-            </span>
-          </label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, width: 150 }}>Operator *
+                <select className="form-select" value={operator} onChange={e => setOperator(e.target.value)}>
+                  <option value="">Choose…</option>
+                  <option value="safaricom">Safaricom</option>
+                  <option value="airtel">Airtel</option>
+                </select>
+              </label>
+              <label style={{ fontSize: 12, fontWeight: 600, flex: 1 }}>Package *
+                <select className="form-select" value={packageId} disabled={!operator}
+                        onChange={e => setPackageId(e.target.value)}>
+                  <option value="">{operator ? 'Choose…' : 'Pick an operator first'}</option>
+                  {packages.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.package_name}{p.monthly_price != null ? ` — KES ${Number(p.monthly_price).toLocaleString()}/mo` : ''}
+                    </option>
+                  ))}
+                </select>
+                {operator && packages.length === 0 && (
+                  <span style={{ fontSize: 11, color: '#c0392b' }}>No active packages for this operator yet.</span>
+                )}
+              </label>
+            </div>
+
+            <label style={{ fontSize: 12, fontWeight: 600, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={cug} onChange={e => setCug(e.target.checked)} />
+              They need CUG
+            </label>
+
+            <label style={{ fontSize: 12, fontWeight: 600 }}>Why do they need one? *
+              <input className="form-input" value={reason} placeholder="e.g. new joiner, replacing a faulty handset"
+                     onChange={e => setReason(e.target.value)}
+                     onKeyDown={e => { if (e.key === 'Enter' && reason.trim() && packageId) submit(); }} />
+              <span style={{ fontSize: 11, color: '#9ca3af' }}>
+                Whoever hands over a line reads this to decide — free numbers are few.
+              </span>
+            </label>
+          </div>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
@@ -241,7 +293,7 @@ function RaiseModal({ onClose, onDone }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn" onClick={onClose}>Cancel</button>
             {picked && (
-              <button className="btn btn-primary" disabled={busy || !reason.trim()} onClick={submit}>
+              <button className="btn btn-primary" disabled={busy || !reason.trim() || !operator || !packageId} onClick={submit}>
                 {busy ? 'Saving…' : 'Raise request'}
               </button>
             )}
@@ -259,9 +311,12 @@ function FulfilModal({ request, onClose, onDone }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
+  // Only numbers on the network that was asked for: a Safaricom package cannot
+  // be put on an Airtel line, and the server refuses the pair anyway.
   useEffect(() => {
-    api.get('/mobile-lines/available/list').then(r => setLines(r.data)).catch(logError);
-  }, []);
+    const q = request.requested_operator ? `?operator=${request.requested_operator}` : '';
+    api.get('/mobile-lines/available/list' + q).then(r => setLines(r.data)).catch(logError);
+  }, [request.requested_operator]);
 
   const give = async (line) => {
     setBusy(true); setError('');
@@ -276,15 +331,24 @@ function FulfilModal({ request, onClose, onDone }) {
       <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 560, maxWidth: '92vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
            onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Hand a line to {request.employee_name_snapshot}</div>
-        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 8 }}>
           {request.project_snapshot || '—'}{request.reason ? ` · ${request.reason}` : ''}
+        </div>
+        {/* Handing over applies what was asked for, so say so before the click. */}
+        <div style={{ fontSize: 12, color: '#0f2a4a', background: '#F0F7FF', border: '1px solid #cfe0f2',
+                      borderRadius: 6, padding: '8px 10px', marginBottom: 14 }}>
+          Asked for <b>{request.requested_package || 'no package'}</b>
+          {request.requested_cug ? ' with CUG' : ' without CUG'} on{' '}
+          <b>{request.requested_operator === 'safaricom' ? 'Safaricom' : request.requested_operator === 'airtel' ? 'Airtel' : '—'}</b>.
+          The number you pick will be set to this.
         </div>
 
         {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{error}</div>}
 
         {lines.length === 0 ? (
           <div style={{ background: '#FFF8E6', border: '1px solid #F2DFA8', borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#7a5b12' }}>
-            No lines are free. Release one, or add a new number in the Lines Register first.
+            No {request.requested_operator === 'airtel' ? 'Airtel' : 'Safaricom'} lines are free. Release one, or add a
+            new number in the Lines Register first.
           </div>
         ) : lines.map(l => (
           <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
