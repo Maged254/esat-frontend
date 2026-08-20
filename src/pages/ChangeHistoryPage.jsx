@@ -83,7 +83,7 @@ export default function ChangeHistoryPage() {
   const exportCSV = async () => {
     setExporting(true);
     try {
-      const labels = ['When', 'Employee', 'National ID', 'Employee No', 'Action', 'Field', 'Before', 'After', 'Reason', 'Changed By'];
+      const labels = ['When', 'Employee', 'National ID', 'Employee No', 'Organization', 'Action', 'Field', 'Before', 'After', 'Reason', 'Changed By'];
       const all = [];
       let pg = 1;
       for (;;) {
@@ -98,7 +98,7 @@ export default function ChangeHistoryPage() {
       // One CSV line per changed field so the before/after is spreadsheet-friendly.
       const csvRows = [];
       all.forEach(r => {
-        const base = [fmtDateTime(r.changed_at), r.employee_name, r.national_id, r.employee_number, ACTION_META[r.action]?.label || r.action];
+        const base = [fmtDateTime(r.changed_at), r.employee_name, r.national_id, r.employee_number, r.organization, ACTION_META[r.action]?.label || r.action];
         const changes = Array.isArray(r.changes) && r.changes.length ? r.changes : [{ field: '', before: '', after: '' }];
         changes.forEach(c => csvRows.push([...base, c.field, c.before, c.after, r.reason, r.changed_by_name].map(esc).join(',')));
       });
@@ -176,6 +176,7 @@ export default function ChangeHistoryPage() {
                     <td>
                       <div className="emp-name">{r.employee_name || '—'}</div>
                       <div className="emp-id">{r.national_id || r.employee_number || '—'}</div>
+                      {r.organization && <div className="emp-id">{r.organization}</div>}
                     </td>
                     <td>{renderAction(r.action)}</td>
                     <td>{renderChanges(r.changes)}</td>
