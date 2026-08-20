@@ -1382,7 +1382,11 @@ export function NCRPage() {
               {stageMenu && (
                 <>
                   <span style={{fontSize:12,color:'#6b7280'}}>{stageMenu==='safety'?'Safety':'PM'}:</span>
-                  <button className="btn btn-primary" onClick={()=>{ const s=stageMenu; setStageMenu(null); s==='safety'?setSelecting(true):setSelectingPda(true); }}>Approve</button>
+                  <button className="btn btn-primary" onClick={()=>{
+                    const s=stageMenu; setStageMenu(null); setPage(1);
+                    if (s==='safety') { setFilters(p=>({...p,status:'pending',activeStat:''})); setSelecting(true); }
+                    else { setFilters(p=>({...p,status:'pda_pending',activeStat:''})); setSelectingPda(true); }
+                  }}>Approve → pick items</button>
                   <button className="btn" style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}} onClick={()=>{ const s=stageMenu; setStageMenu(null); setRejecting(s); }}>Reject</button>
                   <button className="btn" onClick={()=>setStageMenu(null)}>✕ Cancel</button>
                 </>
@@ -1391,14 +1395,14 @@ export function NCRPage() {
           })()}
           {selecting && (
             <>
-              <span style={{fontSize:12,color:'#6b7280'}}>{selected.length} selected</span>
+              <span style={{fontSize:12,color:'#6b7280'}}>Tick Flagged items, then Approve · {selected.length} selected</span>
               <button className="btn btn-primary" onClick={approvePurchaseRequest} disabled={selected.length===0}>✓ Approve (Safety)({selected.length})</button>
               <button className="btn" onClick={()=>{setSelecting(false);setSelected([]);}}>✕ Cancel</button>
             </>
           )}
           {selectingPda && (
             <>
-              <span style={{fontSize:12,color:'#6b7280'}}>{selectedPda.length} selected</span>
+              <span style={{fontSize:12,color:'#6b7280'}}>Tick Pending PM items, then Approve · {selectedPda.length} selected</span>
               <button className="btn btn-primary" onClick={approvePda} disabled={selectedPda.length===0}>✓ Approve (PM) ({selectedPda.length})</button>
               <button className="btn" onClick={()=>{setSelectingPda(false);setSelectedPda([]);}}>✕ Cancel</button>
             </>
