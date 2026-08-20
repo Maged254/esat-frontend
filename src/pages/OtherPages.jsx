@@ -118,6 +118,80 @@ export function EmployeesPage({ outsource = false }) {
   const [orgLists, setOrgLists] = useState({ department: [], project: [], client: [] }); // admin-managed dropdown options
   const navigate = useNavigate();
   const [importing, setImporting] = useState(false);
+  const [ppeExporting, setPpeExporting] = useState(false);
+
+  // A matrix: one row per employee, one column per PPE/Tool item, a tick where
+  // it is allocated. Columns are the items that actually appear, in catalogue
+  // order, so the sheet has no dead columns. Employees with nothing allocated
+  // stay in as empty rows -- they are exactly who the sheet is used to find.
+  const exportPpeAllocations = async () => {
+    setPpeExporting(true);
+    try {
+      const { data } = await api.get('/employees/ppe-allocations?employment_status=' + (filters.status || 'active'));
+
+      const items = [];                 // catalogue order, as returned
+      const byEmployee = new Map();     // one entry per person
+      data.forEach(r => {
+        const key = r.national_id || r.employee_number || r.employee_name;
+        if (!byEmployee.has(key)) byEmployee.set(key, { info: r, has: new Set() });
+        if (r.ppe_item) {
+          if (!items.includes(r.ppe_item)) items.push(r.ppe_item);
+          byEmployee.get(key).has.add(r.ppe_item);
+        }
+      });
+
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('PPE Allocations');
+      ws.columns = [
+        { header: 'Employee', key: 'employee_name', width: 28 },
+        { header: 'National ID', key: 'national_id', width: 14 },
+        { header: 'Employee No.', key: 'employee_number', width: 14 },
+        { header: 'Job Title', key: 'job_title', width: 22 },
+        { header: 'Department', key: 'department', width: 16 },
+        { header: 'Project', key: 'project', width: 18 },
+        { header: 'Client', key: 'client', width: 14 },
+        { header: 'Organization', key: 'organization', width: 18 },
+        { header: 'Items', key: 'count', width: 8 },
+        ...items.map(name => ({ header: name, key: name, width: 16 })),
+      ];
+
+      [...byEmployee.values()]
+        .sort((a, b) => (a.info.employee_name || '').localeCompare(b.info.employee_name || ''))
+        .forEach(({ info, has }) => {
+          const row = { ...info, count: has.size };
+          items.forEach(name => { row[name] = has.has(name) ? '✓' : ''; });
+          ws.addRow(row);
+        });
+
+      // The item columns are narrow and only ever hold a tick, so the header is
+      // rotated and the ticks centred -- otherwise the sheet is unreadable at
+      // any realistic number of items.
+      const head = ws.getRow(1);
+      head.font = { bold: true };
+      head.alignment = { vertical: 'bottom', horizontal: 'left' };
+      head.height = 110;
+      for (let c = 10; c <= ws.columnCount; c++) {
+        head.getCell(c).alignment = { textRotation: 90, vertical: 'bottom', horizontal: 'center' };
+        ws.getColumn(c).alignment = { horizontal: 'center' };
+        ws.getColumn(c).width = 4.5;
+      }
+      ws.getColumn(9).alignment = { horizontal: 'center' };
+      // Keep names and headers on screen while scrolling across the items.
+      ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+      ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: 9 } };
+
+      const buf = await wb.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buf]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OneHub-PPE-Allocations-${new Date().toISOString().slice(0,10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e.response?.data?.error || 'Could not build the PPE allocations file');
+    } finally { setPpeExporting(false); }
+  };
   const [userRole, setUserRole] = useState('');
   const [hrTasks, setHrTasks] = useState([]); // current user's hr_task_access
   const [outsourceAccess, setOutsourceAccess] = useState([]); // subtypes this user manages
@@ -489,6 +563,9 @@ export function EmployeesPage({ outsource = false }) {
           <span className="topbar-title">{outsource ? 'Outsource' : 'Employees'}</span>
         </div>
         <div className="topbar-right">
+          <button className="btn" onClick={exportPpeAllocations} disabled={ppeExporting}>
+            {ppeExporting ? 'Preparing…' : '⭳ PPE Allocations'}
+          </button>
           {canAddEmployee && outsource && (
             <button className="btn btn-primary" onClick={()=>openAdd('outsource')}>+ Add Outsource</button>
           )}
