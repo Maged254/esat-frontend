@@ -177,28 +177,6 @@ export function EmployeesPage({ outsource = false }) {
 
   const reload = () => { load(); loadStats(); };
 
-  // Run an action over the selected rows without letting one refusal hide the
-  // rest: every item is attempted, and the server's own message is kept.
-  const runBulk = async (ids, fn) => {
-    const results = await Promise.allSettled(ids.map(id => fn(id)));
-    const failed = results
-      .map((r, i) => r.status === 'rejected'
-        ? { id: ids[i], msg: r.reason?.response?.data?.error || r.reason?.message || 'Request failed' }
-        : null)
-      .filter(Boolean);
-    return { ok: results.length - failed.length, failed };
-  };
-
-  // Say what happened either way. A silent button is the worst outcome: the
-  // user cannot tell whether it worked, and the reason never reaches them.
-  const reportBulk = (ok, failed, what) => {
-    if (!failed.length) { alert(`${ok} item(s) ${what} successfully.`); return; }
-    const reasons = [...new Set(failed.map(f => f.msg))];
-    alert(
-      (ok ? `${ok} item(s) ${what} successfully.\n\n` : '') +
-      `${failed.length} item(s) could not be ${what}:\n• ` + reasons.join('\n• ')
-    );
-  };
 
   async function openPpeAssign(emp) {
     const [ppeRes, assignRes] = await Promise.all([
@@ -1277,6 +1255,30 @@ export function NCRPage() {
   const loadStats = () => api.get('/ncr/stats').then(r=>setStats(r.data)).catch(logError);
 
   const reload = () => { load(); loadStats(); };
+
+  // Run an action over the selected rows without letting one refusal hide the
+  // rest: every item is attempted, and the server's own message is kept.
+  const runBulk = async (ids, fn) => {
+    const results = await Promise.allSettled(ids.map(id => fn(id)));
+    const failed = results
+      .map((r, i) => r.status === 'rejected'
+        ? { id: ids[i], msg: r.reason?.response?.data?.error || r.reason?.message || 'Request failed' }
+        : null)
+      .filter(Boolean);
+    return { ok: results.length - failed.length, failed };
+  };
+
+  // Say what happened either way. A silent button is the worst outcome: the
+  // user cannot tell whether it worked, and the reason never reaches them.
+  const reportBulk = (ok, failed, what) => {
+    if (!failed.length) { alert(`${ok} item(s) ${what} successfully.`); return; }
+    const reasons = [...new Set(failed.map(f => f.msg))];
+    alert(
+      (ok ? `${ok} item(s) ${what} successfully.\n\n` : '') +
+      `${failed.length} item(s) could not be ${what}:\n• ` + reasons.join('\n• ')
+    );
+  };
+
 
   useEffect(() => { load(); }, [filters, page]);
   useEffect(() => { loadStats(); }, []);
