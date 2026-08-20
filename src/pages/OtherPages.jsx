@@ -563,9 +563,14 @@ export function EmployeesPage({ outsource = false }) {
           <span className="topbar-title">{outsource ? 'Outsource' : 'Employees'}</span>
         </div>
         <div className="topbar-right">
-          <button className="btn" onClick={exportPpeAllocations} disabled={ppeExporting}>
-            {ppeExporting ? 'Preparing…' : '⭳ PPE Allocations'}
-          </button>
+          {/* Admin only: the sheet is the whole PPE picture for every employee
+              in one file, so it is deliberately narrower than the page itself.
+              The endpoint refuses anyone else regardless of this. */}
+          {userRole === 'admin' && (
+            <button className="btn" onClick={exportPpeAllocations} disabled={ppeExporting}>
+              {ppeExporting ? 'Preparing…' : '⭳ PPE Allocations'}
+            </button>
+          )}
           {canAddEmployee && outsource && (
             <button className="btn btn-primary" onClick={()=>openAdd('outsource')}>+ Add Outsource</button>
           )}
