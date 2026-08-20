@@ -1513,10 +1513,14 @@ export function NCRPage() {
                         <div style={{color:'#6b7280'}} title={n.reject_reason}>{n.reject_reason}</div>
                         <div>{n.rejected_by_name || 'unknown'}{n.rejected_at ? ` · ${new Date(n.rejected_at).toLocaleDateString('en-GB')}` : ''}</div>
                       </div>
+                    ) : n.cancel_reason || n.cancelled_by_name ? (
+                      // Closed as a side effect — almost always the audit being
+                      // deleted, which does record who and why.
+                      <div style={{fontSize:10,color:'#9ca3af',marginTop:2,maxWidth:190,lineHeight:1.5}}>
+                        <div style={{color:'#6b7280'}} title={n.cancel_reason||''}>{n.cancel_reason||'Cancelled'}</div>
+                        <div>{n.cancelled_by_name || 'unknown'}{n.cancelled_at ? ` · ${new Date(n.cancelled_at).toLocaleDateString('en-GB')}` : ''}</div>
+                      </div>
                     ) : (
-                      // Closed before rejections recorded anything — there is no
-                      // person or date stored for these, so say that rather than
-                      // leave a blank that looks like missing data.
                       <div style={{fontSize:10,color:'#c8ccd2',marginTop:2,maxWidth:190}}>no reason or person recorded</div>
                     )
                   )}</td>
