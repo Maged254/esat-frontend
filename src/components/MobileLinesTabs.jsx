@@ -8,8 +8,7 @@ const TABS = [
   { to: '/mobile-lines', label: 'Lines Register', end: true, roles: ['admin', 'hr', 'supervisor', 'project_director'] },
   { to: '/mobile-lines/dashboard', label: 'Dashboard', roles: ['admin', 'hr', 'supervisor', 'project_director'] },
   { to: '/mobile-lines/available', label: 'Available Lines', roles: ['admin', 'hr'] },
-  { to: '/mobile-lines/change-requests', label: 'Change Requests', roles: ['admin', 'hr', 'supervisor', 'project_director'] },
-  { to: '/mobile-lines/operator-email', label: 'Operator Email', roles: ['admin'] },
+  { to: '/mobile-lines/requests', label: 'Request a New Line', roles: ['admin', 'hr'] },
   { to: '/mobile-lines/catalogue', label: 'Product Catalogue', roles: ['admin'] },
 ];
 

@@ -33,13 +33,9 @@ export default function MobileDashboardPage() {
   );
 
   const w = d?.workflow || {};
-  const queue = [
-    ['Pending approval', w.pending_approval, '/mobile-lines/change-requests'],
-    ['Awaiting email', w.awaiting_email, '/mobile-lines/operator-email'],
-    ['Email prepared', w.email_prepared, '/mobile-lines/operator-email'],
-    ['Awaiting operator', w.awaiting_operator, '/mobile-lines/change-requests'],
-    ['Partially implemented', w.partially_implemented, '/mobile-lines/change-requests'],
-  ];
+  // The product-change workflow is retired; what is left to watch is who is
+  // waiting for a line.
+  const queue = [['Waiting for a line', w.pending_line_requests]];
   const projects = (d?.by_project || []).slice(0, 10).map(p => ({ ...p, monthly: Number(p.monthly) }));
   // The axis label carries the client under the project, so a reader can tell
   // BTS - MS for Safaricom from the same project billed to another client.
@@ -110,7 +106,7 @@ export default function MobileDashboardPage() {
               </div>
 
               <div className="card">
-                <div className="card-header"><span className="card-title">Workflow</span></div>
+                <div className="card-header"><span className="card-title">Line Requests</span></div>
                 <div style={{ padding: '8px 16px 16px' }}>
                   {queue.map(([label, n]) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -120,8 +116,8 @@ export default function MobileDashboardPage() {
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, fontSize: 12, color: '#9ca3af' }}>
-                    <span>Implemented, last 30 days</span>
-                    <span style={{ fontWeight: 600, color: 'var(--eg-green)' }}>{w.implemented_30d ?? 0}</span>
+                    <span>Lines handed over, last 30 days</span>
+                    <span style={{ fontWeight: 600, color: 'var(--eg-green)' }}>{w.fulfilled_30d ?? 0}</span>
                   </div>
                 </div>
               </div>
