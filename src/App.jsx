@@ -77,7 +77,7 @@ export default function App() {
             <Route path="training/request" element={<PageGuard pageKey="/training/request" roles={['admin','ehs_manager']}><RequestTrainingPage /></PageGuard>} />
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
-            <Route path="ppe-assignment-history" element={<PageGuard pageKey="/ppe-assignment-history" roles={['admin','ehs_manager','hr']}><PpeAssignmentHistoryPage /></PageGuard>} />
+            <Route path="ppe-assignment-history" element={<PageGuard pageKey="/ppe-assignment-history" roles={['admin']}><PpeAssignmentHistoryPage /></PageGuard>} />
             <Route path="mobile-lines" element={<PageGuard pageKey="/mobile-lines" roles={['admin','hr','supervisor','project_director']}><MobileLinesPage /></PageGuard>} />
             <Route path="mobile-lines/dashboard" element={<PageGuard pageKey="/mobile-lines/dashboard" roles={['admin','hr','supervisor','project_director']}><MobileDashboardPage /></PageGuard>} />
             <Route path="mobile-lines/available" element={<PageGuard pageKey="/mobile-lines/available" roles={['admin','hr']}><AvailableLinesPage /></PageGuard>} />
