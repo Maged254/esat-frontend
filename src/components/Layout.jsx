@@ -18,6 +18,9 @@ const NAV = [
   // page, so the sidebar does not carry five near-identical rows.
   { to: '/mobile-lines', label: 'Mobile Lines', icon: 'ti-device-mobile', roles: ['admin','hr','supervisor','project_director'] },
   { to: '/employees/change-log', label: 'Change History', icon: 'ti-list-details', roles: ['admin','hr'] },
+  // Who was allocated which PPE, and when it changed. Same audience as the
+  // assignment screen it records.
+  { to: '/ppe-assignment-history', label: 'PPE Assignment History', icon: 'ti-shield-search', roles: ['admin','hr','ehs_manager'], roleLocked: true },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'], roleLocked: true },
   { to: '/request-ppe', label: 'Request a PPE/Tool', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
