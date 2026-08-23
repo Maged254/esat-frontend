@@ -31,6 +31,7 @@ import MobileCataloguePage from './pages/MobileCataloguePage';
 import AvailableLinesPage from './pages/AvailableLinesPage';
 import MobileLineRequestsPage from './pages/MobileLineRequestsPage';
 import PpeAssignmentHistoryPage from './pages/PpeAssignmentHistoryPage';
+import TrainingHistoryPage from './pages/TrainingHistoryPage';
 import MobileDashboardPage from './pages/MobileDashboardPage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="training/request" element={<PageGuard pageKey="/training/request" roles={['admin','ehs_manager']}><RequestTrainingPage /></PageGuard>} />
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />
             <Route path="training/tracker" element={<PageGuard pageKey="/training/tracker"><TrainingTrackerPage /></PageGuard>} />
+            <Route path="training-history" element={<PageGuard pageKey="/training-history" roles={['admin']}><TrainingHistoryPage /></PageGuard>} />
             <Route path="ppe-assignment-history" element={<PageGuard pageKey="/ppe-assignment-history" roles={['admin']}><PpeAssignmentHistoryPage /></PageGuard>} />
             <Route path="mobile-lines" element={<PageGuard pageKey="/mobile-lines" roles={['admin','hr','supervisor','project_director']}><MobileLinesPage /></PageGuard>} />
             <Route path="mobile-lines/dashboard" element={<PageGuard pageKey="/mobile-lines/dashboard" roles={['admin','hr','supervisor','project_director']}><MobileDashboardPage /></PageGuard>} />

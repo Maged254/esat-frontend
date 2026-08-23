@@ -21,6 +21,8 @@ const NAV = [
   // Who was allocated which PPE, and when it changed. Admin only: it is the
   // record for everyone, not just the people one role happens to manage.
   { to: '/ppe-assignment-history', label: 'PPE Assignment History', icon: 'ti-shield-search', roles: ['admin'], roleLocked: true },
+  // Requests, outcomes, renewals, cancellations and restores on training records.
+  { to: '/training-history', label: 'Training History', icon: 'ti-certificate-2', roles: ['admin'], roleLocked: true },
   { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'], roleLocked: true },
   { to: '/request-ppe', label: 'Request a PPE/Tool', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
