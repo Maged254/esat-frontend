@@ -94,6 +94,7 @@ export default function MobileLinesPage() {
   const [correcting, setCorrecting] = useState(null);
   const [releasing, setReleasing] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [terminating, setTerminating] = useState(null);
   const pageSize = 25;
 
   const query = useCallback((extra = {}) => {
@@ -327,6 +328,10 @@ export default function MobileLinesPage() {
                         {isAdmin && (
                           <button className="btn btn-sm" style={{ marginLeft: 6 }} onClick={() => setCorrecting(r)}>Correct</button>
                         )}
+                        {isAdmin && r.status !== 'terminated' && (
+                          <button className="btn btn-sm" style={{ marginLeft: 6, color: '#c0392b', borderColor: '#f0c9c6' }}
+                                  onClick={() => setTerminating(r)}>Terminate</button>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -348,6 +353,10 @@ export default function MobileLinesPage() {
       {adding && (
         <AddLineModal onClose={() => setAdding(false)}
                       onAdded={() => { setAdding(false); load(); }} />
+      )}
+      {terminating && (
+        <TerminateModal line={terminating} onClose={() => setTerminating(null)}
+                        onDone={() => { setTerminating(null); load(); }} />
       )}
       {releasing && (
         <ReleaseModal line={releasing} onClose={() => setReleasing(null)}
@@ -618,6 +627,63 @@ function AddLineModal({ onClose, onAdded }) {
             {saving ? 'Saving…' : 'Save & add another'}
           </button>
           <button className="btn btn-primary" disabled={saving} onClick={() => save(false)}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Terminating says the company no longer has this number at all. It is final —
+// a terminated line can never be assigned again — so the dialog says so, asks
+// for a reason, and makes the holder losing it explicit.
+function TerminateModal({ line, onClose, onDone }) {
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const terminate = async () => {
+    if (!reason.trim()) { setError('A reason is required.'); return; }
+    setSaving(true); setError('');
+    try {
+      await api.post(`/mobile-lines/${line.id}/terminate`, { reason: reason.trim() });
+      onDone();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Could not terminate this line');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+         onClick={onClose}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 480, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+           onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Terminate {line.mobile_number}</div>
+        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 14 }}>
+          {title(line.operator)}
+          {line.employee_name || line.holder_name ? ` · held by ${line.employee_name || line.holder_name}` : ' · not assigned'}
+        </div>
+
+        <div style={{ background: '#FCEBEB', border: '1px solid #f0c9c6', borderRadius: 6, padding: '10px 12px', fontSize: 13, color: '#A32D2D', marginBottom: 14 }}>
+          <b>This is final.</b> A terminated number can never be assigned again and drops out of the
+          cost figures.{(line.employee_name || line.holder_name) ? ' It will be released from its current holder first.' : ''}
+          {' '}Use <b>Release</b> instead if the number is staying with the company.
+        </div>
+
+        <label style={{ fontSize: 12, fontWeight: 600 }}>Why is it being terminated? *
+          <input className="form-input" autoFocus value={reason}
+                 placeholder="e.g. line closed with Safaricom, SIM lost"
+                 onChange={e => setReason(e.target.value)}
+                 onKeyDown={e => { if (e.key === 'Enter' && reason.trim()) terminate(); }} />
+        </label>
+
+        {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginTop: 12, fontSize: 13 }}>{error}</div>}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn" style={{ background: '#c0392b', borderColor: '#c0392b', color: '#fff' }}
+                  disabled={saving || !reason.trim()} onClick={terminate}>
+            {saving ? 'Terminating…' : 'Terminate line'}
+          </button>
         </div>
       </div>
     </div>
