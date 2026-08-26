@@ -127,7 +127,15 @@ export default function MobileLinesPage() {
   useEffect(() => { api.get('/mobile-lines/filter-options').then(r => setOptions(r.data)).catch(logError); }, []);
 
   const exportExcel = async () => {
-    const { data } = await api.get('/mobile-lines?' + query({ page: 1, pageSize: 200 }));
+    // The register is capped at 200 rows per request, so the export has to page
+    // through: a single request silently dropped everything past row 200.
+    const EXPORT_PAGE = 200;
+    const rows = [];
+    for (let p = 1; ; p++) {
+      const { data } = await api.get('/mobile-lines?' + query({ page: p, pageSize: EXPORT_PAGE }));
+      rows.push(...data.rows);
+      if (rows.length >= data.total || data.rows.length < EXPORT_PAGE) break;
+    }
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Mobile Lines');
     ws.columns = [
@@ -146,7 +154,7 @@ export default function MobileLinesPage() {
       { header: 'Assigned On', key: 'assigned_on', width: 14 },
     ];
     ws.getRow(1).font = { bold: true };
-    data.rows.forEach(r => ws.addRow({
+    rows.forEach(r => ws.addRow({
       ...r,
       // Same rule as the table: a function holder has a name but no national ID.
       holder: r.employee_name || r.holder_name || '',

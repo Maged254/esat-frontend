@@ -148,10 +148,16 @@ function AssignModal({ line, onClose, onAssigned }) {
         .then(async r => {
           const rows = r.data.rows || r.data;
           setEmployees(rows);
-          // Which of these already hold a line? One call, then a lookup by id.
+          // Which of these already hold a line? The register caps a request at
+          // 200 rows, so page through -- stopping at the first page would leave
+          // everyone past row 200 looking free when they are not.
           const taken = {};
-          const reg = await api.get('/mobile-lines?status=assigned&pageSize=200').catch(() => null);
-          (reg?.data?.rows || []).forEach(l => { if (l.employee_id) taken[l.employee_id] = l.mobile_number; });
+          for (let p = 1; ; p++) {
+            const reg = await api.get(`/mobile-lines?status=assigned&page=${p}&pageSize=200`).catch(() => null);
+            const batch = reg?.data?.rows || [];
+            batch.forEach(l => { if (l.employee_id) taken[l.employee_id] = l.mobile_number; });
+            if (batch.length < 200) break;
+          }
           setHeld(taken);
         })
         .catch(logError).finally(() => setLoading(false));
