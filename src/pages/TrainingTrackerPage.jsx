@@ -241,7 +241,11 @@ export default function TrainingTrackerPage() {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const all = await fetchAllRows();
+      // The export is a follow-up list, so two kinds of row never belong in it
+      // however the filters are set: a cancelled record, and a certificate that
+      // is valid and not near expiry -- neither needs chasing.
+      const all = (await fetchAllRows())
+        .filter(r => r.status !== 'cancelled' && r.expiry_state !== 'valid');
 
       // Blank (not "—") for empty date cells so Excel columns read cleanly.
       const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
@@ -304,7 +308,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports exactly what the filters above are showing">↓ {exporting ? 'Exporting...' : `Export${total ? ` · ${total}` : ''}`}</button>}
+          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports what the filters above are showing, minus valid certificates and cancelled records">↓ {exporting ? 'Exporting...' : 'Export'}</button>}
         </div>
       </div>
 
