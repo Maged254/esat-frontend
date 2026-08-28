@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
 import MobileLinesTabs from '../components/MobileLinesTabs';
 
@@ -13,6 +14,7 @@ const STATUS = {
   cancelled: { label: 'Cancelled', cls: 'tag-gray' },
 };
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
+const title = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
 export default function MobileLineRequestsPage() {
   const [rows, setRows] = useState([]);
@@ -35,6 +37,49 @@ export default function MobileLineRequestsPage() {
   }, [status, search]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Exports exactly what the current filter shows, so the file and the table
+  // can never disagree -- the rows are already loaded, no second request.
+  const exportExcel = async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Line Requests');
+    ws.columns = [
+      { header: 'Employee', key: 'employee_name_snapshot', width: 28 },
+      { header: 'Employee No', key: 'employee_number', width: 13 },
+      { header: 'National ID', key: 'national_id', width: 14 },
+      { header: 'Job Title', key: 'job_title', width: 24 },
+      { header: 'Project', key: 'project_snapshot', width: 16 },
+      { header: 'Client', key: 'client_snapshot', width: 14 },
+      { header: 'Operator', key: 'operator_txt', width: 12 },
+      { header: 'Package', key: 'requested_package', width: 18 },
+      { header: 'Monthly Cost', key: 'requested_price', width: 13 },
+      { header: 'CUG', key: 'cug_txt', width: 7 },
+      { header: 'Reason', key: 'reason', width: 44 },
+      { header: 'Status', key: 'status_txt', width: 12 },
+      { header: 'Requested By', key: 'requested_by_name', width: 20 },
+      { header: 'Requested On', key: 'requested_on', width: 14 },
+      { header: 'Line Issued', key: 'mobile_number', width: 14 },
+      { header: 'Fulfilled On', key: 'fulfilled_on', width: 14 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    rows.forEach(r => ws.addRow({
+      ...r,
+      operator_txt: title(r.requested_operator || r.operator || ''),
+      cug_txt: r.requested_cug ? 'Yes' : 'No',
+      status_txt: (STATUS[r.status] || {}).label || r.status,
+      requested_price: r.requested_price == null ? null : Number(r.requested_price),
+      requested_on: fmtDate(r.requested_at).replace('—', ''),
+      fulfilled_on: fmtDate(r.fulfilled_at).replace('—', ''),
+      mobile_number: r.mobile_number || '',
+    }));
+    ws.autoFilter = { from: 'A1', to: { row: Math.max(1, rows.length + 1), column: ws.columns.length } };
+    const buf = await wb.xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buf]));
+    const a = document.createElement('a');
+    a.href = url; a.download = `OneHub-Line-Requests-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+  };
 
   const cancel = async (r) => {
     const reason = window.prompt(`Cancel the line request for ${r.employee_name_snapshot}?\n\nReason (optional):`);
@@ -72,6 +117,8 @@ export default function MobileLineRequestsPage() {
                   {s ? STATUS[s].label : 'All'}{s === 'pending' && stats.pending ? ` · ${stats.pending}` : ''}
                 </button>
               ))}
+              <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
+                      onClick={exportExcel} disabled={loading || rows.length === 0}>⭳ Export</button>
             </div>
           </div>
 
