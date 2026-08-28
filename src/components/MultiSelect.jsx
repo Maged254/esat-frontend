@@ -43,12 +43,20 @@ export default function MultiSelect({ label, options, selected, onChange }) {
           padding:'6px 0', zIndex:9999, minWidth:210,
           boxShadow:'0 4px 16px rgba(0,0,0,0.12)'
         }}>
-          {options.map(opt => (
-            <label key={opt.value} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',fontSize:13,cursor:'pointer',userSelect:'none'}}>
-              <input type="checkbox" checked={selected.includes(opt.value)} onChange={()=>toggle(opt.value)}
-                style={{accentColor:'#1d9e75',width:14,height:14,cursor:'pointer'}} />
-              {opt.label}
-            </label>
+          {options.map((opt, i) => (
+            <React.Fragment key={opt.value}>
+              {/* An optional `group` on an option prints a heading the first
+                  time it appears, so a long list keeps the sections it had as
+                  a native <optgroup>. Options without one render unchanged. */}
+              {opt.group && opt.group !== options[i - 1]?.group && (
+                <div style={{padding:'6px 14px 2px',fontSize:11,fontWeight:700,color:'#9ca3af',textTransform:'uppercase',letterSpacing:'.03em'}}>{opt.group}</div>
+              )}
+              <label style={{display:'flex',alignItems:'center',gap:8,padding:'6px 14px',fontSize:13,cursor:'pointer',userSelect:'none'}}>
+                <input type="checkbox" checked={selected.includes(opt.value)} onChange={()=>toggle(opt.value)}
+                  style={{accentColor:'#1d9e75',width:14,height:14,cursor:'pointer'}} />
+                {opt.label}
+              </label>
+            </React.Fragment>
           ))}
           {options.length === 0 && <div style={{padding:'6px 14px',fontSize:13,color:'#9ca3af'}}>No options</div>}
         </div>
