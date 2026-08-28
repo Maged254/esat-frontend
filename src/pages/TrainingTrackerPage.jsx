@@ -214,43 +214,33 @@ export default function TrainingTrackerPage() {
     document.body.appendChild(a); a.click(); a.remove();
   };
 
-  // Pull every page of one certificate group, restricted to ACTIVE employees.
-  // Keeps the current people-filters (course/project/etc.) but ignores the
-  // on-screen Current Status selection — the export has its own fixed scope.
-  const fetchAllForGroup = async (group) => {
+  // Pull every page of the CURRENT selection. It uses rowParams() -- the exact
+  // same params the table is showing -- so the file always matches the count on
+  // screen. It used to fetch two fixed groups instead, which quietly ignored the
+  // status sub-selection and the pending reason and exported far more than the
+  // table listed.
+  const fetchAllRows = async () => {
     const out = [];
-    let pg = 1;
-    for (;;) {
-      const p = appendPeople(new URLSearchParams());
-      p.append('group', group);
-      p.append('employment_status', 'active');
+    for (let pg = 1; pg <= 200; pg++) {
+      const p = rowParams();
       p.append('page', pg); p.append('pageSize', 100);
       const res = await api.get('/training-records/tracker?' + p);
       out.push(...res.data.rows);
       if (out.length >= res.data.total || res.data.rows.length === 0) break;
-      pg += 1;
-      if (pg > 100) break; // hard stop
     }
     return out;
   };
 
-  // Export = actionable follow-up list: Pending + Expiring Soon certificates,
-  // active employees only.
   const exportExcel = async () => {
     setExporting(true);
     try {
-      const pending = await fetchAllForGroup('outstanding');   // Pending
-      const expiring = await fetchAllForGroup('expiring');     // Expiring ≤60d
-      // The two groups are disjoint, but dedupe by id defensively.
-      const byId = new Map();
-      [...pending, ...expiring].forEach(r => byId.set(r.id, r));
-      const all = [...byId.values()];
+      const all = await fetchAllRows();
 
       // Blank (not "—") for empty date cells so Excel columns read cleanly.
       const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
 
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet('Pending & Expiring');
+      const ws = wb.addWorksheet('Training Records');
       ws.columns = [
         { header: 'Employee', key: 'employee', width: 26 },
         { header: 'National ID', key: 'national_id', width: 14 },
@@ -291,7 +281,7 @@ export default function TrainingTrackerPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'OneHub_Pending_Expiring_Trainings_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+      a.download = 'OneHub_Trainings_' + new Date().toISOString().slice(0, 10) + '.xlsx';
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) { logError(e); alert('Export failed'); }
@@ -307,7 +297,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports Pending + Expiring Soon certificates for active employees (respects the filters above, ignores the Current Status selection)">↓ {exporting ? 'Exporting...' : 'Export Pending / Expiring'}</button>}
+          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports exactly what the filters above are showing">↓ {exporting ? 'Exporting...' : `Export${total ? ` · ${total}` : ''}`}</button>}
         </div>
       </div>
 
