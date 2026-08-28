@@ -147,6 +147,13 @@ export default function TrainingTrackerPage() {
   const statParams = () => {
     const p = appendPeople(new URLSearchParams());
     if (filters.employment_status) p.append('employment_status', filters.employment_status);
+    // The pending reason is a filter, not a bucket, so the cards have to narrow
+    // by it too -- otherwise they keep reporting the unfiltered totals while the
+    // list below shows a handful of rows. Same condition applyGroup uses, so the
+    // cards and the list never disagree about whether it is in force.
+    if (filters.pending_reason && (filters.group === 'all' || filters.group === 'outstanding')) {
+      p.append('pending_reason', filters.pending_reason);
+    }
     return p;
   };
 
