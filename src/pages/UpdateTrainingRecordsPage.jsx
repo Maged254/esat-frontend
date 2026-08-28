@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
 import DateInput from '../components/DateInput';
+import MultiSelect from '../components/MultiSelect';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
 const STATUS_TAG = {
@@ -63,7 +64,29 @@ const toInputDate = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
 const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 
 // Land on the actionable bucket; employment status is baked into the groups now.
-const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', resource_type: '', department: '', project: '', client: '', group: 'outstanding', pending_reason: '' };
+// Current Status entries. A value is a group key or "group:substate"; the
+// backend turns each into one predicate and OR's the selection together, so
+// buckets from different groups can be picked at the same time.
+const GROUP_OPTIONS = [
+  { value: 'valid', label: 'All Valid', group: 'Valid Certificates' },
+  { value: 'outstanding', label: 'All Pending', group: 'Pending Certificates' },
+  // No "Requested": nothing opens as `requested` any more -- both a raised
+  // request and an expiry-opened renewal start as Pending, so the filter would
+  // always come back empty.
+  { value: 'outstanding:scheduled', label: 'Scheduled', group: 'Pending Certificates' },
+  { value: 'outstanding:pending', label: 'Pending', group: 'Pending Certificates' },
+  { value: 'outstanding:not_eligible', label: 'Not eligible', group: 'Pending Certificates' },
+  { value: 'expiring', label: 'All Expiring soon', group: 'Certificates Expiring Soon' },
+  { value: 'archived', label: 'All Archived', group: 'Archived Certificates' },
+  { value: 'archived:expired', label: 'Expired', group: 'Archived Certificates' },
+  { value: 'archived:superseded', label: 'Renewed over', group: 'Archived Certificates' },
+  { value: 'archived:cancelled', label: 'Cancelled', group: 'Archived Certificates' },
+  { value: 'archived:exited', label: 'Exited employee', group: 'Archived Certificates' },
+];
+
+// The five multi-select filters hold arrays; an empty array means "all", which
+// is how they read on screen. The page still opens on Pending.
+const EMPTY_FILTERS = { search: '', national_id: '', job_title: '', resource_type: '', departments: [], projects: [], clients: [], groups: ['outstanding'], pending_reasons: [] };
 
 // Add N whole months to a yyyy-mm-dd date string, returned as a Date.
 const addMonths = (dateStr, months) => {
@@ -175,41 +198,40 @@ export default function UpdateTrainingRecordsPage() {
       .catch(logError);
   };
 
+  // The pending reason only means something for pending records, so the filter
+  // shows (and applies) on All Records and on any all-pending selection.
+  const reasonApplies = filters.groups.length === 0 || filters.groups.every(g => g === 'outstanding');
+
   // People/scope filters shared by the list and the stat chips.
   const appendPeopleFilters = (p) => {
     if (filters.search) p.append('search', filters.search);
     if (filters.national_id) p.append('national_id', filters.national_id);
     if (filters.job_title) p.append('job_title', filters.job_title);
     if (filters.resource_type) p.append('resource_type', filters.resource_type);
-    if (filters.department) p.append('department', filters.department);
-    if (filters.project) p.append('projects', filters.project);
-    if (filters.client) p.append('clients', filters.client);
+    if (filters.departments.length) p.append('department', filters.departments.join(','));
+    if (filters.projects.length) p.append('projects', filters.projects.join(','));
+    if (filters.clients.length) p.append('clients', filters.clients.join(','));
     return p;
   };
 
   const rowParams = (courseId, page = 1, pageSize = 100) => {
-    // filters.group is either a group key ('valid'|'outstanding'|'expiring'|
-    // 'archived'|'all') or "group:substate" to narrow within a group.
-    const [grp, sub] = (filters.group || '').split(':');
+    // The Current Status selection travels whole: one `buckets` list the backend
+    // OR's together. A group plus a status/expiry param could not express a
+    // selection that mixes buckets from different groups (Scheduled OR Expired).
     const base = { course_id: courseId, page: String(page), pageSize: String(pageSize) };
-    if (grp && grp !== 'all') base.group = grp;
-    // Sub-state = an extra AND on top of the group, via the existing params.
-    if (sub) {
-      if (grp === 'outstanding') base.status = sub;                 // requested / scheduled / pending / not_eligible
-      else if (grp === 'archived') {
-        if (sub === 'expired' || sub === 'superseded') base.expiry = sub;
-        else if (sub === 'cancelled') base.status = 'cancelled';
-        else if (sub === 'exited') base.employment_status = 'exit';
-      }
-    }
-    // Pending-reason filter — only meaningful (and only shown) on All Records / All Pending.
-    if (filters.pending_reason && (filters.group === 'all' || filters.group === 'outstanding')) base.pending_reason = filters.pending_reason;
+    if (filters.groups.length) base.buckets = filters.groups.join(',');
+    if (reasonApplies && filters.pending_reasons.length) base.pending_reason = filters.pending_reasons.join(',');
     return appendPeopleFilters(new URLSearchParams(base));
   };
 
   // Chips always show the group totals for the current people-filters, so the
-  // stat query ignores the group/sub-state selection entirely.
-  const statParams = (courseId) => appendPeopleFilters(new URLSearchParams({ course_id: courseId }));
+  // stat query ignores the bucket selection entirely -- the buckets ARE the
+  // chips. The pending reason is a filter rather than a bucket, so it stays.
+  const statParams = (courseId) => {
+    const base = { course_id: courseId };
+    if (reasonApplies && filters.pending_reasons.length) base.pending_reason = filters.pending_reasons.join(',');
+    return appendPeopleFilters(new URLSearchParams(base));
+  };
 
   // The /tracker endpoint pages at max 100 rows. A group can hold far more (e.g.
   // ~200-400 valid certs), so fetch every page and show them all — otherwise rows
@@ -274,8 +296,14 @@ export default function UpdateTrainingRecordsPage() {
   };
 
   const isRenew = modal?.mode === 'renew';
-  // The chosen group without any ":substate" suffix (drives chip highlight + title).
-  const baseGroup = (filters.group || 'all').split(':')[0];
+  // A chip lights up when its own bucket is the only thing selected, so clicking
+  // through the chips still behaves like the old single-select.
+  const soleGroup = filters.groups.length === 1 ? filters.groups[0].split(':')[0] : (filters.groups.length === 0 ? 'all' : null);
+  // The card heading names the view; a mixed selection has no single name, so it
+  // says how many buckets are in play rather than naming one of them.
+  const viewTitle = filters.groups.length === 0 ? 'All records'
+    : filters.groups.length === 1 ? (VIEW_TITLE[filters.groups[0]] || VIEW_TITLE[soleGroup] || 'Records')
+    : `${filters.groups.length} selected views`;
   const validity = selectedCourse?.validity_months;
   const noExpiry = !!selectedCourse?.no_expiry; // certificate never expires → completion needs no validity
   // A renewal dated on/before the previous completion is rejected, so don't
@@ -469,12 +497,12 @@ export default function UpdateTrainingRecordsPage() {
                     { key: 'outstanding', label: 'Pending', value: stats.grp_outstanding || 0, tag: 'tag-red' },
                     { key: 'expiring', label: 'Expiring ≤60d', value: stats.grp_expiring || 0, tag: 'tag-amber' },
                   ].map(chip => (
-                    <button key={chip.key} onClick={() => setFilters(p => ({ ...p, group: chip.key }))}
+                    <button key={chip.key} onClick={() => setFilters(p => ({ ...p, groups: chip.key === 'all' ? [] : [chip.key] }))}
                       title={`Show ${chip.label.toLowerCase()}`}
                       style={{
                         cursor: 'pointer', textAlign: 'center', minWidth: 92, padding: '8px 12px', borderRadius: 10,
-                        background: 'white', border: `1.5px solid ${baseGroup === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
-                        boxShadow: baseGroup === chip.key ? 'var(--wf-shadow-hover)' : 'none',
+                        background: 'white', border: `1.5px solid ${soleGroup === chip.key ? 'var(--eg-navy)' : '#e5e7eb'}`,
+                        boxShadow: soleGroup === chip.key ? 'var(--wf-shadow-hover)' : 'none',
                       }}>
                       <div style={{ fontSize: 18, fontWeight: 700, color: '#0f2a4a' }}>{chip.value}</div>
                       <div style={{ marginTop: 2 }}><span className={`tag ${chip.tag}`}>{chip.label}</span></div>
@@ -501,48 +529,22 @@ export default function UpdateTrainingRecordsPage() {
                     <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.resource_type} onChange={e => setFilters(p => ({ ...p, resource_type: e.target.value }))}>
                       <option value="">All Resources</option><option value="inhouse">Inhouse</option><option value="outsource">Outsource</option><option value="intern">Intern</option>
                     </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 130 }} value={filters.department} onChange={e => setFilters(p => ({ ...p, department: e.target.value }))}>
-                      <option value="">All Departments</option>
-                      {filterOptions.departments.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.project} onChange={e => setFilters(p => ({ ...p, project: e.target.value }))}>
-                      <option value="">All Projects</option>
-                      {filterOptions.projects.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 120 }} value={filters.client} onChange={e => setFilters(p => ({ ...p, client: e.target.value }))}>
-                      <option value="">All Clients</option>
-                      {(filterOptions.clients || []).map(cl => <option key={cl} value={cl}>{cl}</option>)}
-                    </select>
-                    <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.group} onChange={e => setFilters(p => ({ ...p, group: e.target.value }))} title="Certificate group">
-                      <option value="all">All Records</option>
-                      <optgroup label="Valid Certificates">
-                        <option value="valid">All Valid</option>
-                      </optgroup>
-                      <optgroup label="Pending Certificates">
-                        <option value="outstanding">All Pending</option>
-                        {/* No "Requested": nothing opens as `requested` any more --
-                            both a raised request and an expiry-opened renewal start
-                            as Pending, so the filter would always come back empty. */}
-                        <option value="outstanding:scheduled">Scheduled</option>
-                        <option value="outstanding:pending">Pending</option>
-                        <option value="outstanding:not_eligible">Not eligible</option>
-                      </optgroup>
-                      <optgroup label="Certificates Expiring Soon">
-                        <option value="expiring">All Expiring soon</option>
-                      </optgroup>
-                      <optgroup label="Archived Certificates">
-                        <option value="archived">All Archived</option>
-                        <option value="archived:expired">Expired</option>
-                        <option value="archived:superseded">Renewed over</option>
-                        <option value="archived:cancelled">Cancelled</option>
-                        <option value="archived:exited">Exited employee</option>
-                      </optgroup>
-                    </select>
-                    {(filters.group === 'all' || filters.group === 'outstanding') && (
-                      <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 200 }} value={filters.pending_reason} onChange={e => setFilters(p => ({ ...p, pending_reason: e.target.value }))} title="Pending reason">
-                        <option value="">All pending reasons</option>
-                        {reasons.map(r => <option key={r.id} value={r.label}>{r.label}</option>)}
-                      </select>
+                    <MultiSelect label="All Departments" selected={filters.departments}
+                                 options={filterOptions.departments.map(d => ({ value: d, label: d }))}
+                                 onChange={v => setFilters(p => ({ ...p, departments: v }))} />
+                    <MultiSelect label="All Projects" selected={filters.projects}
+                                 options={filterOptions.projects.map(pr => ({ value: pr, label: pr }))}
+                                 onChange={v => setFilters(p => ({ ...p, projects: v }))} />
+                    <MultiSelect label="All Clients" selected={filters.clients}
+                                 options={(filterOptions.clients || []).map(cl => ({ value: cl, label: cl }))}
+                                 onChange={v => setFilters(p => ({ ...p, clients: v }))} />
+                    <MultiSelect label="All Records" selected={filters.groups}
+                                 options={GROUP_OPTIONS}
+                                 onChange={v => setFilters(p => ({ ...p, groups: v }))} />
+                    {reasonApplies && (
+                      <MultiSelect label="All pending reasons" selected={filters.pending_reasons}
+                                   options={reasons.map(r => ({ value: r.label, label: r.label }))}
+                                   onChange={v => setFilters(p => ({ ...p, pending_reasons: v }))} />
                     )}
                     <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }} onClick={() => setFilters(EMPTY_FILTERS)}>✕ Clear</button>
                   </div>
@@ -552,7 +554,7 @@ export default function UpdateTrainingRecordsPage() {
 
             <div className="card">
               <div className="card-header">
-                <span className="card-title">{VIEW_TITLE[baseGroup] || 'All records'}</span>
+                <span className="card-title">{viewTitle}</span>
                 <span className="tag tag-navy">{rows.length}</span>
               </div>
               <table className="table-hover-soft">
@@ -601,7 +603,7 @@ export default function UpdateTrainingRecordsPage() {
                       </td>
                     </tr>
                   ))}
-                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {(VIEW_TITLE[baseGroup] || 'records').toLowerCase()} for this training</td></tr>}
+                  {!loading && !rows.length && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6b7280', padding: 32 }}>No {viewTitle.toLowerCase()} for this training</td></tr>}
                   {loading && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#9ca3af', padding: 32 }}>Loading…</td></tr>}
                 </tbody>
               </table>
