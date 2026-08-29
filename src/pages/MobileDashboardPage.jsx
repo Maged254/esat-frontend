@@ -68,7 +68,12 @@ export default function MobileDashboardPage() {
         ) : (
           <>
             <div className="stat-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(5,1fr)' }}>
-              {card('Total Lines', stats.total, 'var(--eg-navy)')}
+              {/* Terminated lines are left out of every chart below, so the card
+                  has to leave them out too -- otherwise the page opens with a
+                  total that none of its own tables add up to. The register's
+                  own card still counts them, because the register lists them. */}
+              {card('Total Lines', (stats.total ?? 0) - (stats.terminated ?? 0), 'var(--eg-navy)',
+                    stats.terminated ? `${stats.terminated} terminated not counted` : null)}
               {card('Assigned', stats.assigned, 'var(--eg-green)')}
               {card('Available', stats.available, '#d97706', 'not held by anyone')}
               {card('Monthly Cost', `KES ${money(stats.monthly_assigned)}`, 'var(--eg-navy)', 'packages + CUG')}
