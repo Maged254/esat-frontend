@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import api, { logError } from '../utils/api';
 
 // The two gates are the same screen with a different queue and a different
@@ -31,6 +31,19 @@ export default function MobileApprovalsPage({ gate }) {
   // far more easily than a mouse does -- so it asks first, as the desktop page
   // does. Rejecting has its own gate: the reason is mandatory.
   const [confirm, setConfirm] = useState(null);  // row awaiting approval
+  const [offline, setOffline] = useState(!navigator.onLine);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // A decision that never reached the server must not silently disappear, and a
+  // second tap on a dropped request must not fire a second time -- a ref rather
+  // than state because it has to be correct within one tap, not next render.
+  const inFlight = useRef(new Set());
+
+  useEffect(() => {
+    const on = () => setOffline(false), off = () => setOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   // The endpoint caps a request at 100 rows, so the queue has to page through:
   // a single request would silently drop everything past row 100 while the
@@ -39,6 +52,7 @@ export default function MobileApprovalsPage({ gate }) {
     setLoading(true); setError('');
     try {
       const out = [];
+      setLoadFailed(false);
       for (let page = 1; page <= 50; page++) {
         const { data } = await api.get(`/ncr?status=${cfg.query}&page=${page}&pageSize=100`);
         out.push(...(data.rows || []));
@@ -46,7 +60,7 @@ export default function MobileApprovalsPage({ gate }) {
       }
       setRows(out);
     } catch (e) {
-      logError(e); setError('Could not load the queue.');
+      logError(e); setLoadFailed(true);
     } finally { setLoading(false); }
   }, [cfg.query]);
 
@@ -55,24 +69,45 @@ export default function MobileApprovalsPage({ gate }) {
   // Drop the row on success rather than reloading the list: the queue is the
   // point of the screen, and a row that has been decided is no longer in it.
   const act = async (row, body) => {
+    if (inFlight.current.has(row.id)) return;   // a second tap while the first is out
+    inFlight.current.add(row.id);
     setBusy(row.id); setError('');
     try {
       await api.put(`/ncr/${row.id}/status`, body);
       setRows(rs => rs.filter(r => r.id !== row.id));
       setReject(null); setConfirm(null);
     } catch (e) {
-      setError(e.response?.data?.error || 'That did not go through.');
-    } finally { setBusy(null); }
+      // A refusal carries a response and is final -- the item moved on, or this
+      // user may not act at that stage. A request that never got a response is
+      // the network, so the decision was NOT recorded: say so plainly, and leave
+      // the row in the queue so it can be tapped again.
+      setError(e.response?.data?.error
+        || (e.response ? 'That did not go through.'
+                       : 'Not sent — you appear to be offline. Nothing was recorded; try again when you have signal.'));
+    } finally {
+      inFlight.current.delete(row.id);
+      setBusy(null);
+    }
   };
 
   if (loading) return <div className="m-empty">Loading…</div>;
 
   return (
     <>
+      {offline && (
+        <div className="m-error" style={{ background: '#FEF3C7', color: '#92400E' }}>
+          You are offline. Approvals will not send until you have signal again.
+        </div>
+      )}
       {error && <div className="m-error">{error}</div>}
 
       {!rows.length ? (
-        <div className="m-empty">{cfg.empty}</div>
+        <div className="m-empty">
+          <div>{loadFailed ? 'Could not load the queue.' : cfg.empty}</div>
+          {loadFailed && (
+            <button className="m-btn" style={{ flex: 'none', marginTop: 14 }} onClick={load}>Try again</button>
+          )}
+        </div>
       ) : (
         <>
           <div className="m-count">{rows.length} waiting</div>

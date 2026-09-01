@@ -38,6 +38,7 @@ import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
 import MobileLayout, { CAN_EHS, CAN_PM } from './mobile/MobileLayout';
 import MobileApprovalsPage from './mobile/MobileApprovalsPage';
 import MobileTrainingPage from './mobile/MobileTrainingPage';
+import UpdateAvailable from './components/UpdateAvailable';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -79,6 +80,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <PhoneSwitch />
+        <UpdateAvailable />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
