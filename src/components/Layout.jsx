@@ -96,6 +96,11 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-footer">
+          {/* The way back from the phone shell's "Full site". Without it that
+              button is one-way: it stores the preference, so the phone stops
+              redirecting and there is nothing left pointing at /m. Shown only
+              on phone-width screens, where the shell is the better view. */}
+          <MobileViewLink />
           <div className="user-chip" style={{ flexDirection: 'column', gap: 8, textAlign: 'center' }} onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
             {user?.profile_picture
               ? <img src={user.profile_picture} alt={user.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }} />
@@ -116,5 +121,33 @@ export default function Layout() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Phone-only: clears the "full site" preference and hands the phone back to the
+// mobile shell. It listens for resize so rotating or resizing does not leave a
+// stale link on a desktop-width window.
+function MobileViewLink() {
+  const [phone, setPhone] = React.useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
+  React.useEffect(() => {
+    const onResize = () => setPhone(window.innerWidth <= 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  if (!phone) return null;
+  const go = () => {
+    try { localStorage.removeItem('onehub_force_desktop'); } catch { /* private mode */ }
+    window.location.href = '/m';
+  };
+  return (
+    <button onClick={go} style={{
+      width: '100%', marginBottom: 12, minHeight: 44, cursor: 'pointer',
+      background: 'rgba(255,255,255,0.10)', color: '#fff',
+      border: '1px solid rgba(255,255,255,0.35)', borderRadius: 10,
+      fontSize: 13, fontWeight: 600,
+    }}>
+      <i className="ti ti-device-mobile" style={{ marginRight: 6 }} aria-hidden="true" />
+      Mobile view
+    </button>
   );
 }
