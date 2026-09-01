@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './utils/AuthContext';
 
 import Layout from './components/Layout';
@@ -35,6 +35,9 @@ import TrainingHistoryPage from './pages/TrainingHistoryPage';
 import MobileDashboardPage from './pages/MobileDashboardPage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
+import MobileLayout, { CAN_EHS, CAN_PM, FORCE_DESKTOP_KEY } from './mobile/MobileLayout';
+import MobileApprovalsPage from './mobile/MobileApprovalsPage';
+import MobileTrainingPage from './mobile/MobileTrainingPage';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -60,12 +63,32 @@ function PageGuard({ children, pageKey, roles }) {
   return <Navigate to={pa[0] || '/profile'} replace />;
 }
 
+// Phones land in the phone shell. Only on a first load of the desktop root --
+// following a link into a specific page, or asking for the full site, is never
+// overridden, and the choice is remembered.
+const PHONE_MAX = 768;
+function PhoneSwitch() {
+  const { pathname } = useLocation();
+  let forced = false;
+  try { forced = localStorage.getItem(FORCE_DESKTOP_KEY) === '1'; } catch { forced = false; }
+  if (forced) return null;
+  if (pathname !== '/') return null;
+  if (typeof window === 'undefined' || window.innerWidth > PHONE_MAX) return null;
+  return <Navigate to="/m" replace />;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <PhoneSwitch />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+            <Route path="ehs" element={<ProtectedRoute roles={CAN_EHS}><MobileApprovalsPage gate="ehs" /></ProtectedRoute>} />
+            <Route path="pm" element={<ProtectedRoute roles={CAN_PM}><MobileApprovalsPage gate="pm" /></ProtectedRoute>} />
+            <Route path="training" element={<PageGuard pageKey="/training/tracker"><MobileTrainingPage /></PageGuard>} />
+          </Route>
           <Route path="/safety-commitment" element={<ProtectedRoute><SafetyCommitmentPage /></ProtectedRoute>} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<PageGuard pageKey="/"><DashboardPage /></PageGuard>} />
