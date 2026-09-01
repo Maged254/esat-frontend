@@ -2,7 +2,17 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import api from './api';
 
 const AuthContext = createContext(null);
-const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour of inactivity auto-logs out
+// Idle auto-logout. The phone shell gets a longer window than the desktop: an
+// office machine is shared and gets left unlocked, whereas a phone sits behind
+// its own lock screen and is expected to be backgrounded for hours between a
+// morning site visit and the afternoon. Neither can outlive the 8h token.
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000;            // desktop: 1 hour
+const IDLE_TIMEOUT_MOBILE_MS = 4 * 60 * 60 * 1000; // phone shell: 4 hours
+// Read at check time rather than captured on mount, so moving between the two
+// surfaces takes effect immediately instead of at the next remount.
+const idleLimit = () =>
+  (typeof window !== 'undefined' && window.location.pathname.startsWith('/m'))
+    ? IDLE_TIMEOUT_MOBILE_MS : IDLE_TIMEOUT_MS;
 const IDLE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 const LAST_ACTIVITY_KEY = 'esat_last_activity';
@@ -61,7 +71,7 @@ export function AuthProvider({ children }) {
     return userData;
   };
 
-  // Auto-logout after IDLE_TIMEOUT_MS of no mouse/keyboard/touch/scroll activity,
+  // Auto-logout after idleLimit() of no mouse/keyboard/touch/scroll activity,
   // or as soon as a backend redeploy invalidates the session.
   // Last-activity is persisted to localStorage (not just a JS variable) so idle
   // time survives a tab reload/discard (laptop sleep, mobile backgrounding,
@@ -70,7 +80,7 @@ export function AuthProvider({ children }) {
     if (!user) return;
 
     const stored = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY), 10);
-    if (stored && Date.now() - stored >= IDLE_TIMEOUT_MS) {
+    if (stored && Date.now() - stored >= idleLimit()) {
       sessionStorage.setItem('esat_idle_logout', '1');
       logout();
       return;
@@ -82,7 +92,7 @@ export function AuthProvider({ children }) {
 
     const interval = setInterval(() => {
       const last = parseInt(localStorage.getItem(LAST_ACTIVITY_KEY), 10) || Date.now();
-      if (Date.now() - last >= IDLE_TIMEOUT_MS) {
+      if (Date.now() - last >= idleLimit()) {
         sessionStorage.setItem('esat_idle_logout', '1');
         logout();
         return;
