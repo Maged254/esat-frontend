@@ -41,9 +41,18 @@ export default function MobileTrainingPage() {
   const open = (p) => {
     setPerson(p); setLoading(true); setError(''); setRecords([]);
     // Keyed on national ID rather than the name so two people who share a name
-    // can never merge into one list.
-    api.get(`/training-records/tracker?national_id=${encodeURIComponent(p.national_id || '')}&page=1&pageSize=100`)
-      .then(r => setRecords(r.data.rows || []))
+    // can never merge into one list. An employee with no national ID has to be
+    // refused outright: the backend ignores an empty filter, so the request
+    // would come back with EVERY training record in the system listed under
+    // this one person's name.
+    const nid = String(p.national_id || '').trim();
+    if (!nid) {
+      setError(`${p.full_name} has no national ID on record, so their training cannot be looked up here. Use the Trainings Tracker on the full site.`);
+      setLoading(false);
+      return;
+    }
+    api.get(`/training-records/tracker?national_id=${encodeURIComponent(nid)}&page=1&pageSize=100`)
+      .then(r => setRecords((r.data.rows || []).filter(x => String(x.national_id || '').trim() === nid)))
       .catch(e => { logError(e); setError('Could not load their training.'); })
       .finally(() => setLoading(false));
   };

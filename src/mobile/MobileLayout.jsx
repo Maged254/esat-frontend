@@ -12,7 +12,10 @@ export const CAN_PM = ['admin', 'project_director'];
 const TABS = [
   { to: '/m/ehs', label: 'EHS', icon: 'ti-shield-check', roles: CAN_EHS, badge: 'ehs' },
   { to: '/m/pm', label: 'PM', icon: 'ti-checkbox', roles: CAN_PM, badge: 'pm' },
-  { to: '/m/training', label: 'Training', icon: 'ti-certificate', roles: null },
+  // Gated by the per-user page_access grant rather than by role, matching the
+  // route guard -- otherwise the tab shows for someone whose tap would eject
+  // them out of the shell onto a desktop page.
+  { to: '/m/training', label: 'Training', icon: 'ti-certificate', page: '/training/tracker' },
 ];
 
 const TITLES = {
@@ -26,7 +29,12 @@ export default function MobileLayout() {
   const { pathname } = useLocation();
   const [counts, setCounts] = useState({ ehs: 0, pm: 0 });
 
-  const tabs = TABS.filter(t => !t.roles || t.roles.includes(user?.role));
+  const tabs = TABS.filter(t => {
+    if (t.roles) return t.roles.includes(user?.role);
+    if (t.page) return user?.role === 'admin'
+      || (Array.isArray(user?.page_access) && user.page_access.includes(t.page));
+    return true;
+  });
 
   // Queue sizes for the tab badges. pageSize=1 -- only the total is wanted.
   useEffect(() => {

@@ -32,12 +32,22 @@ export default function MobileApprovalsPage({ gate }) {
   // does. Rejecting has its own gate: the reason is mandatory.
   const [confirm, setConfirm] = useState(null);  // row awaiting approval
 
-  const load = useCallback(() => {
+  // The endpoint caps a request at 100 rows, so the queue has to page through:
+  // a single request would silently drop everything past row 100 while the
+  // count underneath read a confident "100 waiting".
+  const load = useCallback(async () => {
     setLoading(true); setError('');
-    api.get(`/ncr?status=${cfg.query}&page=1&pageSize=100`)
-      .then(r => setRows(r.data.rows || []))
-      .catch(e => { logError(e); setError('Could not load the queue.'); })
-      .finally(() => setLoading(false));
+    try {
+      const out = [];
+      for (let page = 1; page <= 50; page++) {
+        const { data } = await api.get(`/ncr?status=${cfg.query}&page=${page}&pageSize=100`);
+        out.push(...(data.rows || []));
+        if (out.length >= (data.total || 0) || !(data.rows || []).length) break;
+      }
+      setRows(out);
+    } catch (e) {
+      logError(e); setError('Could not load the queue.');
+    } finally { setLoading(false); }
   }, [cfg.query]);
 
   useEffect(() => { load(); }, [load]);
