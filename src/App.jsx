@@ -35,7 +35,7 @@ import TrainingHistoryPage from './pages/TrainingHistoryPage';
 import MobileDashboardPage from './pages/MobileDashboardPage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
-import MobileLayout, { CAN_EHS, CAN_PM, FORCE_DESKTOP_KEY } from './mobile/MobileLayout';
+import MobileLayout, { CAN_EHS, CAN_PM } from './mobile/MobileLayout';
 import MobileApprovalsPage from './mobile/MobileApprovalsPage';
 import MobileTrainingPage from './mobile/MobileTrainingPage';
 
@@ -63,15 +63,12 @@ function PageGuard({ children, pageKey, roles }) {
   return <Navigate to={pa[0] || '/profile'} replace />;
 }
 
-// Phones land in the phone shell. Only on a first load of the desktop root --
-// following a link into a specific page, or asking for the full site, is never
-// overridden, and the choice is remembered.
+// Phones land in the phone shell. Only at the desktop root -- a link straight
+// into a specific page is never overridden, which is also how the full site
+// stays reachable from a phone now that the shell has no opt-out button.
 const PHONE_MAX = 768;
 function PhoneSwitch() {
   const { pathname } = useLocation();
-  let forced = false;
-  try { forced = localStorage.getItem(FORCE_DESKTOP_KEY) === '1'; } catch { forced = false; }
-  if (forced) return null;
   if (pathname !== '/') return null;
   if (typeof window === 'undefined' || window.innerWidth > PHONE_MAX) return null;
   return <Navigate to="/m" replace />;

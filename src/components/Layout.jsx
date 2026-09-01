@@ -96,10 +96,8 @@ export default function Layout() {
         </nav>
 
         <div className="sidebar-footer">
-          {/* The way back from the phone shell's "Full site". Without it that
-              button is one-way: it stores the preference, so the phone stops
-              redirecting and there is nothing left pointing at /m. Shown only
-              on phone-width screens, where the shell is the better view. */}
+          {/* The way back to the phone shell for anyone who reached a desktop
+              page on a phone by following a link. Phone-width only. */}
           <MobileViewLink />
           <div className="user-chip" style={{ flexDirection: 'column', gap: 8, textAlign: 'center' }} onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
             {user?.profile_picture
@@ -136,6 +134,9 @@ function MobileViewLink() {
   }, []);
   if (!phone) return null;
   const go = () => {
+    // Clear the old opt-out too: a phone that stored it before the "Full site"
+    // button was removed would otherwise keep it forever, unread and harmless
+    // but stale.
     try { localStorage.removeItem('onehub_force_desktop'); } catch { /* private mode */ }
     window.location.href = '/m';
   };

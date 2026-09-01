@@ -21,10 +21,6 @@ const TITLES = {
   '/m/training': 'Training Status',
 };
 
-// Set when the user asks for the full site on a phone, so the auto-switch in
-// App.jsx stops sending them back here on every load.
-export const FORCE_DESKTOP_KEY = 'onehub_force_desktop';
-
 export default function MobileLayout() {
   const { user } = useAuth();
   const { pathname } = useLocation();
@@ -46,11 +42,6 @@ export default function MobileLayout() {
     return <Navigate to={tabs[0]?.to || '/m/training'} replace />;
   }
 
-  const goDesktop = () => {
-    try { localStorage.setItem(FORCE_DESKTOP_KEY, '1'); } catch { /* private mode */ }
-    window.location.href = '/';
-  };
-
   return (
     <div className="m-shell">
       <div className="m-topbar">
@@ -58,7 +49,6 @@ export default function MobileLayout() {
           <div className="m-topbar-title">{TITLES[pathname] || 'OneHub'}</div>
           <div className="m-topbar-sub">{user?.full_name || user?.name}</div>
         </div>
-        <button className="m-topbar-link" onClick={goDesktop}>Full site</button>
       </div>
 
       <div className="m-body"><Outlet /></div>
