@@ -27,6 +27,10 @@ export default function MobileApprovalsPage({ gate }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(null);        // id being acted on
   const [reject, setReject] = useState(null);    // { row, reason }
+  // Approving is one tap and cannot be undone, and a thumb finds the wrong card
+  // far more easily than a mouse does -- so it asks first, as the desktop page
+  // does. Rejecting has its own gate: the reason is mandatory.
+  const [confirm, setConfirm] = useState(null);  // row awaiting approval
 
   const load = useCallback(() => {
     setLoading(true); setError('');
@@ -45,7 +49,7 @@ export default function MobileApprovalsPage({ gate }) {
     try {
       await api.put(`/ncr/${row.id}/status`, body);
       setRows(rs => rs.filter(r => r.id !== row.id));
-      setReject(null);
+      setReject(null); setConfirm(null);
     } catch (e) {
       setError(e.response?.data?.error || 'That did not go through.');
     } finally { setBusy(null); }
@@ -81,7 +85,7 @@ export default function MobileApprovalsPage({ gate }) {
                 <button className="m-btn m-btn-reject" disabled={busy === n.id}
                         onClick={() => setReject({ row: n, reason: '' })}>Reject</button>
                 <button className="m-btn m-btn-approve" disabled={busy === n.id}
-                        onClick={() => act(n, { status: cfg.approveTo })}>
+                        onClick={() => setConfirm(n)}>
                   {busy === n.id ? '…' : cfg.approveLabel}
                 </button>
               </div>
@@ -90,12 +94,26 @@ export default function MobileApprovalsPage({ gate }) {
         </>
       )}
 
+      {confirm && (
+        <Sheet>
+          <div className="m-card-title">{cfg.approveLabel} {confirm.ppe_name}?</div>
+          <div className="m-card-sub" style={{ marginBottom: 4 }}>
+            for {confirm.employee_name}{confirm.quantity > 1 ? ` · ${confirm.quantity} items` : ''}
+          </div>
+          <div className="m-card-actions">
+            <button className="m-btn" onClick={() => setConfirm(null)}>Cancel</button>
+            <button className="m-btn m-btn-approve" disabled={busy === confirm.id}
+                    onClick={() => act(confirm, { status: cfg.approveTo })}>
+              {busy === confirm.id ? '…' : cfg.approveLabel}
+            </button>
+          </div>
+        </Sheet>
+      )}
+
       {/* A rejection closes the NCR out, so the reason is mandatory here just as
           it is on the desktop page. */}
       {reject && (
-        <div className="m-sheet" style={{ background: 'rgba(8,12,18,.6)', justifyContent: 'flex-end' }}>
-          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 16,
-                        paddingBottom: `calc(16px + env(safe-area-inset-bottom))` }}>
+        <Sheet>
             <div className="m-card-title">Reject {reject.row.ppe_name}</div>
             <div className="m-card-sub" style={{ marginBottom: 12 }}>for {reject.row.employee_name}</div>
             <textarea className="m-input" placeholder="Why is this being rejected?" autoFocus
@@ -108,9 +126,21 @@ export default function MobileApprovalsPage({ gate }) {
                 {busy === reject.row.id ? '…' : 'Reject'}
               </button>
             </div>
-          </div>
-        </div>
+        </Sheet>
       )}
     </>
+  );
+}
+
+// Bottom sheet: a decision lands within thumb reach rather than at the top of
+// the screen, and the backdrop makes it clear the list behind is not tappable.
+function Sheet({ children }) {
+  return (
+    <div className="m-sheet" style={{ background: 'rgba(8,12,18,.6)', justifyContent: 'flex-end' }}>
+      <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 16,
+                    paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+        {children}
+      </div>
+    </div>
   );
 }
