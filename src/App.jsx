@@ -64,14 +64,25 @@ function PageGuard({ children, pageKey, roles }) {
   return <Navigate to={pa[0] || '/profile'} replace />;
 }
 
-// Phones land in the phone shell. Only at the desktop root -- a link straight
-// into a specific page is never overridden, which is also how the full site
-// stays reachable from a phone now that the shell has no opt-out button.
-const PHONE_MAX = 768;
+// Phones land in the phone shell. Deciding that on window width alone was
+// wrong: a desktop browser in a narrow window -- a split screen, a side-by-side
+// pane -- got hijacked into the phone shell with no obvious way back. Width is
+// not the question; the device is. A phone has a coarse pointer AND a physically
+// small screen, and screen dimensions do not change when the window is resized
+// or the phone is rotated, so this holds in landscape too. Tablets keep the full
+// site: an iPad's shortest side is ~744px and it has the room for it.
+const PHONE_MAX_SCREEN_PX = 500;
+function isPhone() {
+  if (typeof window === 'undefined') return false;
+  const coarse = window.matchMedia?.('(pointer: coarse)')?.matches;
+  const shortest = Math.min(window.screen?.width || 9999, window.screen?.height || 9999);
+  return !!coarse && shortest <= PHONE_MAX_SCREEN_PX;
+}
+
 function PhoneSwitch() {
   const { pathname } = useLocation();
   if (pathname !== '/') return null;
-  if (typeof window === 'undefined' || window.innerWidth > PHONE_MAX) return null;
+  if (!isPhone()) return null;
   return <Navigate to="/m" replace />;
 }
 
