@@ -92,6 +92,9 @@ export function EmployeesPage({ outsource = false }) {
   const [editErrors, setEditErrors] = useState({}); // inline validation for the Edit modal
   const [editConfirm, setEditConfirm] = useState(null); // styled "confirm update" dialog {payload, summary}
   const [exitConfirm, setExitConfirm] = useState(false); // red exit confirmation dialog
+  const [reactivateConfirm, setReactivateConfirm] = useState(false); // green reactivate dialog
+  const [reactivateReason, setReactivateReason] = useState('');
+  const [reactivateError, setReactivateError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null); // employee pending hard-delete (admin)
   const [convertModal, setConvertModal] = useState(null); // intern being converted to in-house
   const [convertForm, setConvertForm] = useState({ job_title: '', employee_number: '', reason: '' });
@@ -522,6 +525,32 @@ export function EmployeesPage({ outsource = false }) {
     } catch (e) { logError(e); alert(e.response?.data?.error || 'Exit failed'); }
     setEditSaving(false);
   };
+  // Bringing someone back. The backend logs this as a 'reactivate' action in the
+  // change history, the mirror of an exit. It clears the exit date by sending no
+  // exit_date at all. What it deliberately does NOT do is reverse the cascade:
+  // PPE requests and NCR items closed as 'exit' stay closed, and a released
+  // mobile line stays released -- those were real decisions and are raised again
+  // if they are still needed.
+  const doReactivate = async () => {
+    if (!editModal || editModal.employment_status === 'active') { setReactivateConfirm(false); return; }
+    if (!reactivateReason.trim()) { setReactivateError('A reason is required'); return; }
+    setEditSaving(true); setReactivateError('');
+    try {
+      await api.put('/employees/' + editModal.id + '/status', {
+        employment_status: 'active',
+        reason: reactivateReason.trim(),
+      });
+      setReactivateConfirm(false);
+      setReactivateReason('');
+      setEditModal(null);
+      reload();
+    } catch (e) {
+      logError(e);
+      setReactivateError(e.response?.data?.error || 'Reactivation failed');
+    }
+    setEditSaving(false);
+  };
+
   // Convert an intern to a full in-house employee: collect the missing Job Title +
   // Employment ID; the backend sets the Added date to today and logs it (→ emailed).
   const openConvert = (emp) => {
@@ -818,7 +847,9 @@ export function EmployeesPage({ outsource = false }) {
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,rowGap:8,flexWrap:'wrap',borderTop:'1px solid #e5e7eb',padding:'12px 32px 20px',background:'#fff'}}>
               <div style={{display:'flex',gap:8,rowGap:8,flexWrap:'wrap',alignItems:'center'}}>
                 {userRole==='admin' && <button className="btn" onClick={()=>setDeleteConfirm(editModal)} title="Hard delete this resource" style={{color:'#e24b4a',borderColor:'#e24b4a',display:'inline-flex',alignItems:'center',gap:6}}><i className="ti ti-trash" style={{fontSize:16}} aria-hidden="true"></i>Delete</button>}
-                <button className="btn" onClick={()=>guardUnsaved(()=>setExitConfirm(true),'exiting')} disabled={editSaving || editModal.employment_status!=='active'} style={editModal.employment_status==='active'?{color:'#e24b4a',borderColor:'#e24b4a'}:undefined} title={editModal.employment_status!=='active'?'Resource already exited':'Exit this resource'}>Exit Resource</button>
+                {editModal.employment_status==='active'
+                  ? <button className="btn" onClick={()=>guardUnsaved(()=>setExitConfirm(true),'exiting')} disabled={editSaving} style={{color:'#e24b4a',borderColor:'#e24b4a'}} title="Exit this resource">Exit Resource</button>
+                  : <button className="btn" onClick={()=>guardUnsaved(()=>{setReactivateReason(''); setReactivateError(''); setReactivateConfirm(true);},'reactivating')} disabled={editSaving} style={{color:'#1d9e75',borderColor:'#1d9e75',display:'inline-flex',alignItems:'center',gap:6}} title="Bring this resource back to Active"><i className="ti ti-refresh" style={{fontSize:16}} aria-hidden="true"></i>Reactivate</button>}
                 {!outsource && /\bintern\b/i.test(editModal.job_title||'') && editModal.employment_status==='active' && <button className="btn" onClick={()=>guardUnsaved(()=>openConvert(editModal),'converting')} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title="Convert this intern to a full in-house employee"><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>Convert to In-House</button>}
               </div>
               <div style={{display:'flex',gap:8}}>
@@ -859,6 +890,33 @@ export function EmployeesPage({ outsource = false }) {
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
               <button className="btn" onClick={()=>setExitConfirm(false)} disabled={editSaving}>Cancel</button>
               <button className="btn" onClick={doExit} disabled={editSaving} style={{background:'#e24b4a',borderColor:'#e24b4a',color:'#fff'}}>{editSaving?'Exiting...':'Confirm Exit'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {reactivateConfirm && editModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'#fff',borderRadius:12,padding:24,width:'min(480px, 94vw)',borderTop:'4px solid #1d9e75',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <i className="ti ti-refresh" style={{fontSize:20,color:'#1d9e75'}} aria-hidden="true"></i>
+              <div style={{fontWeight:700,fontSize:16,color:'#15795b'}}>Reactivate Resource</div>
+            </div>
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:14}}>
+              <b>{editModal.full_name}</b> will go back to <b style={{color:'#15795b'}}>Active</b> and their exit date will be cleared. This is recorded in the change history against your name.
+            </div>
+            <div style={{background:'#f8fafc',border:'1px solid #e5e7eb',borderRadius:8,padding:'10px 12px',fontSize:12,color:'#6b7280',lineHeight:1.55,marginBottom:16}}>
+              PPE requests and NCR items that were closed when they exited stay closed, and any mobile line released at that point stays released. Raise those again if they are still needed.
+            </div>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason for reactivating <span style={{color:'#e24b4a'}}>*</span></div>
+              <input className="form-input" autoFocus value={reactivateReason} placeholder="Required — recorded in the change history"
+                     onChange={ev=>{setReactivateReason(ev.target.value); if(reactivateError) setReactivateError('');}}
+                     style={reactivateError?{borderColor:'#e24b4a'}:undefined} />
+              {reactivateError && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{reactivateError}</div>}
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
+              <button className="btn" onClick={()=>setReactivateConfirm(false)} disabled={editSaving}>Cancel</button>
+              <button className="btn" onClick={doReactivate} disabled={editSaving || !reactivateReason.trim()} style={{background:'#1d9e75',borderColor:'#1d9e75',color:'#fff'}}>{editSaving?'Reactivating…':'Confirm Reactivate'}</button>
             </div>
           </div>
         </div>
