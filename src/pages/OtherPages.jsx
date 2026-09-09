@@ -553,10 +553,23 @@ export function EmployeesPage({ outsource = false }) {
 
   // Convert an intern to a full in-house employee: collect the missing Job Title +
   // Employment ID; the backend sets the Added date to today and logs it (→ emailed).
+  // Two routes to in-house: an intern (already an Egypro record, needs a real
+  // job title and an ID) and an outsourced resource (classified by their
+  // organization, which has to move to Egypro).
+  const convertKind = (emp) => (String(emp?.organization || '').trim().toLowerCase() === 'egypro' ? 'intern' : 'outsource');
   const openConvert = (emp) => {
     setConvertModal(emp);
     setConvertErrors({});
-    setConvertForm({ job_title: emp.job_title && !/\bintern\b/i.test(emp.job_title) ? emp.job_title : '', employee_number: '', reason: 'Converted from Intern to In-House' });
+    setConvertForm({
+      job_title: emp.job_title && !/\bintern\b/i.test(emp.job_title) ? emp.job_title : '',
+      employee_number: '',
+      department: emp.department || '',
+      project: emp.project || '',
+      client: emp.client || '',
+      reason: convertKind(emp) === 'intern'
+        ? 'Converted from Intern to In-House'
+        : `Absorbed from ${emp.organization || 'Outsource'} to In-House`,
+    });
   };
   const setConvertField = (k, v) => { setConvertForm(f => ({ ...f, [k]: v })); setConvertErrors(e => (e[k] ? { ...e, [k]: undefined } : e)); };
   const doConvert = async () => {
@@ -570,6 +583,9 @@ export function EmployeesPage({ outsource = false }) {
       await api.post('/employees/' + convertModal.id + '/promote', {
         job_title: convertForm.job_title.trim(),
         employee_number: convertForm.employee_number.trim(),
+        department: convertForm.department.trim(),
+        project: convertForm.project.trim(),
+        client: convertForm.client.trim(),
         reason: convertForm.reason.trim(),
       });
       setConvertModal(null);
@@ -850,7 +866,7 @@ export function EmployeesPage({ outsource = false }) {
                 {editModal.employment_status==='active'
                   ? <button className="btn" onClick={()=>guardUnsaved(()=>setExitConfirm(true),'exiting')} disabled={editSaving} style={{color:'#e24b4a',borderColor:'#e24b4a'}} title="Exit this resource">Exit Resource</button>
                   : <button className="btn" onClick={()=>guardUnsaved(()=>{setReactivateReason(''); setReactivateError(''); setReactivateConfirm(true);},'reactivating')} disabled={editSaving} style={{color:'#1d9e75',borderColor:'#1d9e75',display:'inline-flex',alignItems:'center',gap:6}} title="Bring this resource back to Active"><i className="ti ti-refresh" style={{fontSize:16}} aria-hidden="true"></i>Reactivate</button>}
-                {!outsource && /\bintern\b/i.test(editModal.job_title||'') && editModal.employment_status==='active' && <button className="btn" onClick={()=>guardUnsaved(()=>openConvert(editModal),'converting')} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title="Convert this intern to a full in-house employee"><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>Convert to In-House</button>}
+                {editModal.employment_status==='active' && (convertKind(editModal)==='outsource' || (!outsource && /\bintern\b/i.test(editModal.job_title||''))) && <button className="btn" onClick={()=>guardUnsaved(()=>openConvert(editModal),'converting')} style={{color:'#042C53',borderColor:'#042C53',display:'inline-flex',alignItems:'center',gap:6}} title={convertKind(editModal)==='outsource'?'Absorb this outsourced resource as in-house':'Convert this intern to a full in-house employee'}><i className="ti ti-arrow-up-circle" style={{fontSize:16}} aria-hidden="true"></i>{convertKind(editModal)==='outsource'?'Absorb as In-House':'Convert to In-House'}</button>}
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn" onClick={()=>setEditModal(null)}>Cancel</button>
@@ -926,10 +942,15 @@ export function EmployeesPage({ outsource = false }) {
           <div style={{background:'#fff',borderRadius:12,padding:24,width:'min(520px, 94vw)',maxHeight:'90vh',overflowY:'auto',borderTop:'4px solid #042C53',boxShadow:'0 10px 40px rgba(0,0,0,0.3)'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
               <i className="ti ti-arrow-up-circle" style={{fontSize:22,color:'#042C53'}} aria-hidden="true"></i>
-              <div style={{fontWeight:700,fontSize:16,color:'#042C53'}}>Convert to In-House</div>
+              <div style={{fontWeight:700,fontSize:16,color:'#042C53'}}>{convertKind(convertModal)==='outsource'?'Absorb as In-House':'Convert to In-House'}</div>
             </div>
-            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:16}}>
-              Promoting <b>{convertModal.full_name}</b> from Intern to a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history.
+            <div style={{fontSize:13,color:'#374151',lineHeight:1.6,marginBottom:12}}>
+              {convertKind(convertModal)==='outsource'
+                ? <>Absorbing <b>{convertModal.full_name}</b> from <b>{convertModal.organization||'their outsourcer'}</b> into Egypro as a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history.</>
+                : <>Promoting <b>{convertModal.full_name}</b> from Intern to a full in-house employee. Their <b>Added</b> date becomes <b>today</b> and the change is recorded in the history.</>}
+            </div>
+            <div style={{background:'#f8fafc',border:'1px solid #e5e7eb',borderRadius:8,padding:'10px 12px',fontSize:12,color:'#6b7280',lineHeight:1.55,marginBottom:16}}>
+              This is the same record throughout — their national ID, audit history, training records, certificates and PPE allocations all carry over unchanged.
             </div>
             {convertErrors._server && <div style={{background:'#fef2f2',border:'1px solid #fecaca',color:'#b91c1c',fontSize:12.5,padding:'8px 12px',borderRadius:8,marginBottom:12}}>{convertErrors._server}</div>}
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
@@ -944,13 +965,32 @@ export function EmployeesPage({ outsource = false }) {
                 {convertErrors.employee_number && <div style={{fontSize:11,color:'#e24b4a',marginTop:3}}>{convertErrors.employee_number}</div>}
               </div>
             </div>
-            <div style={{marginBottom:18}}>
-              <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason</div>
-              <input className="form-input" value={convertForm.reason} onChange={ev=>setConvertField('reason',ev.target.value)} />
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Department</div>
+                <input className="form-input" list="convert-departments" value={convertForm.department} placeholder="Optional" onChange={ev=>setConvertField('department',ev.target.value)} />
+                <datalist id="convert-departments">{(filterOptions.departments||[]).map(d=><option key={d} value={d} />)}</datalist>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Project</div>
+                <input className="form-input" list="convert-projects" value={convertForm.project} placeholder="Optional" onChange={ev=>setConvertField('project',ev.target.value)} />
+                <datalist id="convert-projects">{(filterOptions.projects||[]).map(d=><option key={d} value={d} />)}</datalist>
+              </div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:18}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Client</div>
+                <input className="form-input" list="convert-clients" value={convertForm.client} placeholder="Optional" onChange={ev=>setConvertField('client',ev.target.value)} />
+                <datalist id="convert-clients">{(filterOptions.clients||[]).map(d=><option key={d} value={d} />)}</datalist>
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#374151',marginBottom:4}}>Reason</div>
+                <input className="form-input" value={convertForm.reason} onChange={ev=>setConvertField('reason',ev.target.value)} />
+              </div>
             </div>
             <div style={{display:'flex',justifyContent:'flex-end',gap:8}}>
               <button className="btn" onClick={()=>setConvertModal(null)} disabled={convertSaving}>Cancel</button>
-              <button className="btn btn-primary" onClick={doConvert} disabled={convertSaving}>{convertSaving?'Converting…':'Convert to In-House'}</button>
+              <button className="btn btn-primary" onClick={doConvert} disabled={convertSaving}>{convertSaving?'Converting…':(convertKind(convertModal)==='outsource'?'Absorb as In-House':'Convert to In-House')}</button>
             </div>
           </div>
         </div>
