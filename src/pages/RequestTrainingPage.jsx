@@ -21,6 +21,7 @@ export default function RequestTrainingPage() {
   const [selectedCourseIds, setSelectedCourseIds] = useState([]); // multi-select
   const [openRequests, setOpenRequests] = useState([]);
   const [cancelledRequests, setCancelledRequests] = useState([]);
+  const [heldCerts, setHeldCerts] = useState([]); // latest completed certificate per course
   const [loadingOpen, setLoadingOpen] = useState(false);
 
   // Remove-request modal
@@ -76,15 +77,26 @@ export default function RequestTrainingPage() {
   const loadOpenRequests = async (employeeId) => {
     setLoadingOpen(true);
     try {
-      const [openRes, cancelledRes] = await Promise.all([
+      // Completed certificates are loaded too. Without them a fully certified
+      // person looked exactly like an untrained one on this page -- which is how
+      // six riggers already certified to 2028 were re-requested on 3 Sep 2026.
+      const [openRes, cancelledRes, doneRes] = await Promise.all([
         api.get(`/training-records?employee_id=${employeeId}&status=${OPEN_STATUSES}`),
         api.get(`/training-records?employee_id=${employeeId}&status=cancelled`),
+        api.get(`/training-records?employee_id=${employeeId}&status=completed`),
       ]);
       setOpenRequests(openRes.data);
       setCancelledRequests(cancelledRes.data);
+      // Keep only the latest certificate per course; older ones are history.
+      const latest = new Map();
+      [...doneRes.data]
+        .sort((x, y) => String(y.completed_at || '').localeCompare(String(x.completed_at || '')))
+        .forEach(r => { if (!latest.has(r.course_id)) latest.set(r.course_id, r); });
+      setHeldCerts([...latest.values()]);
     } catch {
       setOpenRequests([]);
       setCancelledRequests([]);
+      setHeldCerts([]);
     } finally {
       setLoadingOpen(false);
     }
@@ -137,10 +149,27 @@ export default function RequestTrainingPage() {
   // Course ids the employee already has an OPEN request for. These are dropped
   // from the "Request Training" list entirely (a cancelled one isn't open, so it
   // comes back and can be requested again).
+  // Same 60-day window the server enforces: more than 60 days left is Valid and
+  // cannot be requested; within 60 days or past expiry is a renewal and can.
+  const certState = (r) => {
+    if (!r) return null;
+    if (!r.expiry_date) return 'valid';
+    const exp = new Date(r.expiry_date); const today = new Date(); today.setHours(0, 0, 0, 0);
+    if (exp < today) return 'expired';
+    return (exp - today) / 86400000 <= 60 ? 'expiring' : 'valid';
+  };
+  const heldByCourse = new Map(heldCerts.map(r => [r.course_id, r]));
+  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
+  const CERT_TAG = {
+    valid:    { bg: '#EAF3DE', fg: '#3B6D11', label: (r) => r.expiry_date ? `Valid until ${fmt(r.expiry_date)}` : 'Valid · no expiry' },
+    expiring: { bg: '#FEF3C7', fg: '#92400E', label: (r) => `Expires ${fmt(r.expiry_date)} · renewal` },
+    expired:  { bg: '#FDE8E8', fg: '#A32D2D', label: (r) => `Expired ${fmt(r.expiry_date)} · renewal` },
+  };
   const openCourseIds = new Set(openRequests.map(r => r.course_id));
   const availableCourses = courses.filter(c => !openCourseIds.has(c.id));
 
   const toggleCourse = (id) => {
+    if (certState(heldByCourse.get(id)) === 'valid') return;
     setValidationErrors([]);
     setSelectedCourseIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -319,6 +348,33 @@ export default function RequestTrainingPage() {
               <button className="btn btn-sm" onClick={() => { setStep(1); setSelectedPerson(null); setOpenRequests([]); setSelectedCourseIds([]); setValidationErrors([]); }}>Change</button>
             </div>
 
+            {/* ── Certificates this employee already holds ──────────── */}
+            {!loadingOpen && heldCerts.length > 0 && (
+              <div className="card" style={{ marginBottom: 16 }}>
+                <div className="card-header">
+                  <span className="card-title">Certificates Held</span>
+                  <span style={{ fontSize: 12, color: '#6b7280' }}>{heldCerts.length} training{heldCerts.length === 1 ? '' : 's'}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
+                  {[...heldCerts].sort((x, y) => (x.course_name || '').localeCompare(y.course_name || '')).map(r => {
+                    const t = CERT_TAG[certState(r)];
+                    return (
+                      <div key={r.id} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, background: 'white' }}>
+                        <span style={{ flexShrink: 0, width: 46, height: 46, borderRadius: 12, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={30} color="var(--eg-navy)" />
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</div>
+                          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Completed {fmt(r.completed_at)}</div>
+                          <span className="tag" style={{ display: 'inline-block', marginTop: 5, background: t.bg, color: t.fg }}>{t.label(r)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* ── Current requested trainings for THIS employee ──────── */}
             <div className="card" style={{ marginBottom: 16 }}>
               <div className="card-header">
@@ -406,31 +462,38 @@ export default function RequestTrainingPage() {
                   <div style={{ fontSize: 13, color: '#9ca3af' }}>All trainings already have an open request for this employee.</div>
                 ) : availableCourses.map(c => {
                   const checked = selectedCourseIds.includes(c.id);
+                  const held = heldByCourse.get(c.id);
+                  const state = certState(held);
+                  const locked = state === 'valid';
                   return (
                     <label
                       key={c.id}
+                      title={locked ? 'Already certified — nothing to request until it is within 60 days of expiry' : undefined}
                       style={{
                         position: 'relative',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                         textAlign: 'center', padding: '24px 14px 16px', borderRadius: 14,
                         border: `1.5px solid ${checked ? 'var(--eg-navy)' : '#e5e7eb'}`,
-                        background: checked ? '#F0F7FF' : 'white',
+                        background: locked ? '#f9fafb' : (checked ? '#F0F7FF' : 'white'),
                         boxShadow: checked ? 'var(--wf-shadow-hover)' : 'none',
-                        cursor: 'pointer',
+                        cursor: locked ? 'not-allowed' : 'pointer',
+                        opacity: locked ? 0.7 : 1,
                         transition: 'all 0.15s ease',
                       }}
                     >
                       <input
                         type="checkbox"
                         checked={checked}
+                        disabled={locked}
                         onChange={() => toggleCourse(c.id)}
-                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: 'pointer' }}
+                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: locked ? 'not-allowed' : 'pointer' }}
                       />
                       <span style={{ flexShrink: 0, width: 62, height: 62, borderRadius: 16, background: checked ? 'var(--eg-navy)' : '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}>
                         <TrainingIcon iconKey={c.icon} name={c.name} size={40} color={checked ? 'white' : 'var(--eg-navy)'} />
                       </span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{c.name}</span>
                       {c.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
+                      {state && <span className="tag" style={{ background: CERT_TAG[state].bg, color: CERT_TAG[state].fg }}>{CERT_TAG[state].label(held)}</span>}
                     </label>
                   );
                 })}
