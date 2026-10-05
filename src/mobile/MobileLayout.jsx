@@ -8,8 +8,11 @@ import './mobile.css';
 // as well -- this only keeps a tab off the bar when tapping it would 403.
 export const CAN_EHS = ['admin', 'ehs_manager'];
 export const CAN_PM = ['admin', 'project_director'];
+// Same roles the desktop /audit/new route is locked to.
+export const CAN_AUDIT = ['admin', 'ehs_officer', 'ehs_manager', 'supervisor'];
 
 const TABS = [
+  { to: '/m/audit', label: 'Audit', icon: 'ti-clipboard-check', roles: CAN_AUDIT },
   { to: '/m/ehs', label: 'EHS', icon: 'ti-shield-check', roles: CAN_EHS, badge: 'ehs' },
   { to: '/m/pm', label: 'PM', icon: 'ti-checkbox', roles: CAN_PM, badge: 'pm' },
   // Gated by the per-user page_access grant rather than by role, matching the
@@ -19,6 +22,7 @@ const TABS = [
 ];
 
 const TITLES = {
+  '/m/audit': 'New Audit',
   '/m/ehs': 'Safety Approvals',
   '/m/pm': 'PM Approvals',
   '/m/training': 'Training Status',

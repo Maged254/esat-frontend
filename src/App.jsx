@@ -35,9 +35,10 @@ import TrainingHistoryPage from './pages/TrainingHistoryPage';
 import MobileDashboardPage from './pages/MobileDashboardPage';
 import TrainingDashboardPage from './pages/TrainingDashboardPage';
 import ForcedPasswordResetPage from './pages/ForcedPasswordResetPage';
-import MobileLayout, { CAN_EHS, CAN_PM } from './mobile/MobileLayout';
+import MobileLayout, { CAN_EHS, CAN_PM, CAN_AUDIT } from './mobile/MobileLayout';
 import MobileApprovalsPage from './mobile/MobileApprovalsPage';
 import MobileTrainingPage from './mobile/MobileTrainingPage';
+import MobileAuditPage from './mobile/MobileAuditPage';
 import UpdateAvailable from './components/UpdateAvailable';
 
 function ProtectedRoute({ children, roles }) {
@@ -95,6 +96,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+            <Route path="audit" element={<PageGuard pageKey="/audit/new" roles={CAN_AUDIT}><MobileAuditPage /></PageGuard>} />
             <Route path="ehs" element={<ProtectedRoute roles={CAN_EHS}><MobileApprovalsPage gate="ehs" /></ProtectedRoute>} />
             <Route path="pm" element={<ProtectedRoute roles={CAN_PM}><MobileApprovalsPage gate="pm" /></ProtectedRoute>} />
             <Route path="training" element={<PageGuard pageKey="/training/tracker"><MobileTrainingPage /></PageGuard>} />

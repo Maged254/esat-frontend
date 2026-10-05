@@ -83,6 +83,73 @@ textarea.m-input { padding: 12px 14px; min-height: 96px; line-height: 1.45; resi
   font-size: 9px; line-height: 1; padding: 3px 5px; min-width: 15px; text-align: center;
 }
 
+.m-ok { background: #DCFCE7; color: #166534; border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 10px; font-weight: 600; }
+.m-field-label { font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; }
+.m-section {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: #6b7280; margin: 18px 2px 8px;
+}
+.m-file {
+  width: 100%; border: 1px solid #d7dde5; border-radius: 10px; padding: 10px; font-size: 13px; background: #fff;
+}
+
+/* Location picker. Rendered inline under the input rather than as a floating
+   layer: on a phone there is nothing to float over, and an absolutely
+   positioned list gets clipped by the card. */
+.m-drop {
+  border: 1px solid #d7dde5; border-top: 0; border-radius: 0 0 10px 10px;
+  max-height: 260px; overflow-y: auto; background: #fff;
+}
+.m-drop-item {
+  display: block; width: 100%; text-align: left; background: none; border: 0;
+  border-bottom: 1px solid #f1f4f8; padding: 13px 14px; font-size: 14px;
+  color: #0f2a4a; min-height: 44px; cursor: pointer; font-family: inherit;
+}
+.m-drop-item:last-child { border-bottom: 0; }
+
+/* One PPE item. Unticked items stay legible but visibly out of the audit --
+   the desktop row does the same with opacity. */
+.m-ppe-off { opacity: .55; }
+.m-check {
+  display: flex; align-items: flex-start; gap: 11px; width: 100%; text-align: left;
+  background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; min-height: 44px;
+}
+.m-check-box {
+  flex: none; width: 26px; height: 26px; border-radius: 7px; border: 2px solid #cbd5e1;
+  background: #fff; color: #fff; font-size: 15px; font-weight: 700; line-height: 22px; text-align: center;
+}
+.m-check-box.on { background: var(--eg-green, #1d9e75); border-color: var(--eg-green, #1d9e75); }
+
+.m-seg { display: flex; gap: 6px; margin-top: 12px; }
+.m-seg-btn {
+  flex: 1; min-height: 44px; border-radius: 9px; border: 1px solid #d7dde5; background: #fff;
+  color: #6b7280; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; padding: 0 4px;
+}
+.m-seg-btn.on-good { background: #DCFCE7; border-color: #16a34a; color: #15803d; }
+.m-seg-btn.on-not_good { background: #FDE8E8; border-color: #e24b4a; color: #A32D2D; }
+.m-seg-btn.on-not_present { background: #FEF3C7; border-color: #d97706; color: #92400E; }
+
+.m-ppe-grid { display: flex; gap: 10px; margin-top: 12px; }
+.m-ppe-grid > div { flex: 1; }
+.m-qty { display: flex; align-items: center; border: 1px solid #d7dde5; border-radius: 10px; background: #fff; height: 44px; }
+.m-qty button {
+  width: 46px; height: 100%; border: 0; background: none; font-size: 21px; color: #0f2a4a;
+  cursor: pointer; font-family: inherit;
+}
+.m-qty span { flex: 1; text-align: center; font-size: 15px; font-weight: 600; color: #0f2a4a; }
+.m-qty span.hot { color: #e53e3e; font-weight: 700; }
+
+/* Submit sits above the tab bar and stays there -- a long checklist must not
+   bury the only way to finish it. */
+.m-stickybar {
+  position: fixed; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom)); z-index: 25;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: rgba(255,255,255,.97); border-top: 1px solid #e7ebf0;
+}
+.m-stickybar-note { font-size: 12px; color: #6b7280; font-weight: 600; white-space: nowrap; }
+/* Keeps the last card clear of the fixed bar above the tabs. */
+.m-stickybar-space { height: 68px; }
+
 /* Full-screen certificate viewer. */
 .m-sheet {
   position: fixed; inset: 0; z-index: 200; background: #10151c;
