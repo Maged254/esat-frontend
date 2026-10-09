@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import api, { logError } from '../utils/api';
+import { useAuth } from '../utils/AuthContext';
+
+// Who may take the plan away as a file. Reading coverage on screen is wider
+// than this; a downloadable roster of everyone and when they were last seen is
+// not.
+const CAN_EXPORT = ['admin', 'ehs_manager'];
 
 const BUCKETS = [
   { key: 'bucket_0_30', label: '0–30 days', color: '#1D9E75' },
@@ -30,11 +36,13 @@ const FilterChip = ({ label, active, highlighted, disabled, onClick }) => (
 );
 
 export default function AuditCoveragePage() {
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [employees, setEmployees] = useState([]);
   const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [projectSort, setProjectSort] = useState({ key: 'overdue', dir: 'desc' });
+  const [exporting, setExporting] = useState(false);
 
   const toggleProjectSort = (key) => setProjectSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' });
   const sortArrow = (key) => projectSort.key === key ? (projectSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
@@ -77,6 +85,84 @@ export default function AuditCoveragePage() {
 
   const total = data ? BUCKETS.reduce((sum, b) => sum + (data[b.key] || 0), 0) : 0;
 
+  // The plan: who needs a safety audit, and how long since their last one.
+  // Built from the same rows the page already holds and narrowed exactly the
+  // way /api/audit-coverage narrows them -- active, san, and the chips above --
+  // so the sheet's row count is the SAN figure on screen, not a near miss.
+  const canExport = CAN_EXPORT.includes(user?.role);
+  const planRows = employees
+    .filter(e => e.employment_status === 'active' && e.san === true)
+    .filter(e => !filters.projects.length || filters.projects.includes(e.project))
+    .filter(e => !filters.clients.length || filters.clients.includes(e.client))
+    // Never audited first, then longest-waiting -- read top-down, that is the
+    // order to book them in.
+    .sort((a, b) => {
+      const da = a.days_since_audit == null ? Infinity : Number(a.days_since_audit);
+      const db = b.days_since_audit == null ? Infinity : Number(b.days_since_audit);
+      return db - da || (a.full_name || '').localeCompare(b.full_name || '');
+    });
+
+  const bucketOf = (days) => days == null ? 'Never audited'
+    : days <= 30 ? '0–30 days' : days <= 60 ? '31–60 days' : days <= 90 ? '61–90 days' : '90+ days';
+
+  const exportPlan = async () => {
+    setExporting(true);
+    try {
+      const ExcelJS = (await import('exceljs')).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Audit Plan');
+      ws.columns = [
+        { header: 'Employee', key: 'full_name', width: 28 },
+        { header: 'National ID', key: 'national_id', width: 14 },
+        { header: 'Employee No.', key: 'employee_number', width: 14 },
+        { header: 'Job Title', key: 'job_title', width: 24 },
+        { header: 'Department', key: 'department', width: 16 },
+        { header: 'Project', key: 'project', width: 18 },
+        { header: 'Client', key: 'client', width: 14 },
+        { header: 'Organization', key: 'organization', width: 20 },
+        { header: 'Last Audit', key: 'last_audit', width: 13 },
+        { header: 'Days Since', key: 'days_since', width: 11 },
+        { header: 'Status', key: 'status', width: 15 },
+      ];
+      planRows.forEach(e => {
+        const days = e.days_since_audit == null ? null : Number(e.days_since_audit);
+        ws.addRow({
+          ...e,
+          last_audit: e.last_audit_date ? new Date(e.last_audit_date).toLocaleDateString('en-GB') : 'Never',
+          days_since: days == null ? '' : days,
+          status: bucketOf(days),
+        });
+      });
+      const head = ws.getRow(1);
+      head.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2A4A' } };
+      head.height = 20;
+      // Overdue is the whole point of the sheet, so it has to be visible at a
+      // glance rather than read off the Days column.
+      ws.getColumn('status').eachCell((cell, row) => {
+        if (row === 1) return;
+        const fg = cell.value === 'Never audited' ? 'FFE5E7EB'
+          : cell.value === '0–30 days' ? 'FFDCFCE7'
+          : cell.value === '31–60 days' ? 'FFFEF3C7' : 'FFFDE8E8';
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fg } };
+      });
+      ws.getColumn('days_since').alignment = { horizontal: 'center' };
+      ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
+      ws.autoFilter = { from: 'A1', to: { row: 1, column: ws.columns.length } };
+
+      const buf = await wb.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buf]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `OneHub-Audit-Plan-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      logError(e);
+      alert('Could not build the audit plan file.');
+    } finally { setExporting(false); }
+  };
+
   const byProjectRows = [...(data?.by_project || [])].sort((a, b) => {
     const derived = (row, key) => key === 'project' ? (row.project || '')
       : key === 'pct' ? (row.san_total > 0 ? row.overdue / row.san_total : 0)
@@ -99,6 +185,13 @@ export default function AuditCoveragePage() {
         <div className="topbar-right">
           {(filters.projects.length > 0 || filters.clients.length > 0) && (
             <button className="btn btn-sm" onClick={() => setFilters({ projects: [], clients: [] })} disabled={loading}>Clear filters</button>
+          )}
+          {canExport && (
+            <button className="btn btn-primary btn-sm" onClick={exportPlan}
+                    disabled={exporting || loading || !planRows.length}
+                    title="Everyone needing a safety audit, with their last audit date">
+              {exporting ? 'Preparing…' : `⬇ Export audit plan (${planRows.length})`}
+            </button>
           )}
         </div>
       </div>
