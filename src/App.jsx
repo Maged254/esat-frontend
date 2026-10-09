@@ -56,9 +56,12 @@ function PageGuard({ children, pageKey, roles }) {
   const pa = Array.isArray(user.page_access) ? user.page_access : [];
   // admin = full access
   if (user.role === 'admin') return children;
-  // Role-locked pages (e.g. Update Training Records) are gated by role, not by the
-  // per-user page_access grant, so they can't be handed to the wrong role.
-  if (roles) return roles.includes(user.role) ? children : <Navigate to={pa.includes('/') ? '/' : (pa[0] || '/profile')} replace />;
+  // A page that carries both needs BOTH: the right role AND the per-user tick.
+  // `roles` used to win outright and skip the tick entirely, which is how a
+  // supervisor reached New Audit that nobody had granted them -- the role list
+  // alone decided it, and the Admin Panel's tick was decorative on 12 routes.
+  // Role narrows who may ever hold the page; the tick says who actually does.
+  if (roles && !roles.includes(user.role)) return <Navigate to={pa.includes('/') ? '/' : (pa[0] || '/profile')} replace />;
   if (pa.includes(pageKey)) return children;
   // blocked: go to Dashboard if allowed, else first allowed page, else profile
   if (pa.includes('/')) return <Navigate to="/" replace />;
@@ -108,7 +111,7 @@ export default function App() {
             <Route path="outsource" element={<PageGuard pageKey="/outsource"><OutsourcePage /></PageGuard>} />
             <Route path="casuals" element={<PageGuard pageKey="/casuals"><CasualsPage /></PageGuard>} />
             <Route path="employees/change-log" element={<PageGuard pageKey="/employees/change-log"><ChangeHistoryPage /></PageGuard>} />
-            <Route path="audit/new" element={<PageGuard pageKey="/audit/new" roles={['admin','ehs_officer','ehs_manager','supervisor']}><NewAuditPage /></PageGuard>} />
+            <Route path="audit/new" element={<PageGuard pageKey="/audit/new" roles={CAN_AUDIT}><NewAuditPage /></PageGuard>} />
             <Route path="request-ppe" element={<PageGuard pageKey="/request-ppe"><RequestPPEPage /></PageGuard>} />
             <Route path="training/request" element={<PageGuard pageKey="/training/request" roles={['admin','ehs_manager']}><RequestTrainingPage /></PageGuard>} />
             <Route path="training/update" element={<PageGuard pageKey="/training/update" roles={['admin','hr']}><UpdateTrainingRecordsPage /></PageGuard>} />

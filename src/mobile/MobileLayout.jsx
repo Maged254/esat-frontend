@@ -8,11 +8,12 @@ import './mobile.css';
 // as well -- this only keeps a tab off the bar when tapping it would 403.
 export const CAN_EHS = ['admin', 'ehs_manager'];
 export const CAN_PM = ['admin', 'project_director'];
-// Same roles the desktop /audit/new route is locked to.
-export const CAN_AUDIT = ['admin', 'ehs_officer', 'ehs_manager', 'supervisor'];
+// Same roles the desktop /audit/new route is locked to. Supervisors were
+// dropped 2026-10-09: conducting an audit is an EHS job.
+export const CAN_AUDIT = ['admin', 'ehs_officer', 'ehs_manager'];
 
 const TABS = [
-  { to: '/m/audit', label: 'Audit', icon: 'ti-clipboard-check', roles: CAN_AUDIT },
+  { to: '/m/audit', label: 'Audit', icon: 'ti-clipboard-check', roles: CAN_AUDIT, page: '/audit/new' },
   { to: '/m/ehs', label: 'EHS', icon: 'ti-shield-check', roles: CAN_EHS, badge: 'ehs' },
   { to: '/m/pm', label: 'PM', icon: 'ti-checkbox', roles: CAN_PM, badge: 'pm' },
   // Gated by the per-user page_access grant rather than by role, matching the
@@ -33,10 +34,13 @@ export default function MobileLayout() {
   const { pathname } = useLocation();
   const [counts, setCounts] = useState({ ehs: 0, pm: 0 });
 
+  // Admin sees everything. Otherwise a tab needs BOTH its role and, where it
+  // has one, its page grant -- the same AND the route guard applies, so a tab
+  // can never show for someone whose tap would bounce them straight out.
   const tabs = TABS.filter(t => {
-    if (t.roles) return t.roles.includes(user?.role);
-    if (t.page) return user?.role === 'admin'
-      || (Array.isArray(user?.page_access) && user.page_access.includes(t.page));
+    if (user?.role === 'admin') return true;
+    if (t.roles && !t.roles.includes(user?.role)) return false;
+    if (t.page) return Array.isArray(user?.page_access) && user.page_access.includes(t.page);
     return true;
   });
 
