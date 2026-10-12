@@ -6,7 +6,12 @@ import TrainingIcon from '../components/TrainingIcon';
 // index (one_open_training_request_employee). Not Eligible is open, as it was in
 // ETMS: a reason beside Pending Reason, not a closed state.
 const OPEN = ['requested', 'scheduled', 'pending', 'not_eligible'];
-const ALL_STATUSES = [...OPEN, 'completed', 'cancelled'].join(',');
+// A renewal booked while the certificate is still valid. It belongs under
+// Currently Requested -- it is a request, and it can be cancelled -- but it is
+// not Pending and is counted nowhere until the certificate expires.
+const QUEUED = 'queued';
+const LIVE = [...OPEN, QUEUED];
+const ALL_STATUSES = [...LIVE, 'completed', 'cancelled'].join(',');
 const ABOUT_TO_EXPIRE_DAYS = 60; // same window the backend uses (EXPIRY_SOON_DAYS)
 
 export default function RequestTrainingPage() {
@@ -129,31 +134,47 @@ export default function RequestTrainingPage() {
   };
 
   // Every training lands in exactly one section:
-  //   Currently Requested -- it has at least one record that is not cancelled,
-  //                          whoever raised it (ETMS imports and automatic
-  //                          renewals included) and whatever its status;
+  //   Currently Requested -- it has an OPEN record (requested / scheduled /
+  //                          pending / not eligible). Only these: the section
+  //                          is the work in progress, so everything in it has
+  //                          something to act on and a Cancel Request button.
   //   Cancelled           -- its only records are cancelled;
-  //   Request Training    -- it has no record at all.
-  // One card per training: an open record if there is one (it is the thing in
-  // progress), otherwise the latest certificate.
+  //   Request Training    -- everything else, which now includes a training
+  //                          whose certificate is on file but has no open
+  //                          request: valid, expired, or never held. Without an
+  //                          open request there is nothing in flight, so it is
+  //                          available to ask for again.
   const byCourse = new Map();
   records.forEach(r => { if (!byCourse.has(r.course_id)) byCourse.set(r.course_id, []); byCourse.get(r.course_id).push(r); });
   const latest = (list, key) => [...list].sort((x, y) => String(y[key] || '').localeCompare(String(x[key] || '')))[0];
   const requestedCards = [];
   const cancelledCards = [];
-  byCourse.forEach(list => {
-    const live = list.filter(r => r.status !== 'cancelled');
-    if (live.length) {
-      const open = live.filter(r => OPEN.includes(r.status));
-      requestedCards.push(open.length ? latest(open, 'requested_at') : latest(live, 'completed_at'));
-    } else {
-      cancelledCards.push(latest(list, 'cancelled_at'));
+  const openCourseIds = new Set();
+  // What the picker should say about a training already on file, so a
+  // still-valid certificate is not re-requested by accident.
+  const certByCourse = new Map();
+  byCourse.forEach((list, courseId) => {
+    const open = list.filter(r => LIVE.includes(r.status));
+    if (open.length) {
+      openCourseIds.add(courseId);
+      requestedCards.push(latest(open, 'requested_at'));
+      return;
     }
+    // Only-cancelled keeps its own section and its own "request again" action,
+    // so it stays out of the picker rather than offering two ways to do it.
+    if (!list.some(r => r.status === 'completed')) cancelledCards.push(latest(list, 'cancelled_at'));
+  });
+  // The certificate on file for each course, whatever section the course is in:
+  // the picker uses it to show what is already held, and a queued card uses it
+  // to say which expiry it is waiting for.
+  byCourse.forEach((list, courseId) => {
+    const completed = list.filter(r => r.status === 'completed');
+    if (completed.length) certByCourse.set(courseId, latest(completed, 'completed_at'));
   });
   const byName = (x, y) => (x.course_name || '').localeCompare(y.course_name || '');
   requestedCards.sort(byName); cancelledCards.sort(byName);
-  const takenCourseIds = new Set(byCourse.keys());
-  const availableCourses = courses.filter(c => !takenCourseIds.has(c.id));
+  const cancelledCourseIds = new Set(cancelledCards.map(r => r.course_id));
+  const availableCourses = courses.filter(c => !openCourseIds.has(c.id) && !cancelledCourseIds.has(c.id));
 
   const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
   // What a card says about its record.
@@ -166,6 +187,17 @@ export default function RequestTrainingPage() {
       if (exp < today) return { label: `Expired ${fmt(r.expiry_date)}`, bg: '#FDE8E8', fg: '#A32D2D', note };
       if ((exp - today) / 86400000 <= ABOUT_TO_EXPIRE_DAYS) return { label: `About to expire ${fmt(r.expiry_date)}`, bg: '#FEF3C7', fg: '#92400E', note };
       return { label: `Valid until ${fmt(r.expiry_date)}`, bg: '#EAF3DE', fg: '#3B6D11', note };
+    }
+    // Booked, not due. It must never read "Pending" while the certificate it is
+    // waiting on is still valid -- the card would contradict itself.
+    if (r.status === QUEUED) {
+      const cert = certByCourse.get(r.course_id);
+      return {
+        label: 'Booked for renewal', bg: '#EAF3DE', fg: '#3B6D11',
+        note: cert?.expiry_date
+          ? `Opens when the current certificate expires ${fmt(cert.expiry_date)}`
+          : 'Opens when the current certificate expires',
+      };
     }
     if (r.status === 'not_eligible') return { label: 'Not eligible', bg: '#F3F4F6', fg: '#4B5563', note: r.not_eligible_reason || '' };
     if (r.status === 'scheduled') return { label: 'Scheduled', bg: '#E6EEF8', fg: '#042C53', note: r.scheduled_date ? `On ${fmt(r.scheduled_date)}` : '' };
@@ -366,7 +398,7 @@ export default function RequestTrainingPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
                   {requestedCards.map(r => {
                     const st = statusOf(r);
-                    const open = OPEN.includes(r.status);
+                    const open = LIVE.includes(r.status);
                     return (
                       <div key={r.id} style={{ border: `1.5px solid ${open ? 'var(--eg-navy)' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -446,7 +478,7 @@ export default function RequestTrainingPage() {
                 {courses.length === 0 ? (
                   <div style={{ fontSize: 13, color: '#9ca3af' }}>No training types available.</div>
                 ) : availableCourses.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Every training is already requested or cancelled for this employee.</div>
+                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Every training already has an open request or is cancelled for this employee.</div>
                 ) : availableCourses.map(c => {
                   const checked = selectedCourseIds.includes(c.id);
                   return (
@@ -474,6 +506,12 @@ export default function RequestTrainingPage() {
                       </span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{c.name}</span>
                       {c.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
+                      {/* On file but not in flight. Shown so a certificate that
+                          is still valid is not re-requested by accident. */}
+                      {certByCourse.has(c.id) && (() => {
+                        const st = statusOf(certByCourse.get(c.id));
+                        return <span className="tag" style={{ background: st.bg, color: st.fg, fontWeight: 600 }}>{st.label}</span>;
+                      })()}
                     </label>
                   );
                 })}
