@@ -278,6 +278,10 @@ export default function TrainingTrackerPage() {
         { header: 'Completed', key: 'completed', width: 12 },
         { header: 'Expiry', key: 'expiry', width: 12 },
         { header: 'Expiry State', key: 'expiry_state', width: 13 },
+        // A refresher is priced differently from a first-time course, so the
+        // sheet has to say which this is before anyone quotes for it.
+        { header: 'First Time / Refresher', key: 'refresher', width: 20 },
+        { header: 'Last Trained', key: 'last_trained', width: 13 },
       ];
       all.forEach(r => ws.addRow({
         employee: r.employee_name || '', national_id: r.national_id || '',
@@ -288,6 +292,8 @@ export default function TrainingTrackerPage() {
         pending_reason: r.pending_reason || '',
         scheduled: xd(r.scheduled_date), completed: xd(r.completed_at),
         expiry: xd(r.expiry_date), expiry_state: r.expiry_state ? titleCase(r.expiry_state) : '',
+        refresher: r.trained_before ? 'Refresher' : 'First time',
+        last_trained: xd(r.last_trained_at),
       }));
       // Bold navy header, frozen + filterable.
       const header = ws.getRow(1);
@@ -296,7 +302,7 @@ export default function TrainingTrackerPage() {
       header.alignment = { vertical: 'middle' };
       header.height = 20;
       ws.views = [{ state: 'frozen', ySplit: 1 }];
-      ws.autoFilter = { from: 'A1', to: 'N1' };
+      ws.autoFilter = { from: 'A1', to: { row: 1, column: ws.columns.length } };
 
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
