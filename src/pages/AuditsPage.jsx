@@ -83,17 +83,28 @@ export default function AuditsPage() {
     .sort((a, b) => b.value - a.value);
   const auditorGrandTotal = auditorTotals.reduce((sum, row) => sum + row.value, 0);
 
-  // "Auditor Pulse" cards: this month vs. last month, plus a trailing 6-month
-  // sparkline, all reshaped from audits_by_auditor_month -- no extra endpoint.
+  // "Auditor Pulse" cards, on rolling 30-day windows from `auditor_rolling`.
+  // Calendar months made the card measure the date: on the 12th it compared 12
+  // days with a full 30, so Emmanuel read -50% while actually running 141
+  // audits against 145. Number, change and sparkline all read the same windows
+  // now -- 141 can never sit above a chart ending at 72.
   const monthRows = data.audits_by_auditor_month || [];
-  const lastMonthRow = monthRows[monthRows.length - 1] || {};
-  const prevMonthRow = monthRows[monthRows.length - 2] || {};
-  const teamThisMonth = auditors.reduce((sum, name) => sum + (lastMonthRow[name] || 0), 0);
-  const trailingMonths = monthRows.slice(-6);
+  // The newest month on the line chart is always a part-month, so every line
+  // droops at the right edge whatever anyone did. Saying how many days it covers
+  // turns a false dip into a fact you can read.
+  const partialDays = data.current_month_days;
+  const monthChartRows = partialDays && monthRows.length
+    ? monthRows.map((row, i) => i === monthRows.length - 1
+        ? { ...row, month: `${row.month} (${partialDays}d)` } : row)
+    : monthRows;
+  const rolling = data.auditor_rolling || [];
+  const rollingByName = Object.fromEntries(rolling.map(r => [r.auditor, r]));
+  const teamCurrent = rolling.reduce((sum, r) => sum + (r.current || 0), 0);
   const initialsOf = (name) => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const auditorPulse = auditors.map(name => {
-    const cur = lastMonthRow[name] || 0;
-    const prev = prevMonthRow[name] || 0;
+    const r = rollingByName[name] || { current: 0, previous: 0, series: [] };
+    const cur = r.current || 0;
+    const prev = r.previous || 0;
     const pct = prev > 0 ? ((cur - prev) / prev) * 100 : (cur > 0 ? 100 : 0);
     return {
       name,
@@ -102,8 +113,8 @@ export default function AuditsPage() {
       color: auditorColor(name),
       current: cur,
       pct,
-      share: teamThisMonth > 0 ? cur / teamThisMonth : 0,
-      series: trailingMonths.map(row => row[name] || 0),
+      share: teamCurrent > 0 ? cur / teamCurrent : 0,
+      series: r.series || [],
     };
   }).sort((a, b) => b.current - a.current);
   const auditorPulseByName = Object.fromEntries(auditorPulse.map(a => [a.name, a]));
@@ -154,7 +165,7 @@ export default function AuditsPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, paddingTop: 6, flex: 1 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
-            <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of this month's audits</span>
+            <span style={{ fontSize: 10.5, color: '#6b7280' }}>{Math.round(a.share * 100)}% of the last 30 days</span>
           </div>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
@@ -181,7 +192,7 @@ export default function AuditsPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>{a.current}</span>
-            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#9ca3af', marginTop: 1 }}>this month</span>
+            <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#9ca3af', marginTop: 1 }}>last 30 days</span>
           </div>
         </div>
       </div>
@@ -361,7 +372,7 @@ export default function AuditsPage() {
                 </div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.audits_by_auditor_month} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
+                  <LineChart data={monthChartRows} margin={{ top: 8, right: 22, left: 4, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e8edf3" />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={{ stroke: '#dbe2ea' }} />
                     <YAxis width={40} tick={{ fontSize: 11, fill: '#6b7280' }} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -396,7 +407,7 @@ export default function AuditsPage() {
                 <div className="card-title" style={{ fontSize: 15, marginBottom: 4 }}>Auditor Pulse</div>
                 <div style={{ color: '#6b7280', fontSize: 12 }}>Share of audits, trend, and change per auditor</div>
               </div>
-              <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>This month vs. last</span>
+              <span className="tag tag-navy" style={{ whiteSpace: 'nowrap' }}>Last 30 days vs. previous 30</span>
             </div>
             <div className="card-body" style={{ paddingTop: 20, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: auditorPulse.length === 0 ? 'center' : 'flex-start' }}>
               {auditorPulse.length === 0 ? (
