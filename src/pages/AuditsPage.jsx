@@ -234,10 +234,14 @@ export default function AuditsPage() {
   const AuditorTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     const monthData = payload[0]?.payload || {};
-    const rows = auditors
+    // Isolating an auditor has to isolate the tooltip too -- otherwise the one
+    // line on screen is read against five numbers that are not drawn.
+    const shown = activeAuditors.length === 0 ? auditors : auditors.filter(n => activeAuditors.includes(n));
+    const rows = shown
       .map(name => ({ name, value: monthData[name] }))
       .filter(({ value }) => value !== null && value !== undefined)
       .sort((a, b) => b.value - a.value);
+    if (!rows.length) return null;
     return (
       <div style={{ background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, padding: '12px 14px', boxShadow: '0 8px 24px rgba(15,42,74,0.12)', minWidth: 220 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 8 }}>{label}</div>
