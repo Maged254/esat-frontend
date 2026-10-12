@@ -7,6 +7,17 @@ import { useAuth } from '../utils/AuthContext';
 // not.
 const CAN_EXPORT = ['admin', 'ehs_manager'];
 
+// Same wording and the same cuts as the Employees page, so "More than 2 Months"
+// means one thing across the app. It narrows the export only -- the page keeps
+// reporting coverage for everyone, because an audit rate computed over just the
+// overdue would always read 0%.
+const AUDIT_AGES = [
+  { value: '', label: 'All Last Audit' },
+  { value: '1month', label: 'Within 1 Month' },
+  { value: '2months', label: '1 - 2 Months' },
+  { value: 'over2months', label: 'More than 2 Months' },
+];
+
 const BUCKETS = [
   { key: 'bucket_0_30', label: '0–30 days', color: '#1D9E75' },
   { key: 'bucket_31_60', label: '31–60 days', color: '#D97706' },
@@ -43,6 +54,7 @@ export default function AuditCoveragePage() {
   const [filters, setFilters] = useState({ projects: [], clients: [] });
   const [projectSort, setProjectSort] = useState({ key: 'overdue', dir: 'desc' });
   const [exporting, setExporting] = useState(false);
+  const [exportAge, setExportAge] = useState('');
 
   const toggleProjectSort = (key) => setProjectSort(prev => prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' });
   const sortArrow = (key) => projectSort.key === key ? (projectSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
@@ -90,10 +102,20 @@ export default function AuditCoveragePage() {
   // way /api/audit-coverage narrows them -- active, san, and the chips above --
   // so the sheet's row count is the SAN figure on screen, not a near miss.
   const canExport = CAN_EXPORT.includes(user?.role);
+  // Mirrors the server's own cuts so the count on the button is the number of
+  // rows the sheet will actually contain.
+  const inAgeBand = (e) => {
+    if (!exportAge) return true;
+    const d = e.days_since_audit == null ? null : Number(e.days_since_audit);
+    if (exportAge === '1month') return d != null && d <= 30;
+    if (exportAge === '2months') return d != null && d > 30 && d <= 60;
+    return d == null || d > 60;            // over2months — never audited included
+  };
   const planRows = employees
     .filter(e => e.employment_status === 'active' && e.san === true)
     .filter(e => !filters.projects.length || filters.projects.includes(e.project))
     .filter(e => !filters.clients.length || filters.clients.includes(e.client))
+    .filter(inAgeBand)
     // Never audited first, then longest-waiting -- read top-down, that is the
     // order to book them in.
     .sort((a, b) => {
@@ -111,6 +133,7 @@ export default function AuditCoveragePage() {
       const params = new URLSearchParams();
       if (filters.projects.length) params.append('project', filters.projects.join(','));
       if (filters.clients.length) params.append('client', filters.clients.join(','));
+      if (exportAge) params.append('audit_age', exportAge);
       const res = await api.get('/audit-coverage/export?' + params, { responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
@@ -148,6 +171,13 @@ export default function AuditCoveragePage() {
         <div className="topbar-right">
           {(filters.projects.length > 0 || filters.clients.length > 0) && (
             <button className="btn btn-sm" onClick={() => setFilters({ projects: [], clients: [] })} disabled={loading}>Clear filters</button>
+          )}
+          {canExport && (
+            <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 160 }}
+                    value={exportAge} onChange={e => setExportAge(e.target.value)} disabled={loading}
+                    title="Which people go into the exported plan">
+              {AUDIT_AGES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+            </select>
           )}
           {canExport && (
             <button className="btn btn-primary btn-sm" onClick={exportPlan}
