@@ -252,11 +252,27 @@ export default function TrainingTrackerPage() {
   const exportExcel = async () => {
     setExporting(true);
     try {
-      // The export is a follow-up list, so two kinds of row never belong in it
-      // however the filters are set: a cancelled record, and a certificate that
-      // is valid and not near expiry -- neither needs chasing.
-      const all = (await fetchAllRows())
-        .filter(r => r.status !== 'cancelled' && r.expiry_state !== 'valid');
+      // The export is a follow-up list: one row per thing that still needs
+      // doing, however the on-screen filters are set. So it drops
+      //   - cancelled records, and certificates still valid -- nothing to chase;
+      //   - superseded certificates -- already replaced by a newer one, so the
+      //     person is covered and the row is pure history;
+      //   - an expired certificate that an open request already covers. Those
+      //     came through as a pair (the lapsed certificate AND the renewal
+      //     chasing it), which listed the same job twice. The request is the
+      //     actionable half, so the certificate steps aside -- and an expired
+      //     certificate with NOBODY chasing it stays, because that is exactly
+      //     the one at risk of being forgotten.
+      const rows = (await fetchAllRows())
+        .filter(r => r.status !== 'cancelled'
+                  && r.expiry_state !== 'valid'
+                  && r.expiry_state !== 'superseded');
+      const OPEN = ['requested', 'scheduled', 'pending', 'not_eligible'];
+      const chased = new Set(rows
+        .filter(r => OPEN.includes(r.status))
+        .map(r => `${r.national_id}|${r.course_name}`));
+      const all = rows.filter(r => !(r.expiry_state === 'expired'
+                                  && chased.has(`${r.national_id}|${r.course_name}`)));
 
       // Blank (not "—") for empty date cells so Excel columns read cleanly.
       const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
@@ -325,7 +341,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports what the filters above are showing, minus valid certificates and cancelled records">↓ {exporting ? 'Exporting...' : 'Export'}</button>}
+          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports what the filters above are showing as a follow-up list: one row per training still needing action. Valid, superseded and cancelled records are left out, as is an expired certificate that an open request already covers.">↓ {exporting ? 'Exporting...' : 'Export'}</button>}
         </div>
       </div>
 
