@@ -213,10 +213,11 @@ export default function AuditsPage() {
 
   const auditProjects = data.audit_projects || [];
   const projectColor = (name) => PROJECT_PALETTE[auditProjects.indexOf(name) % PROJECT_PALETTE.length];
-  // Ascending by total so the highest bar ends up at the bottom of the chart.
+  // Descending by total: a horizontal bar chart reads top-down, so the busiest
+  // auditor belongs on the first row rather than the last.
   const auditsByAuditorProject = [...(data.audits_by_auditor_project || [])].sort((a, b) => {
     const totalOf = row => Object.keys(row).filter(k => k !== 'auditor').reduce((sum, k) => sum + (row[k] || 0), 0);
-    return totalOf(a) - totalOf(b);
+    return totalOf(b) - totalOf(a);
   });
   // Fit the Y-axis label column to the longest auditor name instead of a
   // fixed width -- a fixed width left a lot of unused blank gutter in front
