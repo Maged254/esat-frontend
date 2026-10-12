@@ -14,6 +14,18 @@ const renderStageDot = (color) => (props) => {
 // Cycled by index for a dynamic (unknown-length) list of auditors.
 const AUDITOR_PALETTE = ['#2a78d6', '#008300', '#e87ba4', '#eda100', '#1baf7a', '#eb6834', '#4a3aa7', '#e34948'];
 
+// No change is neither a rise nor a fall, so it gets no arrow and no colour --
+// a green ▲0% reads as good news that did not happen. Decided on the ROUNDED
+// value actually shown, so the arrow can never disagree with the number beside
+// it: -0.4% displays as "0%" and must not carry a red ▼ either.
+const trendOf = (pct) => {
+  const shown = Math.round(pct || 0);
+  if (shown === 0) return { shown, arrow: '', color: '#6b7280', bg: '#6b72801f' };
+  return shown > 0
+    ? { shown, arrow: '▲', color: '#0ca30c', bg: '#0ca30c1f' }
+    : { shown, arrow: '▼', color: '#d03b3b', bg: '#d03b3b1f' };
+};
+
 // Cycled by index for a dynamic (unknown-length) list of projects.
 const PROJECT_PALETTE = ['#3FC1C0', '#20BAC5', '#00B2CA', '#04A6C2', '#0899BA', '#0F80AA', '#16679A', '#1A5B92', '#1C558E', '#1D4E89'];
 
@@ -120,7 +132,7 @@ export default function AuditsPage() {
   const auditorPulseByName = Object.fromEntries(auditorPulse.map(a => [a.name, a]));
 
   const renderPulseCard = (a) => {
-    const up = a.pct >= 0;
+    const trend = trendOf(a.pct);
     const sw = 90, sh = 30, pad = 3;
     const sMax = Math.max(...a.series), sMin = Math.min(...a.series);
     const sx = (i) => pad + (i / Math.max(1, a.series.length - 1)) * (sw - pad * 2);
@@ -170,10 +182,10 @@ export default function AuditsPage() {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
             fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 999,
-            color: up ? '#0ca30c' : '#d03b3b',
-            background: up ? '#0ca30c1f' : '#d03b3b1f',
+            color: trend.color,
+            background: trend.bg,
           }}>
-            {up ? '▲' : '▼'}{Math.abs(a.pct).toFixed(0)}%
+            {trend.arrow}{Math.abs(trend.shown)}%
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -467,7 +479,7 @@ export default function AuditsPage() {
                   <div style={{ minWidth: 160, display: 'flex', flexDirection: 'column', gap: 18 }}>
                     {auditorTotals.map(row => {
                       const pulse = auditorPulseByName[row.name];
-                      const up = pulse && pulse.pct >= 0;
+                      const trend = trendOf(pulse?.pct);
                       return (
                         <div key={row.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
                           <div style={{ display: 'flex', alignItems: 'stretch', gap: 12, minWidth: 0 }}>
@@ -484,10 +496,10 @@ export default function AuditsPage() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 2, flexShrink: 0,
                               fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 999,
-                              color: up ? '#0ca30c' : '#d03b3b',
-                              background: up ? '#0ca30c1f' : '#d03b3b1f',
+                              color: trend.color,
+                              background: trend.bg,
                             }}>
-                              {up ? '▲' : '▼'}{Math.abs(pulse.pct).toFixed(0)}%
+                              {trend.arrow}{Math.abs(trend.shown)}%
                             </span>
                           )}
                         </div>
