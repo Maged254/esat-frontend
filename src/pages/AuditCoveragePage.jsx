@@ -102,56 +102,17 @@ export default function AuditCoveragePage() {
       return db - da || (a.full_name || '').localeCompare(b.full_name || '');
     });
 
-  const bucketOf = (days) => days == null ? 'Never audited'
-    : days <= 30 ? '0–30 days' : days <= 60 ? '31–60 days' : days <= 90 ? '61–90 days' : '90+ days';
-
+  // The file is built and authorised by the server -- hiding the button would
+  // only hide it. The count beside it still comes from the rows on screen, so
+  // what you see before clicking is what the sheet contains.
   const exportPlan = async () => {
     setExporting(true);
     try {
-      const ExcelJS = (await import('exceljs')).default;
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet('Audit Plan');
-      ws.columns = [
-        { header: 'Employee', key: 'full_name', width: 28 },
-        { header: 'National ID', key: 'national_id', width: 14 },
-        { header: 'Employee No.', key: 'employee_number', width: 14 },
-        { header: 'Job Title', key: 'job_title', width: 24 },
-        { header: 'Department', key: 'department', width: 16 },
-        { header: 'Project', key: 'project', width: 18 },
-        { header: 'Client', key: 'client', width: 14 },
-        { header: 'Organization', key: 'organization', width: 20 },
-        { header: 'Last Audit', key: 'last_audit', width: 13 },
-        { header: 'Days Since', key: 'days_since', width: 11 },
-        { header: 'Status', key: 'status', width: 15 },
-      ];
-      planRows.forEach(e => {
-        const days = e.days_since_audit == null ? null : Number(e.days_since_audit);
-        ws.addRow({
-          ...e,
-          last_audit: e.last_audit_date ? new Date(e.last_audit_date).toLocaleDateString('en-GB') : 'Never',
-          days_since: days == null ? '' : days,
-          status: bucketOf(days),
-        });
-      });
-      const head = ws.getRow(1);
-      head.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2A4A' } };
-      head.height = 20;
-      // Overdue is the whole point of the sheet, so it has to be visible at a
-      // glance rather than read off the Days column.
-      ws.getColumn('status').eachCell((cell, row) => {
-        if (row === 1) return;
-        const fg = cell.value === 'Never audited' ? 'FFE5E7EB'
-          : cell.value === '0–30 days' ? 'FFDCFCE7'
-          : cell.value === '31–60 days' ? 'FFFEF3C7' : 'FFFDE8E8';
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fg } };
-      });
-      ws.getColumn('days_since').alignment = { horizontal: 'center' };
-      ws.views = [{ state: 'frozen', xSplit: 1, ySplit: 1 }];
-      ws.autoFilter = { from: 'A1', to: { row: 1, column: ws.columns.length } };
-
-      const buf = await wb.xlsx.writeBuffer();
-      const url = URL.createObjectURL(new Blob([buf]));
+      const params = new URLSearchParams();
+      if (filters.projects.length) params.append('project', filters.projects.join(','));
+      if (filters.clients.length) params.append('client', filters.clients.join(','));
+      const res = await api.get('/audit-coverage/export?' + params, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
       a.href = url;
       a.download = `OneHub-Audit-Plan-${new Date().toISOString().slice(0, 10)}.xlsx`;
@@ -159,7 +120,9 @@ export default function AuditCoveragePage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       logError(e);
-      alert('Could not build the audit plan file.');
+      alert(e.response?.status === 403
+        ? 'You are not authorised to export the audit plan.'
+        : 'Could not build the audit plan file.');
     } finally { setExporting(false); }
   };
 
