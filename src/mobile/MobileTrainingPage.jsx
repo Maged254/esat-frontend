@@ -8,6 +8,9 @@ const titleCase = (s) => (s || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.to
 // by its expiry state, anything else by its status.
 const stateOf = (r) => {
   if (r.status !== 'completed') return { label: titleCase(r.status), bg: '#FEF3C7', fg: '#92400E' };
+  // Kept as a fallback though `open()` filters these out -- if that filter is
+  // ever relaxed, a replaced certificate should still name itself rather than
+  // fall through to the status-based label below.
   if (r.expiry_state === 'superseded') return { label: 'Previous', bg: '#F3F4F6', fg: '#6B7280' };
   if (r.expiry_state === 'expired') return { label: 'Expired', bg: '#FDE8E8', fg: '#A32D2D' };
   if (r.expiry_state === 'expiring') return { label: 'Expiring soon', bg: '#FEF3C7', fg: '#92400E' };
@@ -51,8 +54,14 @@ export default function MobileTrainingPage() {
       setLoading(false);
       return;
     }
+    // Superseded certificates are dropped here: on a phone the question is
+    // "is this person covered right now", and a replaced certificate listed
+    // beside the one that replaced it reads as a duplicate. The full site keeps
+    // them -- the history and its PDF are still there.
     api.get(`/training-records/tracker?national_id=${encodeURIComponent(nid)}&page=1&pageSize=100`)
-      .then(r => setRecords((r.data.rows || []).filter(x => String(x.national_id || '').trim() === nid)))
+      .then(r => setRecords((r.data.rows || [])
+        .filter(x => String(x.national_id || '').trim() === nid)
+        .filter(x => x.expiry_state !== 'superseded')))
       .catch(e => { logError(e); setError('Could not load their training.'); })
       .finally(() => setLoading(false));
   };
