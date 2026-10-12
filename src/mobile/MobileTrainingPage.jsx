@@ -90,7 +90,7 @@ export default function MobileTrainingPage() {
   if (!person) {
     return (
       <>
-        <input className="m-input" placeholder="Name, employee number…" value={term}
+        <input className="m-input" placeholder="Name or ID…" value={term}
                onChange={e => setTerm(e.target.value)} autoComplete="off" />
         {term.trim().length < 2 ? (
           <div className="m-empty">Type at least two letters.</div>

@@ -258,7 +258,7 @@ export default function MobileAuditPage() {
     const more = people.length < total;
     return (
       <>
-        <input className="m-input" placeholder="Name, employee number, ID…" value={term}
+        <input className="m-input" placeholder="Name or ID…" value={term}
                onChange={e => setTerm(e.target.value)} autoComplete="off" />
         <div className="m-count">
           {searching && !people.length ? 'Searching…' : `${total} awaiting a safety audit`}
