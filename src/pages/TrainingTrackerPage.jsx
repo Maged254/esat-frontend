@@ -257,22 +257,35 @@ export default function TrainingTrackerPage() {
       //   - cancelled records, and certificates still valid -- nothing to chase;
       //   - superseded certificates -- already replaced by a newer one, so the
       //     person is covered and the row is pure history;
-      //   - an expired certificate that an open request already covers. Those
-      //     came through as a pair (the lapsed certificate AND the renewal
-      //     chasing it), which listed the same job twice. The request is the
-      //     actionable half, so the certificate steps aside -- and an expired
-      //     certificate with NOBODY chasing it stays, because that is exactly
-      //     the one at risk of being forgotten.
-      const rows = (await fetchAllRows())
-        .filter(r => r.status !== 'cancelled'
-                  && r.expiry_state !== 'valid'
-                  && r.expiry_state !== 'superseded');
+      //   - an expired certificate whose renewal already exists, open or
+      //     cancelled. Open: the pair listed the same job twice, and the request
+      //     is the actionable half. Cancelled: somebody decided this person does
+      //     not need it again, and a follow-up list should not keep re-asking.
+      //     An expired certificate with no renewal either way stays -- that is
+      //     the one nobody has looked at.
+      const fetched = await fetchAllRows();
+      const rows = fetched.filter(r => r.status !== 'cancelled'
+                                    && r.expiry_state !== 'valid'
+                                    && r.expiry_state !== 'superseded');
       const OPEN = ['requested', 'scheduled', 'pending', 'not_eligible'];
       const chased = new Set(rows
         .filter(r => OPEN.includes(r.status))
         .map(r => `${r.national_id}|${r.course_name}`));
-      const all = rows.filter(r => !(r.expiry_state === 'expired'
-                                  && chased.has(`${r.national_id}|${r.course_name}`)));
+      // A renewal that was CANCELLED is a decision not to redo this training --
+      // Hassan and Wycliffe's pole climbing, cancelled because they are
+      // supervisors. Tied to the certificate it was raised against, the way the
+      // backend's renewal sweep ties it (prior_expiry_date = that certificate's
+      // expiry), so declining one cycle retires that certificate without
+      // silencing a later one.
+      const dayOf = (d) => d ? String(d).slice(0, 10) : '';
+      const declined = new Set(fetched
+        .filter(r => r.status === 'cancelled' && r.prior_expiry_date)
+        .map(r => `${r.national_id}|${r.course_name}|${dayOf(r.prior_expiry_date)}`));
+      const all = rows.filter(r => {
+        if (r.expiry_state !== 'expired') return true;
+        const who = `${r.national_id}|${r.course_name}`;
+        return !chased.has(who) && !declined.has(`${who}|${dayOf(r.expiry_date)}`);
+      });
 
       // Blank (not "—") for empty date cells so Excel columns read cleanly.
       const xd = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
@@ -341,7 +354,7 @@ export default function TrainingTrackerPage() {
           <span className="topbar-title">Trainings Tracker</span>
         </div>
         <div className="topbar-right">
-          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports what the filters above are showing as a follow-up list: one row per training still needing action. Valid, superseded and cancelled records are left out, as is an expired certificate that an open request already covers.">↓ {exporting ? 'Exporting...' : 'Export'}</button>}
+          {canExport && <button className="btn" onClick={exportExcel} disabled={exporting} title="Exports what the filters above are showing as a follow-up list: one row per training still needing action. Valid, superseded and cancelled records are left out, as is an expired certificate whose renewal has already been raised or cancelled.">↓ {exporting ? 'Exporting...' : 'Export'}</button>}
         </div>
       </div>
 
