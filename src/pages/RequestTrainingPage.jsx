@@ -2,21 +2,40 @@ import React, { useEffect, useState } from 'react';
 import api, { logError } from '../utils/api';
 import TrainingIcon from '../components/TrainingIcon';
 
-// Statuses that count as an OPEN request. Must match the backend's partial unique
-// index (one_open_training_request_employee). Not Eligible is open, as it was in
-// ETMS: a reason beside Pending Reason, not a closed state.
+// Two sections, and the line between them is a decision rather than a deduction.
+//
+// "Requested (Needed)" is every training this person is required to hold,
+// whatever state it happens to be in today: waiting on a team, booked, or a
+// certificate in date. "Not Requested (Not Needed)" is everything else.
+//
+// The flag lives in training_requirements and is set by the EHS manager. It is
+// not read off the records, because records could not express the decision: an
+// expired certificate whose renewal had been cancelled looked identical to one
+// nobody had considered, so Hassan Kibet Ronoh's pole climbing reopened every
+// cycle for somebody to cancel again (Maged, 2026-10-14).
 const OPEN = ['requested', 'scheduled', 'pending', 'not_eligible'];
-// A renewal booked while the certificate is still valid. It belongs under
-// Currently Requested -- it is a request, and it can be cancelled -- but it is
-// not Pending and is counted nowhere until the certificate expires.
-const QUEUED = 'queued';
-const LIVE = [...OPEN, QUEUED];
-const ALL_STATUSES = [...LIVE, 'completed', 'cancelled'].join(',');
 const ABOUT_TO_EXPIRE_DAYS = 60; // same window the backend uses (EXPIRY_SOON_DAYS)
+const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
+
+// What a card says about the record behind it. A needed training with no record
+// at all is the honest "nothing on file yet" rather than a status.
+const stateOf = (r) => {
+  if (!r.status) return { label: 'Nothing on file', bg: '#F3F4F6', fg: '#4B5563', note: '' };
+  if (r.status === 'completed') {
+    const note = `Completed ${fmt(r.completed_at)}`;
+    if (!r.expiry_date) return { label: 'Valid · no expiry', bg: '#EAF3DE', fg: '#3B6D11', note };
+    if (r.expiry_state === 'expired') return { label: `Expired ${fmt(r.expiry_date)}`, bg: '#FDE8E8', fg: '#A32D2D', note };
+    if (r.expiry_state === 'expiring') return { label: `About to expire ${fmt(r.expiry_date)}`, bg: '#FEF3C7', fg: '#92400E', note };
+    return { label: `Valid until ${fmt(r.expiry_date)}`, bg: '#EAF3DE', fg: '#3B6D11', note };
+  }
+  if (r.status === 'not_eligible') return { label: 'Not eligible', bg: '#F3F4F6', fg: '#4B5563', note: r.not_eligible_reason || '' };
+  if (r.status === 'scheduled') return { label: 'Scheduled', bg: '#E6EEF8', fg: '#042C53', note: r.scheduled_date ? `On ${fmt(r.scheduled_date)}` : '' };
+  if (r.status === 'requested') return { label: 'Requested', bg: '#E6EEF8', fg: '#042C53', note: '' };
+  return { label: 'Pending', bg: '#FEF3C7', fg: '#92400E', note: r.pending_reason || '' };
+};
 
 export default function RequestTrainingPage() {
   const [step, setStep] = useState(1);
-
   const [employees, setEmployees] = useState([]);
   const [empPage, setEmpPage] = useState(1);
   const [empTotal, setEmpTotal] = useState(0);
@@ -24,30 +43,26 @@ export default function RequestTrainingPage() {
   const [empFilterOptions, setEmpFilterOptions] = useState({ projects: [], departments: [], clients: [] });
   const [selectedPerson, setSelectedPerson] = useState(null);
 
-  const [courses, setCourses] = useState([]);
-  const [selectedCourseIds, setSelectedCourseIds] = useState([]); // multi-select
-  const [records, setRecords] = useState([]); // every non-deleted record for this person
-  const [loadingOpen, setLoadingOpen] = useState(false);
+  const [rows, setRows] = useState([]);           // one row per course in the catalogue
+  const [loadingRows, setLoadingRows] = useState(false);
+  const [moving, setMoving] = useState(null);     // course_id being moved
+  const [moveError, setMoveError] = useState('');
 
-  // Remove-request modal
-  const [removeModal, setRemoveModal] = useState(null); // the request being removed
-  const [removeReason, setRemoveReason] = useState('');
-  const [removing, setRemoving] = useState(false);
-  const [removeError, setRemoveError] = useState('');
+  // Marking a training not needed always asks why -- it stops the chasing for
+  // good, so the record has to say who decided and on what grounds.
+  const [notNeededModal, setNotNeededModal] = useState(null);
+  const [notNeededReason, setNotNeededReason] = useState('');
+  const [modalError, setModalError] = useState('');
 
   const [personSearch, setPersonSearch] = useState('');
   const [personNationalId, setPersonNationalId] = useState('');
   const [personJobTitle, setPersonJobTitle] = useState('');
   const [personFilters, setPersonFilters] = useState({ resource_type: '', department: '', project: '', client: '' });
 
-  const [validationErrors, setValidationErrors] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-
   const [currentUserName, setCurrentUserName] = useState('');
 
   useEffect(() => {
-    api.get('/training-courses').then(r => setCourses(r.data)).catch(logError);
     api.get('/employees/filter-options').then(r => setEmpFilterOptions(r.data)).catch(logError);
     try {
       const user = JSON.parse(localStorage.getItem('esat_user'));
@@ -79,176 +94,54 @@ export default function RequestTrainingPage() {
 
   useEffect(() => { setEmpPage(1); }, [personSearch, personNationalId, personJobTitle, personFilters]);
 
-  const loadOpenRequests = async (employeeId) => {
-    setLoadingOpen(true);
+  const loadRows = async (employeeId) => {
+    setLoadingRows(true); setMoveError('');
     try {
-      const res = await api.get(`/training-records?employee_id=${employeeId}&status=${ALL_STATUSES}`);
-      setRecords(res.data);
-    } catch {
-      setRecords([]);
-    } finally {
-      setLoadingOpen(false);
-    }
-  };
-
-  // Request a cancelled training again. A fresh request rather than a restore:
-  // the cancelled record stays exactly as it was, so the history keeps who
-  // cancelled it and why. The server allows it only while every record for that
-  // training is cancelled.
-  const [requestingAgain, setRequestingAgain] = useState(null);
-  const [againError, setAgainError] = useState({});
-  const requestAgain = async (r) => {
-    setRequestingAgain(r.course_id); setAgainError(p => ({ ...p, [r.course_id]: '' }));
-    try {
-      await api.post('/training-requests', { employee_id: selectedPerson.id, course_id: r.course_id });
-      await loadOpenRequests(selectedPerson.id);
+      const res = await api.get(`/training-requirements/${employeeId}`);
+      setRows(res.data.rows || []);
     } catch (e) {
-      setAgainError(p => ({ ...p, [r.course_id]: e.response?.data?.error || 'Could not request it again' }));
+      logError(e); setRows([]); setMoveError('Could not load this person’s trainings.');
     } finally {
-      setRequestingAgain(null);
+      setLoadingRows(false);
     }
   };
 
-  const openRemove = (r) => { setRemoveModal(r); setRemoveReason(''); setRemoveError(''); };
-  const confirmRemove = async () => {
-    if (!removeReason.trim()) { setRemoveError('A reason is required.'); return; }
-    setRemoving(true); setRemoveError('');
+  const selectPerson = async (p) => {
+    setSelectedPerson(p); setSuccessMsg(''); setStep(2);
+    await loadRows(p.id);
+  };
+
+  const backToList = () => { setStep(1); setSelectedPerson(null); setRows([]); setMoveError(''); };
+
+  const move = async (row, needed, reason) => {
+    setMoving(row.course_id); setMoveError('');
     try {
-      await api.put(`/training-records/${removeModal.id}/cancel`, { cancel_reason: removeReason.trim() });
-      setRemoveModal(null);
-      await loadOpenRequests(selectedPerson.id);
+      const res = await api.put('/training-requirements', {
+        employee_id: selectedPerson.id, course_id: row.course_id, needed, reason,
+      });
+      await loadRows(selectedPerson.id);
+      setSuccessMsg(needed
+        ? (res.data.opened_request
+            ? `${row.course_name} marked as needed — a request has been raised.`
+            : `${row.course_name} marked as needed. Nothing raised — the certificate is still in date.`)
+        : `${row.course_name} marked as not needed${res.data.cancelled_requests ? ' — its open request was cancelled.' : '.'}`);
+      return true;
     } catch (e) {
-      setRemoveError(e.response?.data?.error || 'Failed to cancel request');
-    } finally {
-      setRemoving(false);
-    }
+      logError(e);
+      setMoveError(e.response?.data?.error || 'Could not move that training.');
+      return false;
+    } finally { setMoving(null); }
   };
 
-  const selectPerson = async (person) => {
-    setSelectedPerson(person);
-    setSelectedCourseIds([]);
-    setValidationErrors([]);
-    setSuccessMsg('');
-    await loadOpenRequests(person.id);
-    setStep(2);
+  const confirmNotNeeded = async () => {
+    if (!notNeededReason.trim()) { setModalError('A reason is required.'); return; }
+    const ok = await move(notNeededModal, false, notNeededReason.trim());
+    if (ok) setNotNeededModal(null);
+    else setModalError('Could not save that. Try again.');
   };
 
-  // Every training lands in exactly one section:
-  //   Currently Requested -- it has an OPEN record (requested / scheduled /
-  //                          pending / not eligible). Only these: the section
-  //                          is the work in progress, so everything in it has
-  //                          something to act on and a Cancel Request button.
-  //   Cancelled           -- its only records are cancelled;
-  //   Request Training    -- everything else, which now includes a training
-  //                          whose certificate is on file but has no open
-  //                          request: valid, expired, or never held. Without an
-  //                          open request there is nothing in flight, so it is
-  //                          available to ask for again.
-  const byCourse = new Map();
-  records.forEach(r => { if (!byCourse.has(r.course_id)) byCourse.set(r.course_id, []); byCourse.get(r.course_id).push(r); });
-  const latest = (list, key) => [...list].sort((x, y) => String(y[key] || '').localeCompare(String(x[key] || '')))[0];
-  const requestedCards = [];
-  const cancelledCards = [];
-  const openCourseIds = new Set();
-  // What the picker should say about a training already on file, so a
-  // still-valid certificate is not re-requested by accident.
-  const certByCourse = new Map();
-  byCourse.forEach((list, courseId) => {
-    const open = list.filter(r => LIVE.includes(r.status));
-    if (open.length) {
-      openCourseIds.add(courseId);
-      requestedCards.push(latest(open, 'requested_at'));
-      return;
-    }
-    // Only-cancelled keeps its own section and its own "request again" action,
-    // so it stays out of the picker rather than offering two ways to do it.
-    if (!list.some(r => r.status === 'completed')) cancelledCards.push(latest(list, 'cancelled_at'));
-  });
-  // The certificate on file for each course, whatever section the course is in:
-  // the picker uses it to show what is already held, and a queued card uses it
-  // to say which expiry it is waiting for.
-  byCourse.forEach((list, courseId) => {
-    const completed = list.filter(r => r.status === 'completed');
-    if (completed.length) certByCourse.set(courseId, latest(completed, 'completed_at'));
-  });
-  const byName = (x, y) => (x.course_name || '').localeCompare(y.course_name || '');
-  requestedCards.sort(byName); cancelledCards.sort(byName);
-  const cancelledCourseIds = new Set(cancelledCards.map(r => r.course_id));
-  const availableCourses = courses.filter(c => !openCourseIds.has(c.id) && !cancelledCourseIds.has(c.id));
-
-  const fmt = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
-  // What a card says about its record.
-  const statusOf = (r) => {
-    if (r.status === 'completed') {
-      if (!r.expiry_date) return { label: 'Valid · no expiry', bg: '#EAF3DE', fg: '#3B6D11', note: `Completed ${fmt(r.completed_at)}` };
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const exp = new Date(r.expiry_date);
-      const note = `Completed ${fmt(r.completed_at)}`;
-      if (exp < today) return { label: `Expired ${fmt(r.expiry_date)}`, bg: '#FDE8E8', fg: '#A32D2D', note };
-      if ((exp - today) / 86400000 <= ABOUT_TO_EXPIRE_DAYS) return { label: `About to expire ${fmt(r.expiry_date)}`, bg: '#FEF3C7', fg: '#92400E', note };
-      return { label: `Valid until ${fmt(r.expiry_date)}`, bg: '#EAF3DE', fg: '#3B6D11', note };
-    }
-    // Booked, not due. It must never read "Pending" while the certificate it is
-    // waiting on is still valid -- the card would contradict itself.
-    if (r.status === QUEUED) {
-      const cert = certByCourse.get(r.course_id);
-      return {
-        label: 'Booked for renewal', bg: '#EAF3DE', fg: '#3B6D11',
-        note: cert?.expiry_date
-          ? `Opens when the current certificate expires ${fmt(cert.expiry_date)}`
-          : 'Opens when the current certificate expires',
-      };
-    }
-    if (r.status === 'not_eligible') return { label: 'Not eligible', bg: '#F3F4F6', fg: '#4B5563', note: r.not_eligible_reason || '' };
-    if (r.status === 'scheduled') return { label: 'Scheduled', bg: '#E6EEF8', fg: '#042C53', note: r.scheduled_date ? `On ${fmt(r.scheduled_date)}` : '' };
-    if (r.status === 'requested') return { label: 'Requested', bg: '#E6EEF8', fg: '#042C53', note: '' };
-    return { label: 'Pending', bg: '#FEF3C7', fg: '#92400E', note: r.pending_reason || '' };
-  };
-
-  const toggleCourse = (id) => {
-    setValidationErrors([]);
-    setSelectedCourseIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const courseName = (id) => courses.find(c => c.id === id)?.name || 'training';
-
-  const handleSubmit = async () => {
-    if (!selectedPerson) return;
-    if (selectedCourseIds.length === 0) {
-      setValidationErrors(['Please select at least one training to request.']);
-      return;
-    }
-    setValidationErrors([]);
-    setSuccessMsg('');
-    setSubmitting(true);
-    try {
-      // One request per course. allSettled so one failure (e.g. a race on the
-      // duplicate-open constraint) doesn't discard the others.
-      const results = await Promise.allSettled(
-        selectedCourseIds.map(id =>
-          api.post('/training-requests', { employee_id: selectedPerson.id, course_id: id })
-            .then(() => ({ id }))
-            .catch(err => { throw { id, error: err.response?.data?.error || 'Failed' }; })
-        )
-      );
-      const ok = results.filter(r => r.status === 'fulfilled').map(r => r.value.id);
-      const failed = results.filter(r => r.status === 'rejected').map(r => r.reason);
-      if (ok.length) {
-        setSuccessMsg(`Requested ${ok.length} training${ok.length === 1 ? '' : 's'} for ${selectedPerson.full_name}: ${ok.map(courseName).join(', ')}.`);
-        setTimeout(() => setSuccessMsg(''), 4000);
-      }
-      if (failed.length) {
-        setValidationErrors(failed.map(f => `${courseName(f.id)}: ${f.error}`));
-      }
-      setSelectedCourseIds([]);
-      await loadOpenRequests(selectedPerson.id);
-    } catch (e) {
-      setValidationErrors(['Failed to submit requests. Please try again.']);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  const needed = rows.filter(r => r.needed);
+  const notNeeded = rows.filter(r => !r.needed);
   const empTotalPages = Math.max(Math.ceil(empTotal / empPageSize), 1);
 
   return (
@@ -260,14 +153,7 @@ export default function RequestTrainingPage() {
           <span className="topbar-title">Request / Remove a Training</span>
         </div>
         <div className="topbar-right">
-          {step === 2 && (
-            <button className="btn" onClick={() => { setStep(1); setSelectedPerson(null); setRecords([]); setSelectedCourseIds([]); setValidationErrors([]); }}>✕ Cancel</button>
-          )}
-          {step === 2 && (
-            <button className={`btn ${selectedCourseIds.length > 0 ? 'btn-primary' : ''}`} onClick={handleSubmit} disabled={submitting || selectedCourseIds.length === 0} style={selectedCourseIds.length === 0 ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}>
-              ✓ {submitting ? 'Submitting...' : selectedCourseIds.length > 0 ? `Submit ${selectedCourseIds.length} Request${selectedCourseIds.length === 1 ? '' : 's'}` : 'Submit Request'}
-            </button>
-          )}
+          {step === 2 && <button className="btn" onClick={backToList}>✕ Close</button>}
         </div>
       </div>
 
@@ -381,26 +267,29 @@ export default function RequestTrainingPage() {
                 </div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>Requested by <b style={{ fontWeight: 600, color: '#374151' }}>{currentUserName}</b></div>
               </div>
-              <button className="btn btn-sm" onClick={() => { setStep(1); setSelectedPerson(null); setRecords([]); setSelectedCourseIds([]); setValidationErrors([]); }}>Change</button>
+              <button className="btn btn-sm" onClick={backToList}>Change</button>
             </div>
 
-            {/* ── Currently Requested Trainings ─────────────────────── */}
+            {moveError && (
+              <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '10px 14px', borderRadius: 8, marginBottom: 16, fontSize: 13 }}>⚠ {moveError}</div>
+            )}
+
+            {/* ── Requested (Needed) ─────────────────────────────────── */}
             <div className="card" style={{ marginBottom: 16 }}>
               <div className="card-header">
-                <span className="card-title">Currently Requested Trainings</span>
-                {!loadingOpen && <span style={{ fontSize: 12, color: '#6b7280' }}>{requestedCards.length} training{requestedCards.length === 1 ? '' : 's'}</span>}
+                <span className="card-title">Requested (Needed)</span>
+                {!loadingRows && <span style={{ fontSize: 12, color: '#6b7280' }}>{needed.length} training{needed.length === 1 ? '' : 's'}</span>}
               </div>
-              {loadingOpen ? (
+              {loadingRows ? (
                 <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>Loading…</div>
-              ) : requestedCards.length === 0 ? (
-                <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>No trainings requested for this employee.</div>
+              ) : needed.length === 0 ? (
+                <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>No trainings are marked as needed for this employee.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
-                  {requestedCards.map(r => {
-                    const st = statusOf(r);
-                    const open = LIVE.includes(r.status);
+                  {needed.map(r => {
+                    const st = stateOf(r);
                     return (
-                      <div key={r.id} style={{ border: `1.5px solid ${open ? 'var(--eg-navy)' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
+                      <div key={r.course_id} style={{ border: '1.5px solid #e5e7eb', borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, background: 'white' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={36} color="var(--eg-navy)" />
@@ -410,7 +299,9 @@ export default function RequestTrainingPage() {
                         <div>
                           <span className="tag" style={{ background: st.bg, color: st.fg }}>{st.label}</span>
                           {st.note && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 5 }}>{st.note}</div>}
-                          {open && r.prior_expiry_date && <div style={{ fontSize: 11, color: '#A32D2D', marginTop: 3 }}>Renewal · previous certificate expired {fmt(r.prior_expiry_date)}</div>}
+                          {OPEN.includes(r.status) && r.prior_expiry_date && (
+                            <div style={{ fontSize: 11, color: '#A32D2D', marginTop: 3 }}>Renewal · previous certificate expired {fmt(r.prior_expiry_date)}</div>
+                          )}
                         </div>
                         <div style={{ fontSize: 11, color: '#9ca3af', borderTop: '0.5px solid #f0f0f0', paddingTop: 8 }}>
                           {r.requested_by_name
@@ -418,9 +309,11 @@ export default function RequestTrainingPage() {
                             : <div>{r.prior_expiry_date ? 'Opened automatically on expiry' : 'On record'}</div>}
                           {r.requested_at && <div style={{ marginTop: 2 }}>{fmt(r.requested_at)}</div>}
                         </div>
-                        {open && (
-                          <button className="btn btn-sm" style={{ color: '#c0392b', borderColor: '#f0c9c6' }} onClick={() => openRemove(r)}>✕ Cancel Request</button>
-                        )}
+                        <button className="btn btn-sm" style={{ color: '#c0392b', borderColor: '#f0c9c6' }}
+                                disabled={moving === r.course_id}
+                                onClick={() => { setNotNeededModal(r); setNotNeededReason(''); setModalError(''); }}>
+                          {moving === r.course_id ? 'Moving…' : '✕ Not needed'}
+                        </button>
                       </div>
                     );
                   })}
@@ -428,102 +321,34 @@ export default function RequestTrainingPage() {
               )}
             </div>
 
-            {/* ── Cancelled Trainings ──────────────────────────────── */}
-            {!loadingOpen && cancelledCards.length > 0 && (
-              <div className="card" style={{ marginBottom: 16 }}>
-                <div className="card-header">
-                  <span className="card-title">Cancelled Trainings</span>
-                  <span style={{ fontSize: 12, color: '#6b7280' }}>{cancelledCards.length} cancelled</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 12, padding: 16 }}>
-                  {cancelledCards.map(r => (
-                    <div key={r.id} style={{ border: '1px solid #f0dede', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10, background: '#fdf7f7' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ flexShrink: 0, width: 54, height: 54, borderRadius: 13, background: '#fbeaea', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={36} color="#c0392b" />
-                        </span>
-                        <span style={{ fontWeight: 600, fontSize: 13, color: '#0f2a4a', lineHeight: 1.25 }}>{r.course_name}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: '#374151', borderTop: '0.5px solid #f0dede', paddingTop: 8 }}>
-                        <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>Reason</div>
-                        {r.cancel_reason || '—'}
-                      </div>
-                      <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                        Cancelled by <b style={{ fontWeight: 600, color: '#6b7280' }}>{r.cancelled_by_name || '—'}</b>
-                        {r.cancelled_at ? ` · ${fmt(r.cancelled_at)}` : ''}
-                      </div>
-                      <button className="btn btn-sm" style={{ color: 'var(--eg-navy)', borderColor: '#cfe0f2' }}
-                              disabled={requestingAgain === r.course_id} onClick={() => requestAgain(r)}>
-                        {requestingAgain === r.course_id ? 'Requesting…' : '↩ Request again'}
-                      </button>
-                      {againError[r.course_id] && <div style={{ fontSize: 11, color: '#c0392b' }}>{againError[r.course_id]}</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Pick one or more trainings to request ──────────────── */}
+            {/* ── Not Requested (Not Needed) ─────────────────────────── */}
             <div className="card">
               <div className="card-header">
-                <span className="card-title">Request Training <span style={{ color: '#e24b4a' }}>*</span></span>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>Tick one or more</span>
+                <span className="card-title">Not Requested (Not Needed)</span>
+                {!loadingRows && <span style={{ fontSize: 12, color: '#6b7280' }}>Tick to mark as needed</span>}
               </div>
-              {validationErrors.length > 0 && (
-                <div style={{ background: '#fcebeb', border: '1px solid #e24b4a', borderRadius: 8, padding: '12px 16px', margin: '12px 16px 0' }}>
-                  {validationErrors.map((e, i) => <div key={i} style={{ color: '#c0392b', fontSize: 13, marginBottom: i < validationErrors.length - 1 ? 6 : 0 }}>⚠ {e}</div>)}
-                </div>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, padding: 16 }}>
-                {courses.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>No training types available.</div>
-                ) : availableCourses.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#9ca3af' }}>Every training already has an open request or is cancelled for this employee.</div>
-                ) : availableCourses.map(c => {
-                  const checked = selectedCourseIds.includes(c.id);
-                  return (
-                    <label
-                      key={c.id}
+              {loadingRows ? (
+                <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>Loading…</div>
+              ) : notNeeded.length === 0 ? (
+                <div style={{ padding: 24, fontSize: 13, color: '#9ca3af' }}>Every training is marked as needed for this employee.</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, padding: 16 }}>
+                  {notNeeded.map(r => (
+                    <button key={r.course_id} onClick={() => move(r, true)} disabled={moving === r.course_id}
                       style={{
-                        position: 'relative',
                         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                         textAlign: 'center', padding: '24px 14px 16px', borderRadius: 14,
-                        border: `1.5px solid ${checked ? 'var(--eg-navy)' : '#e5e7eb'}`,
-                        background: checked ? '#F0F7FF' : 'white',
-                        boxShadow: checked ? 'var(--wf-shadow-hover)' : 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCourse(c.id)}
-                        style={{ position: 'absolute', top: 12, left: 12, width: 18, height: 18, accentColor: '#1D9E75', cursor: 'pointer' }}
-                      />
-                      <span style={{ flexShrink: 0, width: 62, height: 62, borderRadius: 16, background: checked ? 'var(--eg-navy)' : '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s ease' }}>
-                        <TrainingIcon iconKey={c.icon} name={c.name} size={40} color={checked ? 'white' : 'var(--eg-navy)'} />
+                        border: '1.5px solid #e5e7eb', background: 'white',
+                        cursor: moving === r.course_id ? 'wait' : 'pointer', transition: 'all 0.15s ease',
+                      }}>
+                      <span style={{ flexShrink: 0, width: 62, height: 62, borderRadius: 16, background: '#F0F7FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrainingIcon iconKey={r.course_icon} name={r.course_name} size={40} color="var(--eg-navy)" />
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{c.name}</span>
-                      {c.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
-                      {/* On file but not in flight. Shown so a certificate that
-                          is still valid is not re-requested by accident. */}
-                      {certByCourse.has(c.id) && (() => {
-                        const st = statusOf(certByCourse.get(c.id));
-                        return <span className="tag" style={{ background: st.bg, color: st.fg, fontWeight: 600 }}>{st.label}</span>;
-                      })()}
-                    </label>
-                  );
-                })}
-              </div>
-              {selectedCourseIds.length > 0 && (
-                <div style={{ padding: '12px 16px', borderTop: '0.5px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13, color: '#374151' }}>
-                    {selectedCourseIds.length} training{selectedCourseIds.length === 1 ? '' : 's'} selected
-                  </span>
-                  <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
-                    ✓ {submitting ? 'Submitting...' : `Submit ${selectedCourseIds.length} Request${selectedCourseIds.length === 1 ? '' : 's'}`}
-                  </button>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f2a4a', lineHeight: 1.3 }}>{r.course_name}</span>
+                      {r.is_credential && <span className="tag" style={{ background: '#eef2f7', color: '#42607f' }}>Credential</span>}
+                      <span style={{ fontSize: 11, color: '#6b7280' }}>{moving === r.course_id ? 'Moving…' : '+ Mark as needed'}</span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -531,21 +356,28 @@ export default function RequestTrainingPage() {
         )}
       </div>
 
-      {/* Remove-request modal */}
-      {removeModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setRemoveModal(null)}>
-          <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 440, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Cancel training request</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6, marginBottom: 16 }}>{removeModal.course_name} · {selectedPerson?.full_name}</div>
-            {removeError && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{removeError}</div>}
+      {/* Not-needed modal — a reason is mandatory, because this stops the chasing. */}
+      {notNeededModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setNotNeededModal(null)}>
+          <div style={{ background: 'white', borderRadius: 12, padding: 24, width: 460, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#0f2a4a' }}>Mark as not needed</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>{notNeededModal.course_name} · {selectedPerson?.full_name}</div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 10, marginBottom: 16, lineHeight: 1.5 }}>
+              {OPEN.includes(notNeededModal.status)
+                ? 'Its open request will be cancelled, and no renewal will be raised for this training again until it is marked needed.'
+                : 'No renewal will be raised for this training again until it is marked needed. Any certificate on file is kept.'}
+            </div>
+            {modalError && <div style={{ background: '#FCEBEB', color: '#A32D2D', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>{modalError}</div>}
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Reason <span style={{ color: '#e24b4a' }}>*</span></label>
-              <input className="form-input" value={removeReason} onChange={e => { setRemoveReason(e.target.value); setRemoveError(''); }} placeholder="Why is this request being cancelled?" style={{ height: 38 }} autoFocus />
+              <input className="form-input" value={notNeededReason} onChange={e => { setNotNeededReason(e.target.value); setModalError(''); }}
+                     placeholder="Why does this person not need it?" style={{ height: 38 }} autoFocus />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <button className="btn btn-secondary" onClick={() => setRemoveModal(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={confirmRemove} disabled={removing || !removeReason.trim()} style={{ background: removeReason.trim() ? '#c0392b' : '', borderColor: removeReason.trim() ? '#c0392b' : '' }}>
-                {removing ? 'Cancelling...' : 'Cancel Request'}
+              <button className="btn btn-secondary" onClick={() => setNotNeededModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmNotNeeded} disabled={moving || !notNeededReason.trim()}
+                      style={{ background: notNeededReason.trim() ? '#c0392b' : '', borderColor: notNeededReason.trim() ? '#c0392b' : '' }}>
+                {moving ? 'Saving…' : 'Mark as not needed'}
               </button>
             </div>
           </div>

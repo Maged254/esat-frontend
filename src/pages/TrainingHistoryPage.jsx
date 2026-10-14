@@ -8,6 +8,11 @@ import api, { logError } from '../utils/api';
 // overwrites the previous one — so this is the only place the sequence survives.
 const ACTION = {
   opened:                     { label: 'Requested',        cls: 'tag-navy' },
+  // The two sections on Request / Remove a Training. These can carry no record
+  // at all -- marking a training needed while the certificate is in date raises
+  // nothing -- so the event itself names the person and the course.
+  needed:                     { label: 'Marked Needed',    cls: 'tag-navy' },
+  not_needed:                 { label: 'Marked Not Needed', cls: 'tag-red' },
   pending:                    { label: 'Pending',          cls: 'tag-amber' },
   scheduled:                  { label: 'Scheduled',        cls: 'tag-navy' },
   completed:                  { label: 'Completed',        cls: 'tag-green' },
