@@ -95,6 +95,17 @@ const addMonths = (dateStr, months) => {
   return d;
 };
 
+// The previous expiry a renewal carries should always be in the past -- that is
+// what makes it a renewal. A handful of ETMS-imported rows carry a FUTURE date,
+// and writing "Expired on 02/08/2027" above a certificate valid until the same
+// day reads as the system contradicting itself. Say what the date actually is
+// instead; the row is then visibly odd rather than apparently wrong.
+const priorExpiryNote = (d) => {
+  const when = new Date(d);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return when < today ? `Expired on ${fmtDate(d)}` : `Certificate on file expires ${fmtDate(d)}`;
+};
+
 export default function UpdateTrainingRecordsPage() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
@@ -577,7 +588,7 @@ export default function UpdateTrainingRecordsPage() {
                         {r.status === 'scheduled' && r.scheduled_date ? <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{fmtDate(r.scheduled_date)}</div> : ''}
                         {/* Trained before (has a prior certificate): show when it expired, on any
                             non-completed status — i.e. anything that isn't a valid/expiring cert. */}
-                        {r.prior_expiry_date && r.status !== 'completed' ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>Expired on {fmtDate(r.prior_expiry_date)}</div> : ''}
+                        {r.prior_expiry_date && r.status !== 'completed' ? <div style={{ fontSize: 11, color: '#c0392b', marginTop: 2 }}>{priorExpiryNote(r.prior_expiry_date)}</div> : ''}
                         {rowExpiryNote(r) ? <div style={{ fontSize: 11, color: rowExpiryNote(r).color, marginTop: 2 }}>{rowExpiryNote(r).text}</div> : ''}
                         {r.status === 'completed' && (r.has_certificate
                           ? <button type="button" onClick={() => openCert(r)} style={{ display: 'inline-block', fontSize: 11, color: 'var(--eg-navy)', fontWeight: 600, marginTop: 2, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>📎 Certificate</button>
