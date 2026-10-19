@@ -11,8 +11,8 @@ const STAGES = [
   { title: 'Patrol on the phone', text: 'Officers start a patrol, drop pins with 1 to 3 photos, and pick a status: Critical, Medium or Normal.', ready: '/ops/patrol' },
   { title: 'Live tracking', text: 'The tracker app on each phone sends its position, so the path driven shows on the map.' },
   { title: 'Review and tickets', text: 'Supervisors review pins. Action needed opens a ticket for the PM Coordinators to close.', ready: '/ops/review' },
-  { title: 'Notifications', text: 'Instant alerts for Critical and Medium pins, and an hourly summary for Normal ones.' },
-  { title: 'Dashboards and settings', text: 'Coverage, open tickets and reports, plus every rule adjustable by the admin.' },
+  { title: 'Notifications', text: 'Instant alerts for Critical and Medium pins, and daily summaries for Normal pins and tickets.', ready: '/ops/review' },
+  { title: 'Dashboards and settings', text: 'Coverage, open tickets and reports, plus every rule adjustable by the admin.', ready: '/ops/dashboard' },
 ];
 
 export default function OpsHomePage() {
