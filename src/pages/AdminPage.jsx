@@ -3,6 +3,7 @@ import api, { logError } from '../utils/api';
 import PasswordInput from '../components/PasswordInput';
 import TrainingIcon, { TRAINING_ICON_LIST } from '../components/TrainingIcon';
 import { useAuth } from '../utils/AuthContext';
+import { PATROL_ROLES, patrolRoleLabel } from '../utils/areas';
 
 
 const ALL_PAGES = [
@@ -236,7 +237,7 @@ export default function AdminPage() {
   };
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState(null);
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false, patrol_role: '' });
   const [preview, setPreview] = useState(null);
   const [allProjects, setAllProjects] = useState([]);
   const [allClients, setAllClients] = useState([]);
@@ -343,7 +344,7 @@ export default function AdminPage() {
       }
       setShowAddUser(false);
       setEditUser(null);
-      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false });
+      setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false, patrol_role: '' });
       setPreview(null);
     } catch(e) {
       setError(e.response?.data?.error || 'Failed');
@@ -373,7 +374,7 @@ export default function AdminPage() {
 
   const startEdit = (user) => {
     setEditUser(user);
-    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [], client_access: user.client_access || [], must_reset_password: user.must_reset_password || false });
+    setForm({ full_name: user.full_name, email: user.email, password: '', role: user.role, is_active: user.is_active, profile_picture: user.profile_picture, project_access: user.project_access || [], page_access: user.page_access || [], client_access: user.client_access || [], must_reset_password: user.must_reset_password || false, patrol_role: user.patrol_role || '' });
     setPreview(user.profile_picture || null);
     setShowAddUser(true);
   };
@@ -387,6 +388,7 @@ export default function AdminPage() {
     project_director: <span className="tag tag-purple">Project Director</span>,
     hr: <span className="tag tag-green">HR</span>,
     fleet: <span className="tag tag-navy">Fleet</span>,
+    none: <span className="tag tag-gray">No People access</span>,
   };
 
   const Avatar = ({ user, size = 32 }) => {
@@ -406,6 +408,7 @@ export default function AdminPage() {
       case 'full_name': return (u.full_name || '').toLowerCase();
       case 'email': return (u.email || '').toLowerCase();
       case 'role': return (u.role || '').toLowerCase();
+      case 'patrol_role': return (u.patrol_role || '').toLowerCase();
       case 'project_access': return u.project_access?.length || 0;
       case 'client_access': return u.client_access?.length || 0;
       case 'last_login': return u.last_login ? new Date(u.last_login).getTime() : -1;
@@ -448,7 +451,7 @@ export default function AdminPage() {
             <span className="card-title">User Management</span>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
               {openSections.users && <button className="btn btn-secondary" style={{ fontSize:13 }} onClick={e => { e.stopPropagation(); forcePasswordResetAll(); }}>Force Password Reset (All)</button>}
-              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false }); setPreview(null); setError(''); }}>+ Add User</button>}
+              {openSections.users && <button className="btn btn-primary" onClick={e => { e.stopPropagation(); setShowAddUser(true); setEditUser(null); setForm({ full_name: '', email: '', password: '', role: 'ehs_officer', is_active: true, profile_picture: null, project_access: [], page_access: [], client_access: [], must_reset_password: false, patrol_role: '' }); setPreview(null); setError(''); }}>+ Add User</button>}
               <span style={{ fontSize:18, color:'#6b7280' }}>{openSections.users ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -464,6 +467,7 @@ export default function AdminPage() {
               <option value="project_director">Project Director</option>
               <option value="hr">HR</option>
               <option value="fleet">Fleet</option>
+              <option value="none">No People access</option>
             </select>
             {(userSearch||userRoleFilter) && <button className="btn btn-secondary" style={{ fontSize:12, height:32 }} onClick={()=>{setUserSearch('');setUserRoleFilter('');}}>✕ Clear</button>}
           </div>
@@ -515,9 +519,23 @@ export default function AdminPage() {
                     <option value="hr">HR</option>
                     <option value="fleet">Fleet</option>
                     <option value="admin">Admin</option>
+                    <option value="none">No People access (Operations only)</option>
                   </select>
                 </div>
+                <div className="form-group">
+                  <label className="form-label">OneHub Operations Role</label>
+                  <select className="form-select" value={form.patrol_role || ''} onChange={e => setForm(p => ({...p, patrol_role: e.target.value}))}>
+                    <option value="">No Operations access</option>
+                    {PATROL_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Route Patrol access. Separate from the People role above.</div>
+                </div>
               </div>
+              {form.role === 'none' && !form.patrol_role && (
+                <div style={{ background: '#FAEEDA', color: '#854F0B', padding: '8px 12px', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>
+                  With no People role and no Operations role, this person can sign in but will have nothing to open.
+                </div>
+              )}
               {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(form.role) && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Project Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
@@ -582,7 +600,7 @@ export default function AdminPage() {
                   )}
                 </div>
               )}
-              {form.role !== 'admin' && (
+              {form.role !== 'admin' && form.role !== 'none' && (
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="form-label">Page Access <span style={{fontSize:11,color:'#6b7280'}}>(leave empty = no access)</span></label>
                   <div style={{ border:'1px solid #e5e7eb', borderRadius:8, padding:'8px 10px', maxHeight:180, overflowY:'auto', background:'white' }}>
@@ -634,6 +652,7 @@ export default function AdminPage() {
               <SortTh label="User" sortKey="full_name" />
               <SortTh label="Email" sortKey="email" />
               <SortTh label="Role" sortKey="role" />
+              <SortTh label="Operations" sortKey="patrol_role" />
               <SortTh label="Project Access" sortKey="project_access" />
               <SortTh label="Client Access" sortKey="client_access" />
               <SortTh label="Last Login" sortKey="last_login" />
@@ -651,6 +670,7 @@ export default function AdminPage() {
                   </td>
                   <td style={{ color: '#6b7280', fontSize: 12 }}>{u.email}</td>
                   <td>{ROLE_TAG[u.role] || <span className="tag tag-gray">{u.role}</span>}</td>
+                  <td>{u.patrol_role ? <span className="tag tag-amber">{patrolRoleLabel(u.patrol_role)}</span> : <span style={{color:'#9ca3af',fontSize:12}}>—</span>}</td>
                   <td style={{fontSize:12,color:'#6b7280'}}>
                     {['ehs_officer','supervisor','scm_officer','project_director','ehs_manager'].includes(u.role)
                       ? (u.project_access?.length > 0 ? (u.project_access.length === allProjects.length && allProjects.length > 0 ? <span style={{color:'#1D9E75'}}>All Projects</span> : u.project_access.join(', ')) : <span style={{color:'#e53e3e'}}>No access</span>)

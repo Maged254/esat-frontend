@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginTop:-14,marginBottom:26}}>
-          <img src="/onehub-login-logo.jpg" alt="OneHub People" style={{ height: 56, width: 'auto', maxWidth: '100%', objectFit:'contain' }}
+          <img src="/onehub-logo-light.png" alt="OneHub" style={{ height: 56, width: 'auto', maxWidth: '100%', objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
         </form>
 
         <p style={{ marginTop: 24, fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
-          OneHub - People
+          OneHub · Egypro
         </p>
       </div>
     </div>

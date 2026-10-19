@@ -40,6 +40,9 @@ import MobileApprovalsPage from './mobile/MobileApprovalsPage';
 import MobileTrainingPage from './mobile/MobileTrainingPage';
 import MobileAuditPage from './mobile/MobileAuditPage';
 import UpdateAvailable from './components/UpdateAvailable';
+import HomePage from './pages/HomePage';
+import OpsHomePage from './pages/OpsHomePage';
+import { hasPeople, hasOps } from './utils/areas';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -47,6 +50,16 @@ function ProtectedRoute({ children, roles }) {
   if (!user) return <Navigate to="/login" replace />;
   if (user.must_reset_password) return <ForcedPasswordResetPage />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  return children;
+}
+
+// Keeps each area to the people who hold it. Someone with only Operations who
+// follows an old People link lands in Operations instead of a wall of
+// redirects, and the reverse holds too.
+function AreaGate({ area, children }) {
+  const { user } = useAuth();
+  if (area === 'people' && !hasPeople(user)) return <Navigate to={hasOps(user) ? '/ops' : '/login'} replace />;
+  if (area === 'ops' && !hasOps(user)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -85,8 +98,11 @@ function isPhone() {
 
 function PhoneSwitch() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
   if (pathname !== '/') return null;
   if (!isPhone()) return null;
+  // The phone shell is People-only; an Operations-only account goes on to /ops.
+  if (user && !hasPeople(user)) return null;
   return <Navigate to="/m" replace />;
 }
 
@@ -98,14 +114,20 @@ export default function App() {
         <UpdateAvailable />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+          <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          <Route path="/ops" element={<ProtectedRoute><AreaGate area="ops"><Layout /></AreaGate></ProtectedRoute>}>
+            <Route index element={<OpsHomePage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="*" element={<Navigate to="/ops" replace />} />
+          </Route>
+          <Route path="/m" element={<ProtectedRoute><AreaGate area="people"><MobileLayout /></AreaGate></ProtectedRoute>}>
             <Route path="audit" element={<PageGuard pageKey="/audit/new" roles={CAN_AUDIT}><MobileAuditPage /></PageGuard>} />
             <Route path="ehs" element={<ProtectedRoute roles={CAN_EHS}><MobileApprovalsPage gate="ehs" /></ProtectedRoute>} />
             <Route path="pm" element={<ProtectedRoute roles={CAN_PM}><MobileApprovalsPage gate="pm" /></ProtectedRoute>} />
             <Route path="training" element={<PageGuard pageKey="/training/tracker"><MobileTrainingPage /></PageGuard>} />
           </Route>
           <Route path="/safety-commitment" element={<ProtectedRoute><SafetyCommitmentPage /></ProtectedRoute>} />
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="/" element={<ProtectedRoute><AreaGate area="people"><Layout /></AreaGate></ProtectedRoute>}>
             <Route index element={<PageGuard pageKey="/"><DashboardPage /></PageGuard>} />
             <Route path="employees" element={<PageGuard pageKey="/employees"><EmployeesPage /></PageGuard>} />
             <Route path="outsource" element={<PageGuard pageKey="/outsource"><OutsourcePage /></PageGuard>} />
@@ -129,7 +151,7 @@ export default function App() {
             <Route path="audit-coverage" element={<PageGuard pageKey="/audit-coverage"><AuditCoveragePage /></PageGuard>} />
             <Route path="audits/:auditId" element={<AuditDetailPage />} />
             <Route path="ncr" element={<PageGuard pageKey="/ncr"><NCRPage /></PageGuard>} />
-            <Route path="purchase-requests" element={<PurchaseRequestsPage />} />
+            <Route path="purchase-requests" element={<ProtectedRoute roles={['admin','ehs_manager','scm_officer']}><PurchaseRequestsPage /></ProtectedRoute>} />
             <Route path="ppe-tracker" element={<PageGuard pageKey="/ppe-tracker"><PPERequestTrackerPage /></PageGuard>} />
             <Route path="audits" element={<PageGuard pageKey="/audits"><AuditsPage /></PageGuard>} />
             <Route path="requests" element={<PageGuard pageKey="/requests"><RequestsPage /></PageGuard>} />

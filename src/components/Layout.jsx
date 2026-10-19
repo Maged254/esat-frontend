@@ -1,6 +1,16 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import { AREAS, userAreas, isOpsPath } from '../utils/areas';
+
+// OneHub Operations. Route Patrol pages join this list stage by stage; for now
+// every page here is open to anyone with an Operations role.
+const OPS_NAV = [
+  { section: 'Route Patrol' },
+  { to: '/ops', label: 'Overview', icon: 'ti-route', exact: true },
+  { section: 'Account' },
+  { to: '/ops/profile', label: 'My Profile', icon: 'ti-user-circle' },
+];
 
 const NAV = [
   { section: 'Overview', roles: ['admin','ehs_officer','ehs_manager','supervisor','scm_officer','project_director'] },
@@ -23,7 +33,7 @@ const NAV = [
   { to: '/ppe-assignment-history', label: 'PPE Assignment History', icon: 'ti-shield-search', roles: ['admin'], roleLocked: true },
   // Requests, outcomes, renewals, cancellations and restores on training records.
   { to: '/training-history', label: 'Training History', icon: 'ti-certificate-2', roles: ['admin'], roleLocked: true },
-  { section: 'Operations', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
+  { section: 'Actions', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/audit/new', label: 'New Audit', icon: 'ti-clipboard-check', roles: ['admin','ehs_officer','ehs_manager','supervisor'], roleLocked: true },
   { to: '/request-ppe', label: 'Request a PPE/Tool', icon: 'ti-shield-plus', roles: ['admin','ehs_officer','ehs_manager','supervisor','project_director'] },
   { to: '/training/request', label: 'Request a Training', icon: 'ti-certificate', roles: ['admin','ehs_manager'], roleLocked: true },
@@ -42,6 +52,24 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const areaKey = isOpsPath(pathname) ? 'ops' : 'people';
+  const area = AREAS[areaKey];
+  // Switching goes through the tile screen rather than a named button, so it
+  // keeps working unchanged when more areas are added.
+  const canSwitch = userAreas(user).length > 1;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const nav = areaKey === 'ops' ? OPS_NAV : NAV;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  // The tab title names the area, so two open tabs can be told apart.
+  useEffect(() => { document.title = area.name; }, [area.name]);
 
   const initials = user?.name
     ? user.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
@@ -51,19 +79,20 @@ export default function Layout() {
     <div className="layout">
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
       <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
-        <NavLink to="/" className="sidebar-logo" style={{padding:'24px 0 12px'}}>
-          <img src="/onehub-logo.png" alt="OneHub" style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
+        <NavLink to={area.home} className="sidebar-logo" style={{padding:'24px 12px 12px'}}>
+          <img src={area.logo} alt={area.name} style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
         </NavLink>
 
         <nav className="nav">
-          {NAV.map((item, i) => {
+          {nav.map((item, i) => {
             // A page is visible when the user can actually reach it:
             //  - /profile: anyone signed in
             //  - /admin: admin only (its route uses ProtectedRoute roles=['admin'])
             //  - everything else: gated by page_access, same as PageGuard — so an
             //    admin-assigned page shows regardless of the coarse role list.
             const canSee = (it) =>
-              it.to === '/profile' ? true
+              areaKey === 'ops' ? true
+              : it.to === '/profile' ? true
               : it.to === '/admin' ? user?.role === 'admin'
               : user?.role === 'admin' ? true
               // Role-locked items (e.g. Update Training Records) are gated by role, not
@@ -75,8 +104,8 @@ export default function Layout() {
               // /profile is always-on and shouldn't anchor a section (it would
               // otherwise show the "Admin" header for non-admins).
               const children = [];
-              for (let j = i + 1; j < NAV.length && !NAV[j].section; j++) children.push(NAV[j]);
-              if (!children.some(it => it.to !== '/profile' && canSee(it))) return null;
+              for (let j = i + 1; j < nav.length && !nav[j].section; j++) children.push(nav[j]);
+              if (!children.some(it => (areaKey === 'ops' || it.to !== '/profile') && canSee(it))) return null;
               return <div key={i} className="nav-section">{item.section}</div>;
             }
             if (!canSee(item)) return null;
@@ -98,8 +127,26 @@ export default function Layout() {
         <div className="sidebar-footer">
           {/* The way back to the phone shell for anyone who reached a desktop
               page on a phone by following a link. Phone-width only. */}
-          <MobileViewLink />
-          <div className="user-chip" style={{ flexDirection: 'column', gap: 8, textAlign: 'center' }} onClick={() => { if (window.confirm('Sign out?')) logout(); }}>
+          {areaKey === 'people' && <MobileViewLink />}
+          {menuOpen && (
+            <>
+              <div className="user-menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <div className="user-menu" role="menu">
+                {canSwitch && (
+                  <button role="menuitem" autoFocus onClick={() => { setMenuOpen(false); setSidebarOpen(false); navigate('/home'); }}>
+                    <i className="ti ti-layout-grid" aria-hidden="true" /> Switch OneHub area
+                  </button>
+                )}
+                <button role="menuitem" autoFocus={!canSwitch} onClick={() => { setMenuOpen(false); logout(); }}>
+                  <i className="ti ti-logout" aria-hidden="true" /> Sign out
+                </button>
+              </div>
+            </>
+          )}
+          <div className="user-chip" role="button" tabIndex={0} aria-haspopup="menu" aria-expanded={menuOpen}
+            style={{ flexDirection: 'column', gap: 8, textAlign: 'center' }}
+            onClick={() => setMenuOpen(o => !o)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMenuOpen(o => !o); } }}>
             {user?.profile_picture
               ? <img src={user.profile_picture} alt={user.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }} />
               : <div className="avatar av-green" style={{ width: 64, height: 64, fontSize: 20, border: '2.5px solid rgba(255,255,255,0.9)', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}>{initials}</div>

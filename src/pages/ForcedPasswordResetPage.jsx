@@ -42,7 +42,7 @@ export default function ForcedPasswordResetPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-logo" style={{flexDirection:'column',alignItems:'center',gap:8,marginBottom:8}}>
-          <img src="/onehub-login-logo.jpg" alt="OneHub People" style={{ width: '100%', objectFit:'contain' }}
+          <img src="/onehub-logo-light.png" alt="OneHub" style={{ height: 56, width: 'auto', maxWidth: '100%', objectFit:'contain' }}
                onError={e => { e.target.style.display='none'; }} />
         </div>
 
