@@ -19,6 +19,8 @@ const OFF_ROUTE = '#7C3AED';
 const AREA_COLOURS = ['#1D4ED8', '#C026D3', '#6D28D9', '#111827', '#9D174D', '#0E7490', '#4338CA', '#7C2D12'];
 // A photo must be fresh from the camera: its file time within this window.
 const PHOTO_FRESH_MS = 10 * 60 * 1000;
+const PHOTO_MAX_PX = 1280;
+const PHOTO_QUALITY = 0.7;
 
 const fmtDateTime = (d) => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 const fmtTime = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -64,7 +66,9 @@ const toBlob = (canvas, q) => new Promise((resolve) => canvas.toBlob(resolve, 'i
 
 async function stampPhoto(file, lines) {
   const img = await loadImage(file);
-  const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  // 1280 px on the long side at quality 0.7 keeps signs, plates and the stamp
+  // readable at roughly 250-350 KB, which uploads quickly on a weak signal.
+  const scale = Math.min(1, PHOTO_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -80,7 +84,7 @@ async function stampPhoto(file, lines) {
   g.font = `600 ${size}px Arial, sans-serif`;
   g.textBaseline = 'top';
   lines.forEach((t, i) => g.fillText(t, pad, h - band + pad + i * (size + 6), w - pad * 2));
-  const full = await toBlob(c, 0.8);
+  const full = await toBlob(c, PHOTO_QUALITY);
   const tc = document.createElement('canvas');
   const ts = 320 / Math.max(w, h);
   tc.width = Math.round(w * ts); tc.height = Math.round(h * ts);
