@@ -5,7 +5,9 @@ import api from '../utils/api';
 // map of every link and site in the chosen cycle. Planners and Admin upload;
 // every Operations role can view and search.
 
-const AREA_COLOURS = ['#2563EB', '#D97706', '#7C3AED', '#0891B2', '#DB2777', '#65A30D', '#DC2626', '#0F766E'];
+// Colours the street map does not use itself: no orange or yellow (roads),
+// no green (parks), no light blue (water), no red (kept for Critical pins).
+const AREA_COLOURS = ['#1D4ED8', '#C026D3', '#6D28D9', '#111827', '#9D174D', '#0E7490', '#4338CA', '#7C2D12'];
 const fmtDate = (ymd) => ymd ? new Date(`${ymd}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtKm = (km) => `${Number(km || 0).toLocaleString('en-GB', { maximumFractionDigits: 1 })} km`;
 const STATUS_TAG = { current: ['tag-green', 'Current'], upcoming: ['tag-navy', 'Upcoming'], past: ['tag-gray', 'Ended'] };
@@ -176,8 +178,13 @@ export default function RoutesPage() {
         });
       } else {
         const coords = (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates).map(([lon, lat]) => [lat, lon]);
+        // A white outline under each line keeps it readable over any road
+        // or satellite colour. Not clickable, so the popup stays on the line.
+        if (f.geometry.type !== 'Polygon' && !dim) {
+          L.polyline(coords, { color: '#fff', weight: 8, opacity: 0.9, interactive: false }).addTo(group);
+        }
         layer = (f.geometry.type === 'Polygon' ? L.polygon : L.polyline)(coords, {
-          color: colour, weight: dim ? 2 : 4, opacity: dim ? 0.2 : 0.9,
+          color: colour, weight: dim ? 2 : 4, opacity: dim ? 0.25 : 1,
         });
       }
       layer.bindPopup(popup);
