@@ -5,6 +5,8 @@ import PinDetail, { fmtDateTime } from '../components/PinDetail';
 import PinRows from '../components/PinRows';
 import PinsMap from '../components/PinsMap';
 import AreaChips, { areasOf, areaPoints } from '../components/AreaChips';
+import LinkSitePicker from '../components/LinkSitePicker';
+import { useCurrentRoutes, usePlaces } from '../utils/patrolShared';
 import DateInput from '../components/DateInput';
 
 // Review Queue (Field Supervisors): every new pin waits here, Critical first.
@@ -33,7 +35,7 @@ export default function ReviewPage() {
   const [to, setTo] = useState('');
   const [area, setArea] = useState('');      // area button above the list / map
   const [layout, setLayout] = useState('list'); // list | map
-  const [routes, setRoutes] = useState(null);   // current cycle, for the map and the link/site list
+  const routes = useCurrentRoutes();          // current cycle, for the map and the link/site list
   const [pins, setPins] = useState(null);
   const [patrols, setPatrols] = useState([]);
   const [open, setOpen] = useState(null);
@@ -61,23 +63,7 @@ export default function ReviewPage() {
 
   useEffect(() => { setPins(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
 
-  useEffect(() => {
-    api.get('/patrol/cycles').then(r => {
-      const id = r.data.current_cycle_id;
-      if (id) api.get(`/patrol/cycles/${id}/routes`).then(x => setRoutes(x.data)).catch(() => {});
-    }).catch(() => {});
-  }, []);
-
-  // Every link and site in the current cycle, for the "Link or site" picker.
-  const places = useMemo(() => {
-    const links = new Set(), sites = new Set();
-    for (const f of routes?.features || []) {
-      if (f.geometry.type === 'LineString') links.add(f.properties.name);
-      else if (f.geometry.type === 'Point') sites.add(f.properties.name);
-    }
-    const sort = (set) => [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
-    return { links: sort(links), sites: sort(sites) };
-  }, [routes]);
+  const places = usePlaces(routes);
   // The area button narrows to pins whose nearest link is in that area, and
   // the map zooms to the area.
   const areaNames = useMemo(() => areasOf(routes), [routes]);
@@ -149,11 +135,7 @@ export default function ReviewPage() {
             value={q} onChange={e => setQ(e.target.value)} />
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-          <select className="form-select" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 380 }} value={place} onChange={e => setPlace(e.target.value)} aria-label="Link or site">
-            <option value="">Any link or site</option>
-            {places.links.length > 0 && <optgroup label="Links">{places.links.map(n => <option key={'l' + n} value={n}>{n}</option>)}</optgroup>}
-            {places.sites.length > 0 && <optgroup label="Sites">{places.sites.map(n => <option key={'s' + n} value={n}>{n}</option>)}</optgroup>}
-          </select>
+          <LinkSitePicker places={places} value={place} onChange={setPlace} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>From</span>
           <DateInput value={from} onChange={setFrom} style={{ width: 140 }} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>to</span>

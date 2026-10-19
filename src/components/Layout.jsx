@@ -8,7 +8,6 @@ import NotificationBell from './NotificationBell';
 // every page here is open to anyone with an Operations role.
 const OPS_NAV = [
   { section: 'Route Patrol' },
-  { to: '/ops', label: 'Overview', icon: 'ti-route', exact: true },
   { to: '/ops/patrol', label: 'My Patrol', icon: 'ti-map-pin-plus', patrolRoles: ['patrol_officer'] },
   { to: '/ops/dashboard', label: 'Dashboard', icon: 'ti-layout-dashboard', patrolRoles: ['field_supervisor', 'pm_coordinator', 'planner', 'director'] },
   { to: '/ops/live', label: 'Live Map', icon: 'ti-radar', patrolRoles: ['field_supervisor', 'pm_coordinator', 'planner', 'director'] },

@@ -617,3 +617,8 @@ td.num { font-variant-numeric: tabular-nums; }
 }
 .area-chips button:hover { background: #F0F7FF; }
 .area-chips button.on { background: var(--eg-navy-dark); border-color: var(--eg-navy-dark); color: #fff; }
+.live-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
+.live-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.live-legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; }
+.live-legend i.dash { background: repeating-linear-gradient(90deg, #E24B4A 0 6px, transparent 6px 10px); }
+.live-legend i.dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 1px #d1d5db; }

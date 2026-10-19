@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../utils/api';
+import { STATUS_COLOUR } from '../utils/patrolShared';
 
 // One pin, opened from the Review Queue or Tickets: photos, where it is, what
 // was reported, and its full history (who did what, when). The buttons shown
 // are the ones the server says this person may use right now (pin.can).
 
 export const STATUS = {
-  critical: { label: 'Critical', colour: '#E24B4A', bg: '#FCEBEB', text: '#A32D2D' },
-  medium: { label: 'Medium', colour: '#EF9F27', bg: '#FAEEDA', text: '#854F0B' },
-  normal: { label: 'Normal', colour: '#1D9E75', bg: '#E3F4EC', text: '#0F6E56' },
+  critical: { label: 'Critical', colour: STATUS_COLOUR.critical, bg: '#FCEBEB', text: '#A32D2D' },
+  medium: { label: 'Medium', colour: STATUS_COLOUR.medium, bg: '#FAEEDA', text: '#854F0B' },
+  normal: { label: 'Normal', colour: STATUS_COLOUR.normal, bg: '#E3F4EC', text: '#0F6E56' },
 };
 export const REVIEW = {
   awaiting_review: { label: 'Awaiting review', cls: 'tag-amber' },

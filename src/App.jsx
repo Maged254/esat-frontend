@@ -41,7 +41,6 @@ import MobileTrainingPage from './mobile/MobileTrainingPage';
 import MobileAuditPage from './mobile/MobileAuditPage';
 import UpdateAvailable from './components/UpdateAvailable';
 import HomePage from './pages/HomePage';
-import OpsHomePage from './pages/OpsHomePage';
 import RoutesPage from './pages/RoutesPage';
 import PatrolPage from './pages/PatrolPage';
 import ReviewPage from './pages/ReviewPage';
@@ -58,6 +57,13 @@ function ProtectedRoute({ children, roles }) {
   if (user.must_reset_password) return <ForcedPasswordResetPage />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
   return children;
+}
+
+// Opening OneHub Operations: Patrol Officers go to their phone screen,
+// everyone else to the Dashboard.
+function OpsLanding() {
+  const { user } = useAuth();
+  return <Navigate to={user?.patrol_role === 'patrol_officer' ? '/ops/patrol' : '/ops/dashboard'} replace />;
 }
 
 // Keeps each area to the people who hold it. Someone with only Operations who
@@ -125,7 +131,7 @@ export default function App() {
           {/* The officer's phone screen: full screen, no sidebar. */}
           <Route path="/ops/patrol" element={<ProtectedRoute><AreaGate area="ops"><PatrolPage /></AreaGate></ProtectedRoute>} />
           <Route path="/ops" element={<ProtectedRoute><AreaGate area="ops"><Layout /></AreaGate></ProtectedRoute>}>
-            <Route index element={<OpsHomePage />} />
+            <Route index element={<OpsLanding />} />
             <Route path="routes" element={<RoutesPage />} />
             <Route path="dashboard" element={<PatrolDashboardPage />} />
             <Route path="live" element={<LiveMapPage />} />

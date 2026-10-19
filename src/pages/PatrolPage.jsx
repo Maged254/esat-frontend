@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
+import { useLeaflet, AREA_COLOURS, STATUS_COLOUR } from '../utils/patrolShared';
 
 // The officer's phone screen (OneHub Operations → My Patrol). Full screen, no
 // sidebar: a map with the routes, the officer's position and their pins, and
@@ -11,12 +12,11 @@ import { useAuth } from '../utils/AuthContext';
 // position, officer and point name on the phone before upload.
 
 const STATUS = {
-  critical: { label: 'Critical', colour: '#E24B4A', bg: '#FCEBEB' },
-  medium: { label: 'Medium', colour: '#EF9F27', bg: '#FAEEDA' },
-  normal: { label: 'Normal', colour: '#1D9E75', bg: '#E3F4EC' },
+  critical: { label: 'Critical', colour: STATUS_COLOUR.critical, bg: '#FCEBEB' },
+  medium: { label: 'Medium', colour: STATUS_COLOUR.medium, bg: '#FAEEDA' },
+  normal: { label: 'Normal', colour: STATUS_COLOUR.normal, bg: '#E3F4EC' },
 };
 const OFF_ROUTE = '#7C3AED';
-const AREA_COLOURS = ['#1D4ED8', '#C026D3', '#6D28D9', '#111827', '#9D174D', '#0E7490', '#4338CA', '#7C2D12'];
 // A photo must be fresh from the camera: its file time within this window.
 const PHOTO_FRESH_MS = 10 * 60 * 1000;
 const PHOTO_MAX_PX = 1280;
@@ -99,16 +99,6 @@ async function stampPhoto(file, lines) {
   const thumb = await toBlob(tc, 0.75);
   return { full, thumb };
 }
-
-const useLeaflet = () => {
-  const [L, setL] = useState(() => window.L || null);
-  useEffect(() => {
-    if (L) return;
-    const t = setInterval(() => { if (window.L) { setL(window.L); clearInterval(t); } }, 100);
-    return () => clearInterval(t);
-  }, [L]);
-  return L;
-};
 
 export default function PatrolPage() {
   const { user } = useAuth();
@@ -551,6 +541,3 @@ export default function PatrolPage() {
   );
 }
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}

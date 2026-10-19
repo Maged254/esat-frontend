@@ -4,11 +4,12 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import ExcelJS from 'exceljs';
 import api, { logError } from '../utils/api';
 import DateInput from '../components/DateInput';
+import { STATUS_COLOUR } from '../utils/patrolShared';
 
 // Route Patrol dashboard: the chosen period at a glance (patrols, pins,
 // tickets), pins per day, each officer, and which links were reported on.
 // Coverage is by pins for now; live tracking will add the path driven.
-const COLOUR = { critical: '#E24B4A', medium: '#EF9F27', normal: '#1D9E75' };
+const COLOUR = STATUS_COLOUR;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 const dayLabel = (ymd) => `${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;

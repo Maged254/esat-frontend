@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLeaflet, AREA_COLOURS, escapeHtml, STATUS_COLOUR } from '../utils/patrolShared';
 
 // Pins on a map, over the cycle's routes. Pins take their status colour, with
 // a purple ring when off route; tapping one calls onOpen(pin.id).
@@ -11,23 +12,11 @@ import React, { useEffect, useRef, useState } from 'react';
 //    a note says how many are outside the current view;
 //  - the summary above counts the same pins the list shows, by status.
 const STATUS = {
-  critical: { colour: '#E24B4A', label: 'Critical', rank: 0 },
-  medium: { colour: '#EF9F27', label: 'Medium', rank: 1 },
-  normal: { colour: '#1D9E75', label: 'Normal', rank: 2 },
-};
-const AREA_COLOURS = ['#1D4ED8', '#C026D3', '#6D28D9', '#111827', '#9D174D', '#0E7490', '#4338CA', '#7C2D12'];
-
-const useLeaflet = () => {
-  const [L, setL] = useState(() => window.L || null);
-  useEffect(() => {
-    if (L) return;
-    const t = setInterval(() => { if (window.L) { setL(window.L); clearInterval(t); } }, 100);
-    return () => clearInterval(t);
-  }, [L]);
-  return L;
+  critical: { colour: STATUS_COLOUR.critical, label: 'Critical', rank: 0 },
+  medium: { colour: STATUS_COLOUR.medium, label: 'Medium', rank: 1 },
+  normal: { colour: STATUS_COLOUR.normal, label: 'Normal', rank: 2 },
 };
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const pinIcon = (L, p) => L.divIcon({
   className: 'pinmap-pin',
@@ -75,10 +64,10 @@ export default function PinsMap({ pins, routes, onOpen, limit, focusPoints, focu
       if (f.geometry.type === 'LineString') {
         const ll = f.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
         L.polyline(ll, { pane: 'routes', color: '#fff', weight: 7, opacity: 0.9, interactive: false }).addTo(g);
-        L.polyline(ll, { pane: 'routes', color: colour, weight: 4, opacity: 1 }).bindTooltip(esc(f.properties.name)).addTo(g);
+        L.polyline(ll, { pane: 'routes', color: colour, weight: 4, opacity: 1 }).bindTooltip(escapeHtml(f.properties.name)).addTo(g);
       } else if (f.geometry.type === 'Point') {
         const [lon, lat] = f.geometry.coordinates;
-        L.circleMarker([lat, lon], { pane: 'routes', radius: 4, color: '#fff', weight: 1, fillColor: colour, fillOpacity: 1 }).bindTooltip(esc(f.properties.name)).addTo(g);
+        L.circleMarker([lat, lon], { pane: 'routes', radius: 4, color: '#fff', weight: 1, fillColor: colour, fillOpacity: 1 }).bindTooltip(escapeHtml(f.properties.name)).addTo(g);
       }
     }
     g.addTo(map);
@@ -130,7 +119,7 @@ export default function PinsMap({ pins, routes, onOpen, limit, focusPoints, focu
       : L.featureGroup(); // add-on not loaded: plain markers still show every pin
     for (const p of pins || []) {
       L.marker([p.lat, p.lon], { icon: pinIcon(L, p), pinStatus: p.status, title: p.name })
-        .bindTooltip(`${esc(p.name)} · ${esc(p.observation_label)}`)
+        .bindTooltip(`${escapeHtml(p.name)} · ${escapeHtml(p.observation_label)}`)
         .on('click', () => openRef.current?.(p.id))
         .addTo(group);
     }

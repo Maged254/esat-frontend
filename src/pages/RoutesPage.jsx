@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import api from '../utils/api';
 import AreaChips, { areaPoints } from '../components/AreaChips';
+import { useLeaflet, AREA_COLOURS, escapeHtml } from '../utils/patrolShared';
 
 // Routes (OneHub Operations): the cycles, one KMZ per area, and the
 // map of every link and site in the chosen cycle. Planners and Admin upload;
 // every Operations role can view and search.
 
-// Colours the street map does not use itself: no orange or yellow (roads),
-// no green (parks), no light blue (water), no red (kept for Critical pins).
-const AREA_COLOURS = ['#1D4ED8', '#C026D3', '#6D28D9', '#111827', '#9D174D', '#0E7490', '#4338CA', '#7C2D12'];
 const fmtDate = (ymd) => ymd ? new Date(`${ymd}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtKm = (km) => `${Number(km || 0).toLocaleString('en-GB', { maximumFractionDigits: 1 })} km`;
 const STATUS_TAG = { current: ['tag-green', 'Current'], upcoming: ['tag-navy', 'Upcoming'], past: ['tag-gray', 'Ended'] };
@@ -24,17 +22,6 @@ const guessArea = (filename, areas) => {
     const initials = name.split(/\s+/).map(w => w[0]).join('');
     return words.includes(name) || (initials.length > 1 && words.includes(initials));
   })?.name || '';
-};
-
-// Leaflet is loaded by index.html with `defer`; wait for it rather than assume.
-const useLeaflet = () => {
-  const [L, setL] = useState(() => window.L || null);
-  useEffect(() => {
-    if (L) return;
-    const t = setInterval(() => { if (window.L) { setL(window.L); clearInterval(t); } }, 100);
-    return () => clearInterval(t);
-  }, [L]);
-  return L;
 };
 
 export default function RoutesPage() {
@@ -169,7 +156,7 @@ export default function RoutesPage() {
       const colour = colourOf(f.properties.area);
       const dim = q && !matchIds.has(f.id);
       const p = f.properties;
-      const popup = `<b>${escape(p.name)}</b><br/><span style="color:#6b7280">${escape(p.area)}${p.folder ? ' · ' + escape(p.folder) : ''}</span>`
+      const popup = `<b>${escapeHtml(p.name)}</b><br/><span style="color:#6b7280">${escapeHtml(p.area)}${p.folder ? ' · ' + escapeHtml(p.folder) : ''}</span>`
         + (p.length_m ? `<br/>${fmtKm(p.length_m / 1000)}` : '');
       let layer;
       if (f.geometry.type === 'Point') {
@@ -386,6 +373,3 @@ export default function RoutesPage() {
   );
 }
 
-function escape(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
