@@ -48,6 +48,7 @@ import ReviewPage from './pages/ReviewPage';
 import TicketsPage from './pages/TicketsPage';
 import PatrolSettingsPage from './pages/PatrolSettingsPage';
 import PatrolDashboardPage from './pages/PatrolDashboardPage';
+import LiveMapPage from './pages/LiveMapPage';
 import { hasPeople, hasOps } from './utils/areas';
 
 function ProtectedRoute({ children, roles }) {
@@ -127,6 +128,7 @@ export default function App() {
             <Route index element={<OpsHomePage />} />
             <Route path="routes" element={<RoutesPage />} />
             <Route path="dashboard" element={<PatrolDashboardPage />} />
+            <Route path="live" element={<LiveMapPage />} />
             <Route path="review" element={<ReviewPage />} />
             <Route path="tickets" element={<TicketsPage />} />
             <Route path="profile" element={<ProfilePage />} />

@@ -23,6 +23,13 @@ const PHOTO_MAX_PX = 1280;
 const PHOTO_QUALITY = 0.7;
 
 const fmtDateTime = (d) => new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+// Tracker (Traccar Client) states, as the server works them out.
+const TRACKER = {
+  tracking: { label: 'Tracker on', cls: 'ok' },
+  delayed: { label: 'Tracker delayed', cls: 'wait' },
+  lost: { label: 'Tracker off', cls: 'bad' },
+  not_set_up: { label: 'Tracker not set up', cls: 'bad' },
+};
 const fmtTime = (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 // ── geometry (mirrors the server's check, for the on-screen warning) ──
@@ -116,6 +123,8 @@ export default function PatrolPage() {
   // live position: { lon, lat, accuracy, at }
   const [pos, setPos] = useState(null);
   const [geoError, setGeoError] = useState('');
+  const [setup, setSetup] = useState(null);         // tracker setup details, when the sheet is open
+  const [copied, setCopied] = useState('');
 
   // add-pin flow
   const [step, setStep] = useState(null);           // null | 'place' | 'photos' | 'details'
@@ -140,6 +149,23 @@ export default function PatrolPage() {
     }).catch(e => setError(e.response?.data?.error || 'Could not load your patrol.'));
     api.get('/patrol/observation-types').then(r => setTypes(r.data)).catch(() => {});
   }, [load]);
+
+  // The tracker state comes from the server (it is the Traccar app reporting,
+  // not this page), so check it every 30 seconds.
+  useEffect(() => {
+    const t = setInterval(() => { load().catch(() => {}); }, 30000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const openSetup = async () => {
+    setError('');
+    try { const r = await api.get('/patrol/tracker/me'); setSetup(r.data); }
+    catch (e) { setError(e.response?.data?.error || 'Could not load the tracker details.'); }
+  };
+  const copy = async (text, what) => {
+    try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(''), 2000); }
+    catch { setCopied(''); window.prompt('Copy this:', text); }
+  };
 
   // GPS: watch while the page is open.
   useEffect(() => {
@@ -382,9 +408,17 @@ export default function PatrolPage() {
             {patrol ? `Since ${fmtTime(patrol.started_at)} · ${patrol.pins.length} pin${patrol.pins.length === 1 ? '' : 's'}` : (state ? (state.current_cycle_id ? 'Ready to start' : 'No cycle yet') : 'Loading…')}
           </div>
         </div>
-        <span className={`patrol-gps ${pos && !geoError ? 'ok' : 'wait'}`}>
-          <i className="ti ti-current-location" aria-hidden="true" /> {pos && !geoError ? `GPS ±${Math.round(pos.accuracy)} m` : 'GPS…'}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <span className={`patrol-gps ${pos && !geoError ? 'ok' : 'wait'}`}>
+            <i className="ti ti-current-location" aria-hidden="true" /> {pos && !geoError ? `GPS ±${Math.round(pos.accuracy)} m` : 'GPS…'}
+          </span>
+          {state?.tracker && (
+            <button className={`patrol-gps ${TRACKER[state.tracker.state]?.cls}`} style={{ border: 0, cursor: 'pointer' }} onClick={openSetup}>
+              <i className="ti ti-satellite" aria-hidden="true" /> {TRACKER[state.tracker.state]?.label}
+              {state.tracker.battery != null ? ` · ${Math.round(state.tracker.battery)}%` : ''}
+            </button>
+          )}
+        </div>
       </header>
 
       {(error || geoError) && <div className="patrol-banner" role="alert">{error || geoError}</div>}
@@ -406,6 +440,39 @@ export default function PatrolPage() {
             </>
           )}
           {state && !state.current_cycle_id && <p className="patrol-note">A Planner has not started a patrol cycle yet.</p>}
+          {state?.tracker && state.tracker.state !== 'tracking' && (
+            <button className="patrol-small" style={{ minHeight: 44, fontSize: 14 }} onClick={openSetup}>
+              <i className="ti ti-satellite" aria-hidden="true" /> {state.tracker.state === 'not_set_up' ? 'Set up the tracker' : 'Tracker help'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Tracker setup: what to type into Traccar Client */}
+      {setup && (
+        <div className="patrol-sheet tall">
+          <div className="patrol-sheet-title">Set up the tracker</div>
+          <p className="patrol-note">Install <b>Traccar Client</b> from the Play Store (or App Store), open it and enter these two values. This is done once per phone.</p>
+          <div className="patrol-label">Device identifier</div>
+          <div className="tracker-copy">
+            <code>{setup.device_id}</code>
+            <button className="patrol-small" onClick={() => copy(setup.device_id, 'id')}>{copied === 'id' ? 'Copied' : 'Copy'}</button>
+          </div>
+          <div className="patrol-label">Server URL</div>
+          <div className="tracker-copy">
+            <code>{setup.server_url}</code>
+            <button className="patrol-small" onClick={() => copy(setup.server_url, 'url')}>{copied === 'url' ? 'Copied' : 'Copy'}</button>
+          </div>
+          <ol className="tracker-steps">
+            <li>Location accuracy: <b>High</b>. Frequency: <b>{setup.interval_s} seconds</b>.</li>
+            <li>Allow location <b>all the time</b> when the phone asks.</li>
+            <li>Android: Settings → Apps → Traccar Client → Battery → <b>Unrestricted</b>, so the phone does not stop it.</li>
+            <li>Switch the service <b>on</b>. Within a minute the badge at the top turns green: <b>Tracker on</b>.</li>
+          </ol>
+          <p className="patrol-note">Positions are kept only while a patrol is running.</p>
+          <div className="patrol-row">
+            <button className="patrol-big" onClick={() => { setSetup(null); load().catch(() => {}); }}>Done</button>
+          </div>
         </div>
       )}
 

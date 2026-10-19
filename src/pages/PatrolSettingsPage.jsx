@@ -21,6 +21,15 @@ const GROUPS = [
     ],
   },
   {
+    title: 'Tracker',
+    fields: [
+      { key: 'tracker_delayed_min', label: 'Show "Delayed" after no position for' },
+      { key: 'tracker_lost_min', label: 'Show "Not tracking" after no position for', help: 'Also the gap after which a path is drawn dashed.' },
+      { key: 'tracker_required_to_start', label: 'Tracker must be on to start a patrol' },
+      { key: 'tracker_alert', label: 'Alert when a patrol\'s tracker stops', help: 'A bell notification to supervisors, PM Coordinators, the Director and admins.' },
+    ],
+  },
+  {
     title: 'Photos',
     fields: [
       { key: 'photo_retention_days', label: 'Remove photos after', help: 'Photos on a pin whose ticket is still open are kept until it closes. The pin and its details always stay.' },
@@ -69,11 +78,19 @@ export default function PatrolSettingsPage() {
   const input = (key) => {
     const d = data.defs[key];
     const common = { id: `set-${key}`, className: 'form-input', value: form[key] ?? '', onChange: e => setForm(f => ({ ...f, [key]: e.target.value })) };
-    if (d.type === 'enum') {
+    if (d.type === 'enum' && key === 'email_mode') {
       return (
         <select {...common} className="form-select">
           <option value="test">Testing: the testing address only</option>
           <option value="live">The real people (supervisors, PM Coordinators, Director, admins)</option>
+        </select>
+      );
+    }
+    if (d.type === 'enum') {
+      return (
+        <select {...common} className="form-select" style={{ width: 'auto' }}>
+          <option value="on">On</option>
+          <option value="off">Off</option>
         </select>
       );
     }

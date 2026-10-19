@@ -24,6 +24,7 @@ export default function PinRows({ pins, onOpen, empty, showTicket }) {
               ? <span className={`tag ${TICKET[p.ticket_status].cls}`}>{TICKET[p.ticket_status].label}</span>
               : <span className={`tag ${REVIEW[p.review_status]?.cls || 'tag-gray'}`}>{REVIEW[p.review_status]?.label}</span>}
             {p.off_route && <span className="tag" style={{ background: '#EDE9FE', color: '#6D28D9' }}>Off route</span>}
+            {p.tracker_silent && <span className="tag" style={{ background: '#FCEBEB', color: '#A32D2D' }} title="The tracker had sent no position for a while when this pin was added">⚠ Tracker silent</span>}
           </span>
         </button>
       ))}

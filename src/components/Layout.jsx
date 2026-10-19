@@ -11,6 +11,7 @@ const OPS_NAV = [
   { to: '/ops', label: 'Overview', icon: 'ti-route', exact: true },
   { to: '/ops/patrol', label: 'My Patrol', icon: 'ti-map-pin-plus', patrolRoles: ['patrol_officer'] },
   { to: '/ops/dashboard', label: 'Dashboard', icon: 'ti-layout-dashboard', patrolRoles: ['field_supervisor', 'pm_coordinator', 'planner', 'director'] },
+  { to: '/ops/live', label: 'Live Map', icon: 'ti-radar', patrolRoles: ['field_supervisor', 'pm_coordinator', 'planner', 'director'] },
   { to: '/ops/routes', label: 'Routes', icon: 'ti-map-2' },
   { to: '/ops/review', label: 'Review Queue', icon: 'ti-checklist', patrolRoles: ['field_supervisor', 'pm_coordinator', 'planner', 'director'] },
   { to: '/ops/tickets', label: 'Tickets', icon: 'ti-ticket', patrolRoles: ['field_supervisor', 'pm_coordinator', 'director'] },

@@ -96,6 +96,7 @@ export default function PinDetail({ pinId, onClose, onChanged }) {
               <span className={`tag ${REVIEW[pin.review_status]?.cls || 'tag-gray'}`}>{REVIEW[pin.review_status]?.label}</span>
               {pin.ticket_status && <span className={`tag ${TICKET[pin.ticket_status].cls}`}>{TICKET[pin.ticket_status].label}</span>}
               {pin.off_route && <span className="tag" style={{ background: '#EDE9FE', color: '#6D28D9' }}>Off route</span>}
+              {pin.tracker_silent && <span className="tag" style={{ background: '#FCEBEB', color: '#A32D2D' }} title="The tracker had sent no position for a while when this pin was added">⚠ Tracker silent</span>}
             </div>
 
             <div className="pin-photos">

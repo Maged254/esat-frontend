@@ -14,6 +14,7 @@ const ICON = {
   ticket_reopened: ['ti-refresh-alert', '#EF9F27'],
   normal_summary: ['ti-list-check', '#1D9E75'],
   email_failed: ['ti-mail-off', '#A32D2D'],
+  tracker_lost: ['ti-satellite-off', '#A32D2D'],
 };
 const ago = (d) => {
   const m = Math.round((Date.now() - new Date(d).getTime()) / 60000);
@@ -57,7 +58,7 @@ export default function NotificationBell({ onNavigate }) {
     }
     onNavigate?.();
     if (n.pin_id) navigate(`/ops/${n.kind.startsWith('ticket') ? 'tickets' : 'review'}?pin=${n.pin_id}`);
-    else navigate('/ops/review');
+    else navigate(n.kind === 'tracker_lost' ? '/ops/live' : n.kind === 'email_failed' ? '/ops/settings' : '/ops/review');
   };
 
   const readAll = async () => {

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import PinDetail, { fmtDateTime } from '../components/PinDetail';
 import PinRows from '../components/PinRows';
@@ -118,6 +118,7 @@ export default function ReviewPage() {
                       <span style={{ color: '#0F6E56', fontWeight: 600 }}>{p.normal} Normal</span>
                     </div>
                   </div>
+                  <Link to={`/ops/live?patrol=${p.id}`} className="btn btn-secondary"><i className="ti ti-route" aria-hidden="true" /> Path driven</Link>
                   <button className="btn btn-secondary" disabled={!p.normal} onClick={() => confirmNormal(p)}>
                     Confirm all Normal ({p.normal})
                   </button>
