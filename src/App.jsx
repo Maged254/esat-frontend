@@ -44,6 +44,8 @@ import HomePage from './pages/HomePage';
 import OpsHomePage from './pages/OpsHomePage';
 import RoutesPage from './pages/RoutesPage';
 import PatrolPage from './pages/PatrolPage';
+import ReviewPage from './pages/ReviewPage';
+import TicketsPage from './pages/TicketsPage';
 import { hasPeople, hasOps } from './utils/areas';
 
 function ProtectedRoute({ children, roles }) {
@@ -122,6 +124,8 @@ export default function App() {
           <Route path="/ops" element={<ProtectedRoute><AreaGate area="ops"><Layout /></AreaGate></ProtectedRoute>}>
             <Route index element={<OpsHomePage />} />
             <Route path="routes" element={<RoutesPage />} />
+            <Route path="review" element={<ReviewPage />} />
+            <Route path="tickets" element={<TicketsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="admin" element={<ProtectedRoute roles={['admin']}><AdminPage /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/ops" replace />} />
