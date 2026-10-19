@@ -10,8 +10,10 @@ const IDLE_TIMEOUT_MS = 60 * 60 * 1000;            // desktop: 1 hour
 const IDLE_TIMEOUT_MOBILE_MS = 4 * 60 * 60 * 1000; // phone shell: 4 hours
 // Read at check time rather than captured on mount, so moving between the two
 // surfaces takes effect immediately instead of at the next remount.
+// My Patrol (/ops/patrol) counts as a phone screen: an officer driving the
+// route can go a long while without touching it.
 const idleLimit = () =>
-  (typeof window !== 'undefined' && window.location.pathname.startsWith('/m'))
+  (typeof window !== 'undefined' && (window.location.pathname.startsWith('/m') || window.location.pathname.startsWith('/ops/patrol')))
     ? IDLE_TIMEOUT_MOBILE_MS : IDLE_TIMEOUT_MS;
 const IDLE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -57,6 +59,16 @@ export function AuthProvider({ children }) {
   };
 
   const logout = useCallback(() => {
+    // Signing out ends any patrol still running (Route Patrol). Sent with the
+    // token before it is cleared; keepalive lets it finish as the page moves on.
+    const token = localStorage.getItem('esat_token');
+    if (token) {
+      try {
+        fetch(`${api.defaults.baseURL}/patrol/patrols/end-mine`, {
+          method: 'POST', keepalive: true, headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      } catch { /* old browser without keepalive: the 2-hour rule ends it */ }
+    }
     localStorage.removeItem('esat_token');
     localStorage.removeItem('esat_user');
     localStorage.removeItem(LAST_ACTIVITY_KEY);

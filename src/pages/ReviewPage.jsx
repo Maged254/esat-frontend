@@ -6,6 +6,13 @@ import PinRows from '../components/PinRows';
 // Review Queue (Field Supervisors): every new pin waits here, Critical first.
 // Any supervisor can review any pin. Normal pins can be cleared a whole patrol
 // at a time with "Confirm all Normal"; Critical and Medium are opened one by one.
+const END_REASON = {
+  officer: 'by the officer',
+  signed_out: 'signed out',
+  inactive: 'no activity for 2 hours',
+  midnight: 'at midnight',
+  restart: 'OneHub restarted',
+};
 const VIEWS = [
   { key: 'awaiting', label: 'Awaiting review' },
   { key: 'reviewed', label: 'Reviewed' },
@@ -64,7 +71,7 @@ export default function ReviewPage() {
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600 }}>{p.officer_name}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                      {fmtDateTime(p.started_at)}{p.ended_at ? '' : ' · still running'}
+                      {fmtDateTime(p.started_at)} · {p.ended_at ? `ended ${fmtDateTime(p.ended_at).slice(-5)}${END_REASON[p.end_reason] ? ` (${END_REASON[p.end_reason]})` : ''}` : 'still running'}
                     </div>
                     <div style={{ fontSize: 13, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
                       <span style={{ color: '#A32D2D', fontWeight: 600 }}>{p.critical} Critical</span> ·{' '}
