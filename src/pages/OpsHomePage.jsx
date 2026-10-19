@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { patrolRoleLabel } from '../utils/areas';
 
@@ -6,7 +7,7 @@ import { patrolRoleLabel } from '../utils/areas';
 // page says plainly what exists today and what is on the way, so nobody opening
 // the area early mistakes an empty screen for a broken one.
 const STAGES = [
-  { title: 'Routes', text: 'Planners upload the KMZ route files for each 3-month cycle, and the routes appear on the map.' },
+  { title: 'Routes', text: 'Planners upload the KMZ route files for each 3-month cycle, and the routes appear on the map.', ready: '/ops/routes' },
   { title: 'Patrol on the phone', text: 'Officers start a patrol, drop pins with 1 to 3 photos, and pick a status: Critical, Medium or Normal.' },
   { title: 'Live tracking', text: 'The tracker app on each phone sends its position, so the path driven shows on the map.' },
   { title: 'Review and tickets', text: 'Supervisors review pins. Action needed opens a ticket for the PM Coordinators to close.' },
@@ -47,7 +48,7 @@ export default function OpsHomePage() {
             <div key={s.title} className="card" style={{ padding: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 600 }}>{s.title}</span>
-                <span className="tag tag-gray">Coming</span>
+                {s.ready ? <Link to={s.ready} className="tag tag-green">Ready · open</Link> : <span className="tag tag-gray">Coming</span>}
               </div>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5 }}>{s.text}</p>
             </div>

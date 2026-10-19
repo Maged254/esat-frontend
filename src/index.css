@@ -428,3 +428,12 @@ tr:hover td { background: #f9fafb; }
   .sidebar-overlay { display: block; }
   .main { margin-left: 0 !important; }
 }
+
+/* Routes page: search results under the map filters */
+.route-result {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 12px; background: none; border: 0; border-bottom: 1px solid #f1f2f4;
+  font-size: 13px; text-align: left; cursor: pointer;
+}
+.route-result:hover, .route-result:focus-visible { background: #F0F7FF; outline: none; }
+.route-result:last-child { border-bottom: 0; }
