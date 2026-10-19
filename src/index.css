@@ -607,3 +607,13 @@ td.num { font-variant-numeric: tabular-nums; }
 .tracker-qr-card { background: #fff; border-radius: 14px; padding: 22px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
 .tracker-qr { width: 100%; max-width: 300px; margin: 0 auto; }
 .tracker-qr svg { width: 100%; height: auto; display: block; }
+
+/* Area buttons above maps */
+.area-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.area-chips button {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; min-height: 36px;
+  border-radius: 999px; border: 1px solid #d6dbe3; background: #fff; color: var(--eg-navy-dark);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.area-chips button:hover { background: #F0F7FF; }
+.area-chips button.on { background: var(--eg-navy-dark); border-color: var(--eg-navy-dark); color: #fff; }

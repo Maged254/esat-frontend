@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
+import AreaChips, { areasOf, areaPoints } from '../components/AreaChips';
 
 // Live Map: every officer on patrol now, at their tracker's latest position,
 // with the path driven so far. A stretch with no position for longer than the
@@ -132,6 +133,16 @@ export default function LiveMapPage() {
   }, [L, paths, live, ready]);
 
   const one = onePatrol ? paths[onePatrol] : null;
+  const [area, setArea] = useState('');
+  const goToArea = (a) => {
+    setArea(a);
+    const map = mapRef.current;
+    const pts = a ? areaPoints(routes, a) : [
+      ...areaPoints(routes, ''),
+      ...Object.values(paths).flatMap(p => (p.positions || []).map(x => [x.lat, x.lon])),
+    ];
+    if (map && L && pts.length) map.fitBounds(L.latLngBounds(pts), { padding: [30, 30], maxZoom: 15 });
+  };
 
   return (
     <>
@@ -178,6 +189,7 @@ export default function LiveMapPage() {
           </div>
         )}
 
+        <AreaChips areas={areasOf(routes)} value={area} onChange={goToArea} />
         <div ref={el} style={{ height: 'min(70vh, 640px)', minHeight: 360, borderRadius: 10, overflow: 'hidden', background: '#e5e7eb' }}>
           {!L && <div style={{ padding: 20, fontSize: 13 }}>Loading map…</div>}
         </div>

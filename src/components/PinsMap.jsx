@@ -35,7 +35,9 @@ const pinIcon = (L, p) => L.divIcon({
   iconSize: [24, 24], iconAnchor: [12, 12],
 });
 
-export default function PinsMap({ pins, routes, onOpen, limit }) {
+// focusPoints / focusKey: when an area is picked above the map, the map fits
+// that area (its links and sites) instead of the pins.
+export default function PinsMap({ pins, routes, onOpen, limit, focusPoints, focusKey }) {
   const L = useLeaflet();
   const el = useRef(null);
   const mapRef = useRef(null);
@@ -95,6 +97,14 @@ export default function PinsMap({ pins, routes, onOpen, limit }) {
     if (!map || !(pins || []).length) return;
     map.fitBounds(L.latLngBounds(pins.map(p => [p.lat, p.lon])), { padding: [40, 40], maxZoom: 16 });
   };
+  const fitFocus = () => {
+    const map = mapRef.current;
+    if (!map || !focusPoints?.length) return false;
+    map.fitBounds(L.latLngBounds(focusPoints), { padding: [30, 30], maxZoom: 15 });
+    return true;
+  };
+  // Picking an area zooms to it straight away.
+  useEffect(() => { if (L && ready && focusKey) fitFocus(); /* eslint-disable-next-line */ }, [L, ready, focusKey, focusPoints?.length]);
 
   // pins on top, grouped where they overlap
   useEffect(() => {
@@ -126,7 +136,7 @@ export default function PinsMap({ pins, routes, onOpen, limit }) {
     }
     group.addTo(map);
     layers.current.pins = group;
-    if ((pins || []).length) fitAll();
+    if (!(focusKey && fitFocus()) && (pins || []).length) fitAll();
     countOutside();
     map.off('moveend', countOutside);
     map.on('moveend', countOutside);

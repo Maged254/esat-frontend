@@ -4,6 +4,7 @@ import api from '../utils/api';
 import PinDetail, { fmtDateTime } from '../components/PinDetail';
 import PinRows from '../components/PinRows';
 import PinsMap from '../components/PinsMap';
+import AreaChips, { areasOf, areaPoints } from '../components/AreaChips';
 import DateInput from '../components/DateInput';
 
 // Review Queue (Field Supervisors): every new pin waits here, Critical first.
@@ -30,6 +31,7 @@ export default function ReviewPage() {
   const [place, setPlace] = useState('');   // a link or site name from the list
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [area, setArea] = useState('');      // area button above the list / map
   const [layout, setLayout] = useState('list'); // list | map
   const [routes, setRoutes] = useState(null);   // current cycle, for the map and the link/site list
   const [pins, setPins] = useState(null);
@@ -76,6 +78,11 @@ export default function ReviewPage() {
     const sort = (set) => [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
     return { links: sort(links), sites: sort(sites) };
   }, [routes]);
+  // The area button narrows to pins whose nearest link is in that area, and
+  // the map zooms to the area.
+  const areaNames = useMemo(() => areasOf(routes), [routes]);
+  const inArea = useMemo(() => pins && area ? pins.filter(p => p.nearest_route_area === area) : pins, [pins, area]);
+  const focusPoints = useMemo(() => area ? areaPoints(routes, area) : null, [routes, area]);
   const filtersOn = !!(status || q || place || from || to);
 
   const confirmNormal = async (p) => {
@@ -158,13 +165,14 @@ export default function ReviewPage() {
           </div>
         </div>
 
+        <AreaChips areas={areaNames} value={area} onChange={setArea} />
         {layout === 'map'
           ? <>
-              {pins ? <PinsMap pins={pins} routes={routes} onOpen={setOpen} limit={MAP_LIMIT} /> : <div className="card" style={{ padding: 18, fontSize: 13 }}>Loading…</div>}
+              {inArea ? <PinsMap pins={inArea} routes={routes} onOpen={setOpen} limit={MAP_LIMIT} focusPoints={focusPoints} focusKey={area} /> : <div className="card" style={{ padding: 18, fontSize: 13 }}>Loading…</div>}
             </>
           : <>
             {pins && pins.length >= 200 && <div className="pinmap-limit">The latest 200 pins are listed. Narrow the filters, or use the Map, to see the rest.</div>}
-            <PinRows pins={pins} onOpen={setOpen}
+            <PinRows pins={inArea} onOpen={setOpen}
               empty={view === 'awaiting' && !filtersOn ? 'Nothing to review. New pins appear here as officers add them.' : 'No pins match.'} />
           </>}
 

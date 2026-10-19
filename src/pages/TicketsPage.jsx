@@ -4,6 +4,7 @@ import api from '../utils/api';
 import PinDetail from '../components/PinDetail';
 import PinRows from '../components/PinRows';
 import PinsMap from '../components/PinsMap';
+import AreaChips, { areasOf, areaPoints } from '../components/AreaChips';
 import DateInput from '../components/DateInput';
 
 // Tickets: pins a supervisor marked "Action needed". PM Coordinators comment
@@ -25,6 +26,7 @@ export default function TicketsPage() {
     if (id) { setOpen(id); setParams({}, { replace: true }); }
   }, [params, setParams]);
   const [error, setError] = useState('');
+  const [area, setArea] = useState('');      // area button above the list / map
   const [layout, setLayout] = useState('list');
   const [place, setPlace] = useState('');
   const [from, setFrom] = useState('');
@@ -65,6 +67,11 @@ export default function TicketsPage() {
       && (!needle || [p.name, p.observation_label, p.officer_name, p.nearest_route_name, p.nearest_site_name, p.last_comment]
         .some(v => (v || '').toLowerCase().includes(needle))));
   }, [rows, place, from, to, q]);
+  // The area button narrows to pins whose nearest link is in that area, and
+  // the map zooms to the area.
+  const areaNames = useMemo(() => areasOf(routes), [routes]);
+  const inArea = useMemo(() => shown && area ? shown.filter(p => p.nearest_route_area === area) : shown, [shown, area]);
+  const focusPoints = useMemo(() => area ? areaPoints(routes, area) : null, [routes, area]);
   const filtersOn = !!(place || from || to || q);
 
   return (
@@ -103,9 +110,10 @@ export default function TicketsPage() {
           </div>
         </div>
 
+        <AreaChips areas={areaNames} value={area} onChange={setArea} />
         {layout === 'map'
-          ? (shown ? <PinsMap pins={shown} routes={routes} onOpen={setOpen} limit={TICKET_LIMIT} /> : <div className="card" style={{ padding: 18, fontSize: 13 }}>Loading…</div>)
-          : <PinRows pins={shown} onOpen={setOpen} showTicket
+          ? (inArea ? <PinsMap pins={inArea} routes={routes} onOpen={setOpen} limit={TICKET_LIMIT} focusPoints={focusPoints} focusKey={area} /> : <div className="card" style={{ padding: 18, fontSize: 13 }}>Loading…</div>)
+          : <PinRows pins={inArea} onOpen={setOpen} showTicket
               empty={filtersOn ? 'No tickets match.' : state === 'open' ? 'No open tickets.' : 'No closed tickets yet.'} />}
         {open && <PinDetail pinId={open} onClose={() => setOpen(null)} onChanged={load} />}
       </div>

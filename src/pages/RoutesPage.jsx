@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import api from '../utils/api';
+import AreaChips, { areaPoints } from '../components/AreaChips';
 
 // Routes (OneHub Operations): the cycles, one KMZ per area, and the
 // map of every link and site in the chosen cycle. Planners and Admin upload;
@@ -320,6 +321,13 @@ export default function RoutesPage() {
 
                 {/* Filters + map */}
                 <div className="card" style={{ padding: 16 }}>
+                  <AreaChips areas={areaNames} value={areasOn && areasOn.length === 1 ? areasOn[0] : ''}
+                    onChange={(a) => {
+                      setAreasOn(a ? [a] : null);
+                      // Zoom to the area picked (or to everything for All).
+                      const pts = areaPoints(geo, a);
+                      if (mapRef.current && window.L && pts.length) mapRef.current.fitBounds(window.L.latLngBounds(pts), { padding: [30, 30], maxZoom: 15 });
+                    }} />
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ position: 'relative', flex: '1 1 260px', minWidth: 0 }}>
                       <i className="ti ti-search" aria-hidden="true" style={{ position: 'absolute', left: 10, top: 9, color: '#9ca3af' }} />
