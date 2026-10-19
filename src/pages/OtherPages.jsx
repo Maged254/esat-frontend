@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { logError } from '../utils/api';
 import MultiSelect from '../components/MultiSelect';
 
-const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtTipDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
 // Resource classification pill colours. Inhouse/Intern are Egypro; the two
 // Outsource kinds come from the organization's entity type.

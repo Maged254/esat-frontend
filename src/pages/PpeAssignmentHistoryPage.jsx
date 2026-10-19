@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import DateInput from '../components/DateInput';
 import api, { logError } from '../utils/api';
 
 // What PPE each person was allocated, and when it changed.
@@ -78,11 +79,9 @@ export default function PpeAssignmentHistoryPage() {
               <option value="added">Added only</option>
               <option value="removed">Removed only</option>
             </select>
-            <input type="date" className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12 }}
-                   value={filters.from} onChange={e => setFilters(p => ({ ...p, from: e.target.value }))} />
+            <DateInput style={{ height: 30, padding: '4px 8px', fontSize: 12 }} value={filters.from} onChange={v => setFilters(p => ({ ...p, from: v }))} />
             <span style={{ fontSize: 12, color: '#9ca3af' }}>to</span>
-            <input type="date" className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12 }}
-                   value={filters.to} onChange={e => setFilters(p => ({ ...p, to: e.target.value }))} />
+            <DateInput style={{ height: 30, padding: '4px 8px', fontSize: 12 }} value={filters.to} onChange={v => setFilters(p => ({ ...p, to: v }))} />
             <button className="btn" style={{ height: 30, padding: '4px 12px', fontSize: 12 }}
                     onClick={() => setFilters({ search: '', action: '', from: '', to: '' })}>✕ Clear</button>
             <span style={{ fontSize: 12, color: '#6b7280', marginLeft: 'auto' }}>{total} change{total === 1 ? '' : 's'}</span>

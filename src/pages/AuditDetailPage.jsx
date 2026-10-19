@@ -230,7 +230,7 @@ export default function AuditDetailPage() {
           </div>
           {audit.last_edited_at && (
             <div style={{textAlign:'right',fontSize:10,color:'#9ca3af',lineHeight:1.4,marginTop:6}}>
-              <span style={{fontStyle:'italic'}}>Edited by {audit.last_edited_by_name} · {new Date(audit.last_edited_at).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
+              <span style={{fontStyle:'italic'}}>Edited by {audit.last_edited_by_name} · {new Date(audit.last_edited_at).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span>
             </div>
           )}
         </div>

@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import api from '../utils/api';
+import DateInput from '../components/DateInput';
 
-// Routes (OneHub Operations): the 3-month cycles, one KMZ per area, and the
+// Routes (OneHub Operations): the cycles, one KMZ per area, and the
 // map of every link and site in the chosen cycle. Planners and Admin upload;
 // every Operations role can view and search.
 
 const AREA_COLOURS = ['#2563EB', '#D97706', '#7C3AED', '#0891B2', '#DB2777', '#65A30D', '#DC2626', '#0F766E'];
-const fmtDate = (ymd) => ymd ? new Date(`${ymd}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDate = (ymd) => ymd ? new Date(`${ymd}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 const fmtKm = (km) => `${Number(km || 0).toLocaleString('en-GB', { maximumFractionDigits: 1 })} km`;
 const STATUS_TAG = { current: ['tag-green', 'Current'], upcoming: ['tag-navy', 'Upcoming'], past: ['tag-gray', 'Ended'] };
+// A cycle has no fixed end: it runs until the next one starts.
+const cycleSpan = (c) => c.ends_on ? `${fmtDate(c.starts_on)} – ${fmtDate(c.ends_on)}` : `from ${fmtDate(c.starts_on)}`;
 const todayLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // "EGYPRO NW DWDM AND PTN LINKS.kmz" → "NW". Only a suggestion; the field stays editable.
 const guessArea = (filename) => {
@@ -219,7 +222,7 @@ export default function RoutesPage() {
               <label className="form-label" htmlFor="cycle-select" style={{ margin: 0 }}>Cycle</label>
               {data.cycles.length ? (
                 <select id="cycle-select" className="form-select" style={{ width: 'auto', minWidth: 240 }} value={cycleId} onChange={e => { setCycleId(e.target.value); setAreasOn(null); setQuery(''); }}>
-                  {data.cycles.map(c => <option key={c.id} value={c.id}>{c.name} ({fmtDate(c.starts_on)} – {fmtDate(c.ends_on)}){c.status === 'current' ? ' · current' : c.status === 'upcoming' ? ' · upcoming' : ''}</option>)}
+                  {data.cycles.map(c => <option key={c.id} value={c.id}>{c.name} ({cycleSpan(c)}){c.status === 'current' ? ' · current' : c.status === 'upcoming' ? ' · upcoming' : ''}</option>)}
                 </select>
               ) : <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No cycles yet.</span>}
               {cycle && <span className={`tag ${STATUS_TAG[cycle.status][0]}`}>{STATUS_TAG[cycle.status][1]}</span>}
@@ -230,11 +233,11 @@ export default function RoutesPage() {
               )}
               {newCycleOpen && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
-                  <label htmlFor="cycle-start" style={{ fontSize: 13 }}>Starts on</label>
-                  <input id="cycle-start" type="date" className="form-input" style={{ width: 'auto' }} value={newStart} onChange={e => setNewStart(e.target.value)} />
+                  <span style={{ fontSize: 13 }}>Starts on</span>
+                  <DateInput value={newStart} onChange={setNewStart} style={{ width: 150 }} />
                   <button className="btn btn-primary" disabled={busy} onClick={startCycle}>Start cycle</button>
                   <button className="btn" onClick={() => setNewCycleOpen(false)}>Cancel</button>
-                  <span style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary)' }}>Runs 3 months. The previous cycle ends the day before. Open tickets will carry over.</span>
+                  <span style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary)' }}>It runs until the next cycle is started; the current one ends the day before. Open tickets will carry over.</span>
                 </div>
               )}
             </div>

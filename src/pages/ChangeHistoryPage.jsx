@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import DateInput from '../components/DateInput';
 import api, { logError } from '../utils/api';
 
-const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—';
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
 const today = () => new Date().toISOString().slice(0, 10);
 const daysAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
@@ -131,9 +132,9 @@ export default function ChangeHistoryPage() {
         <div className="card" style={{ marginBottom: 16, position: 'sticky', top: 'var(--header-h)', zIndex: 40 }}>
           <div className="card-body" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>From</span>
-            <input type="date" className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.from} onChange={e => setFilters(f => ({ ...f, from: e.target.value }))} />
+            <DateInput style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.from} onChange={v => setFilters(f => ({ ...f, from: v }))} />
             <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>To</span>
-            <input type="date" className="form-input" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.to} onChange={e => setFilters(f => ({ ...f, to: e.target.value }))} />
+            <DateInput style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 150 }} value={filters.to} onChange={v => setFilters(f => ({ ...f, to: v }))} />
             <button className="btn btn-sm" style={{ height: 30 }} onClick={() => setFilters(f => ({ ...f, from: daysAgo(1), to: daysAgo(1) }))}>Yesterday</button>
             <button className="btn btn-sm" style={{ height: 30 }} onClick={() => setFilters(f => ({ ...f, from: today(), to: today() }))}>Today</button>
             <select className="form-select" style={{ height: 30, padding: '4px 8px', fontSize: 12, width: 140 }} value={filters.action} onChange={e => setFilters(f => ({ ...f, action: e.target.value }))}>
