@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import api, { logError } from '../utils/api';
 import PasswordInput from '../components/PasswordInput';
 import TrainingIcon, { TRAINING_ICON_LIST } from '../components/TrainingIcon';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
-import { PATROL_ROLES, patrolRoleLabel } from '../utils/areas';
+import { PATROL_ROLES, patrolRoleLabel, isOpsPath } from '../utils/areas';
 import PatrolAreasAdmin from '../components/PatrolAreasAdmin';
 import ObservationTypesAdmin from '../components/ObservationTypesAdmin';
 import TrackerDevicesAdmin from '../components/TrackerDevicesAdmin';
@@ -33,6 +34,9 @@ const ALL_PAGES = [
 
 export default function AdminPage() {
   const { user: currentUser, refreshUser } = useAuth();
+  // Opened from OneHub Operations (/ops/admin) or OneHub People (/admin):
+  // each shows its own settings; users and logs are shared.
+  const opsArea = isOpsPath(useLocation().pathname);
   const [users, setUsers] = useState([]);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
@@ -706,6 +710,9 @@ export default function AdminPage() {
           </>}
         </div>
 
+        {/* OneHub People settings. In OneHub Operations the Admin Panel shows
+            only users, the Route Patrol lists and the logs. */}
+        {!opsArea && <>
         {/* PPE Config */}
         <div className="card">
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('ppe')}>
@@ -1171,10 +1178,16 @@ export default function AdminPage() {
           })()}
         </div>
 
+        </>}
+
+        {/* OneHub Operations: Route Patrol lists */}
+        {opsArea && <>
         <PatrolAreasAdmin />
         <ObservationTypesAdmin />
         <TrackerDevicesAdmin />
+        </>}
 
+        {!opsArea && <>
         {/* Pending Reasons */}
         <div className="card" style={{ marginTop: 24 }}>
           <div className="card-header" style={{ cursor:'pointer' }} onClick={() => toggleSection('reasons')}>
@@ -1380,6 +1393,8 @@ export default function AdminPage() {
           </table>
           </>}
         </div>
+
+        </>}
 
         {/* System Logs */}
         <div className="card" style={{ marginTop: 24 }}>
