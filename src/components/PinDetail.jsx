@@ -107,7 +107,8 @@ export default function PinDetail({ pinId, onClose, onChanged }) {
             <dl className="pin-facts">
               <dt>Observation</dt><dd>{pin.observation_label}</dd>
               {pin.location_note && <><dt>Location guidance</dt><dd>{pin.location_note}</dd></>}
-              <dt>Nearest route</dt><dd>{pin.nearest_route_name ? `${pin.nearest_route_name}${pin.nearest_route_area ? ` (${pin.nearest_route_area})` : ''} · ${Math.round(pin.distance_to_route_m)} m away` : '—'}</dd>
+              <dt>Nearest link</dt><dd>{pin.nearest_route_name ? `${pin.nearest_route_name}${pin.nearest_route_area ? ` (${pin.nearest_route_area})` : ''} · ${Math.round(pin.distance_to_route_m)} m away` : '—'}</dd>
+              <dt>Nearest site</dt><dd>{pin.nearest_site_name ? `${pin.nearest_site_name} · ${Math.round(pin.nearest_site_distance_m)} m away` : '—'}</dd>
               <dt>Position</dt>
               <dd>
                 {pin.lat.toFixed(6)}, {pin.lon.toFixed(6)}{' '}

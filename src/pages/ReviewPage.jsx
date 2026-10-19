@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../utils/api';
 import PinDetail, { fmtDateTime } from '../components/PinDetail';
 import PinRows from '../components/PinRows';
+import PinsMap from '../components/PinsMap';
+import DateInput from '../components/DateInput';
 
 // Review Queue (Field Supervisors): every new pin waits here, Critical first.
 // Any supervisor can review any pin. Normal pins can be cleared a whole patrol
@@ -23,6 +25,11 @@ export default function ReviewPage() {
   const [view, setView] = useState('awaiting');
   const [status, setStatus] = useState('');
   const [q, setQ] = useState('');
+  const [place, setPlace] = useState('');   // a link or site name from the list
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [layout, setLayout] = useState('list'); // list | map
+  const [routes, setRoutes] = useState(null);   // current cycle, for the map and the link/site list
   const [pins, setPins] = useState(null);
   const [patrols, setPatrols] = useState([]);
   const [open, setOpen] = useState(null);
@@ -33,11 +40,33 @@ export default function ReviewPage() {
     const params = new URLSearchParams({ view });
     if (status) params.set('status', status);
     if (q.trim()) params.set('q', q.trim());
+    if (place) params.set('place', place);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
     api.get(`/patrol/pins?${params}`).then(r => setPins(r.data)).catch(e => setError(e.response?.data?.error || 'Could not load the pins.'));
     api.get('/patrol/review/patrols').then(r => setPatrols(r.data)).catch(() => {});
-  }, [view, status, q]);
+  }, [view, status, q, place, from, to]);
 
   useEffect(() => { setPins(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
+
+  useEffect(() => {
+    api.get('/patrol/cycles').then(r => {
+      const id = r.data.current_cycle_id;
+      if (id) api.get(`/patrol/cycles/${id}/routes`).then(x => setRoutes(x.data)).catch(() => {});
+    }).catch(() => {});
+  }, []);
+
+  // Every link and site in the current cycle, for the "Link or site" picker.
+  const places = useMemo(() => {
+    const links = new Set(), sites = new Set();
+    for (const f of routes?.features || []) {
+      if (f.geometry.type === 'LineString') links.add(f.properties.name);
+      else if (f.geometry.type === 'Point') sites.add(f.properties.name);
+    }
+    const sort = (set) => [...set].filter(Boolean).sort((a, b) => a.localeCompare(b));
+    return { links: sort(links), sites: sort(sites) };
+  }, [routes]);
+  const filtersOn = !!(status || q || place || from || to);
 
   const confirmNormal = async (p) => {
     if (!window.confirm(`Confirm all ${p.normal} Normal pin${p.normal === 1 ? '' : 's'} from ${p.officer_name}'s patrol as No action?`)) return;
@@ -98,12 +127,35 @@ export default function ReviewPage() {
             <option value="medium">Medium</option>
             <option value="normal">Normal</option>
           </select>
-          <input className="form-input" style={{ flex: '1 1 220px', minWidth: 0 }} placeholder="Search point, observation, officer or route" aria-label="Search pins"
+          <input className="form-input" style={{ flex: '1 1 220px', minWidth: 0 }} placeholder="Search point, observation, officer, link or site" aria-label="Search pins"
             value={q} onChange={e => setQ(e.target.value)} />
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <select className="form-select" style={{ flex: '1 1 240px', minWidth: 0, maxWidth: 380 }} value={place} onChange={e => setPlace(e.target.value)} aria-label="Link or site">
+            <option value="">Any link or site</option>
+            {places.links.length > 0 && <optgroup label="Links">{places.links.map(n => <option key={'l' + n} value={n}>{n}</option>)}</optgroup>}
+            {places.sites.length > 0 && <optgroup label="Sites">{places.sites.map(n => <option key={'s' + n} value={n}>{n}</option>)}</optgroup>}
+          </select>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>From</span>
+          <DateInput value={from} onChange={setFrom} style={{ width: 140 }} />
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>to</span>
+          <DateInput value={to} onChange={setTo} style={{ width: 140 }} />
+          {filtersOn && <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={() => { setStatus(''); setQ(''); setPlace(''); setFrom(''); setTo(''); }}>✕ Clear</button>}
+          <div className="seg" style={{ marginLeft: 'auto' }}>
+            <button className={layout === 'list' ? 'on' : ''} onClick={() => setLayout('list')}><i className="ti ti-list" aria-hidden="true" /> List</button>
+            <button className={layout === 'map' ? 'on' : ''} onClick={() => setLayout('map')}><i className="ti ti-map-2" aria-hidden="true" /> Map</button>
+          </div>
+        </div>
 
-        <PinRows pins={pins} onOpen={setOpen}
-          empty={view === 'awaiting' ? 'Nothing to review. New pins appear here as officers add them.' : 'No pins match.'} />
+        {layout === 'map'
+          ? <>
+              <PinsMap pins={pins} routes={routes} onOpen={setOpen} />
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                {pins ? `${pins.length} pin${pins.length === 1 ? '' : 's'} shown. Tap one to open it.` : 'Loading…'}
+              </p>
+            </>
+          : <PinRows pins={pins} onOpen={setOpen}
+              empty={view === 'awaiting' && !filtersOn ? 'Nothing to review. New pins appear here as officers add them.' : 'No pins match.'} />}
 
         {open && <PinDetail pinId={open} onClose={() => setOpen(null)} onChanged={load} />}
       </div>
