@@ -602,3 +602,8 @@ td.num { font-variant-numeric: tabular-nums; }
 .live-swatch { flex: 0 0 10px; height: 34px; border-radius: 4px; }
 .live-officer { background: none; border: 0; }
 .live-officer span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #042C53; color: #fff; font-size: 12px; font-weight: 700; border: 3px solid; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+
+/* Admin: tracker QR codes */
+.tracker-qr-card { background: #fff; border-radius: 14px; padding: 22px; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
+.tracker-qr { width: 100%; max-width: 300px; margin: 0 auto; }
+.tracker-qr svg { width: 100%; height: auto; display: block; }

@@ -6,6 +6,7 @@ import { useAuth } from '../utils/AuthContext';
 import { PATROL_ROLES, patrolRoleLabel } from '../utils/areas';
 import PatrolAreasAdmin from '../components/PatrolAreasAdmin';
 import ObservationTypesAdmin from '../components/ObservationTypesAdmin';
+import TrackerDevicesAdmin from '../components/TrackerDevicesAdmin';
 
 
 const ALL_PAGES = [
@@ -1172,6 +1173,7 @@ export default function AdminPage() {
 
         <PatrolAreasAdmin />
         <ObservationTypesAdmin />
+        <TrackerDevicesAdmin />
 
         {/* Pending Reasons */}
         <div className="card" style={{ marginTop: 24 }}>
