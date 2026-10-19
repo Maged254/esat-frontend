@@ -437,3 +437,54 @@ tr:hover td { background: #f9fafb; }
 }
 .route-result:hover, .route-result:focus-visible { background: #F0F7FF; outline: none; }
 .route-result:last-child { border-bottom: 0; }
+
+/* ── My Patrol: the officer's full-screen phone page ────────── */
+.patrol-screen { position: fixed; inset: 0; display: flex; flex-direction: column; background: #e5e7eb; }
+.patrol-top {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+  background: var(--eg-navy-dark); color: #fff; z-index: 2;
+}
+.patrol-top-btn { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; color: #fff; background: rgba(255,255,255,0.1); font-size: 22px; }
+.patrol-gps { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.patrol-gps.ok { background: rgba(29,158,117,0.25); color: #b9f0db; }
+.patrol-gps.wait { background: rgba(239,159,39,0.25); color: #ffd99a; }
+.patrol-map { flex: 1; min-height: 0; }
+.patrol-banner { background: #FCEBEB; color: #A32D2D; padding: 10px 14px; font-size: 14px; z-index: 2; }
+.patrol-toast {
+  position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 72px); z-index: 1001;
+  background: #111827; color: #fff; padding: 12px 14px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.patrol-bottom, .patrol-sheet {
+  background: #fff; padding: 14px 14px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.15); z-index: 2; display: flex; flex-direction: column; gap: 10px;
+}
+.patrol-sheet { border-radius: 16px 16px 0 0; max-height: 70vh; overflow-y: auto; }
+.patrol-sheet.tall { max-height: 85vh; }
+.patrol-sheet-title { font-size: 16px; font-weight: 700; color: var(--eg-navy-dark); }
+.patrol-row { display: flex; gap: 10px; }
+.patrol-big, .patrol-small {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; border-radius: 12px;
+  font-size: 16px; font-weight: 700; cursor: pointer; border: 0;
+}
+.patrol-big { flex: 2; background: var(--eg-green); color: #fff; }
+.patrol-small { flex: 1; background: #f1f3f6; color: var(--eg-navy-dark); }
+.patrol-big:disabled, .patrol-small:disabled { opacity: 0.5; cursor: default; }
+.patrol-big .ti { font-size: 22px; }
+.patrol-note { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.patrol-facts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; }
+.patrol-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-top: 4px; }
+.patrol-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.patrol-shot { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #f1f3f6; }
+.patrol-shot img { width: 100%; height: 100%; object-fit: cover; }
+.patrol-shot > button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; }
+.patrol-shot.add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px dashed #9ca3af; color: var(--eg-navy-dark); font-size: 13px; font-weight: 600; cursor: pointer; }
+.patrol-shot.add .ti { font-size: 28px; }
+.patrol-status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.patrol-status button {
+  min-height: 52px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+  background: var(--bg); color: var(--c); border: 2px solid transparent;
+}
+.patrol-status button.on { background: var(--c); color: #fff; border-color: var(--c); }
+.patrol-screen .form-input, .patrol-screen .form-select { min-height: 46px; font-size: 16px; }
+.patrol-drop-pin { background: none; border: 0; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.35)); }

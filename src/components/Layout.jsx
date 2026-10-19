@@ -8,6 +8,7 @@ import { AREAS, userAreas, isOpsPath } from '../utils/areas';
 const OPS_NAV = [
   { section: 'Route Patrol' },
   { to: '/ops', label: 'Overview', icon: 'ti-route', exact: true },
+  { to: '/ops/patrol', label: 'My Patrol', icon: 'ti-map-pin-plus', patrolRoles: ['patrol_officer'] },
   { to: '/ops/routes', label: 'Routes', icon: 'ti-map-2' },
   // Users and roles are one list for all of OneHub, so the same Admin Panel
   // opens from either area.
@@ -96,7 +97,7 @@ export default function Layout() {
             //  - everything else: gated by page_access, same as PageGuard — so an
             //    admin-assigned page shows regardless of the coarse role list.
             const canSee = (it) =>
-              areaKey === 'ops' ? (!it.adminOnly || user?.role === 'admin')
+              areaKey === 'ops' ? (user?.role === 'admin' || (!it.adminOnly && (!it.patrolRoles || it.patrolRoles.includes(user?.patrol_role))))
               : it.to === '/profile' ? true
               : it.to === '/admin' ? user?.role === 'admin'
               : user?.role === 'admin' ? true

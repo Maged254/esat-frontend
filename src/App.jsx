@@ -43,6 +43,7 @@ import UpdateAvailable from './components/UpdateAvailable';
 import HomePage from './pages/HomePage';
 import OpsHomePage from './pages/OpsHomePage';
 import RoutesPage from './pages/RoutesPage';
+import PatrolPage from './pages/PatrolPage';
 import { hasPeople, hasOps } from './utils/areas';
 
 function ProtectedRoute({ children, roles }) {
@@ -116,6 +117,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          {/* The officer's phone screen: full screen, no sidebar. */}
+          <Route path="/ops/patrol" element={<ProtectedRoute><AreaGate area="ops"><PatrolPage /></AreaGate></ProtectedRoute>} />
           <Route path="/ops" element={<ProtectedRoute><AreaGate area="ops"><Layout /></AreaGate></ProtectedRoute>}>
             <Route index element={<OpsHomePage />} />
             <Route path="routes" element={<RoutesPage />} />

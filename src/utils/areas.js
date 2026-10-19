@@ -24,6 +24,8 @@ export const isOpsPath = (pathname) => pathname === '/ops' || pathname.startsWit
 export const homeFor = (user) => {
   const areas = userAreas(user);
   if (areas.length > 1) return '/home';
+  // An Operations-only patrol officer goes straight to their phone screen.
+  if (areas.length === 1 && areas[0] === 'ops' && user?.patrol_role === 'patrol_officer') return '/ops/patrol';
   return areas.length === 1 ? AREAS[areas[0]].home : '/';
 };
 

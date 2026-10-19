@@ -5,6 +5,7 @@ import TrainingIcon, { TRAINING_ICON_LIST } from '../components/TrainingIcon';
 import { useAuth } from '../utils/AuthContext';
 import { PATROL_ROLES, patrolRoleLabel } from '../utils/areas';
 import PatrolAreasAdmin from '../components/PatrolAreasAdmin';
+import ObservationTypesAdmin from '../components/ObservationTypesAdmin';
 
 
 const ALL_PAGES = [
@@ -1170,6 +1171,7 @@ export default function AdminPage() {
         </div>
 
         <PatrolAreasAdmin />
+        <ObservationTypesAdmin />
 
         {/* Pending Reasons */}
         <div className="card" style={{ marginTop: 24 }}>

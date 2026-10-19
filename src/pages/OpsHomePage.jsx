@@ -8,7 +8,7 @@ import { patrolRoleLabel } from '../utils/areas';
 // the area early mistakes an empty screen for a broken one.
 const STAGES = [
   { title: 'Routes', text: 'Planners upload the KMZ route files for each cycle (about every 3 months), and the routes appear on the map.', ready: '/ops/routes' },
-  { title: 'Patrol on the phone', text: 'Officers start a patrol, drop pins with 1 to 3 photos, and pick a status: Critical, Medium or Normal.' },
+  { title: 'Patrol on the phone', text: 'Officers start a patrol, drop pins with 1 to 3 photos, and pick a status: Critical, Medium or Normal.', ready: '/ops/patrol' },
   { title: 'Live tracking', text: 'The tracker app on each phone sends its position, so the path driven shows on the map.' },
   { title: 'Review and tickets', text: 'Supervisors review pins. Action needed opens a ticket for the PM Coordinators to close.' },
   { title: 'Notifications', text: 'Instant alerts for Critical and Medium pins, and an hourly summary for Normal ones.' },
