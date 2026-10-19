@@ -13,6 +13,7 @@ const ICON = {
   ticket_closed: ['ti-circle-check', '#1D9E75'],
   ticket_reopened: ['ti-refresh-alert', '#EF9F27'],
   normal_summary: ['ti-list-check', '#1D9E75'],
+  email_failed: ['ti-mail-off', '#A32D2D'],
 };
 const ago = (d) => {
   const m = Math.round((Date.now() - new Date(d).getTime()) / 60000);
