@@ -11,11 +11,16 @@ const fmtKm = (km) => `${Number(km || 0).toLocaleString('en-GB', { maximumFracti
 const STATUS_TAG = { current: ['tag-green', 'Current'], upcoming: ['tag-navy', 'Upcoming'], past: ['tag-gray', 'Ended'] };
 // A cycle has no fixed end: it runs until the next one starts.
 const cycleSpan = (c) => c.ends_on ? `${fmtDate(c.starts_on)} – ${fmtDate(c.ends_on)}` : `from ${fmtDate(c.starts_on)}`;
-// "EGYPRO NW DWDM AND PTN LINKS.kmz" → "NW". Only a suggestion; the field stays editable.
-const guessArea = (filename) => {
-  const base = String(filename || '').replace(/\.kmz$/i, '').trim();
-  const m = base.match(/^EGYPRO\s+(\S+)/i);
-  return (m ? m[1] : base).toUpperCase().slice(0, 80);
+// Suggests the listed area a file is for: "EGYPRO NW DWDM AND PTN LINKS.kmz"
+// matches Nairobi West by its initials (NW), "... RIFT ..." matches Rift by
+// name. Only a suggestion; the dropdown stays the user's choice.
+const guessArea = (filename, areas) => {
+  const words = String(filename || '').toUpperCase().replace(/\.KMZ$/, '').split(/[^A-Z0-9]+/);
+  return areas.find(a => {
+    const name = a.name.toUpperCase();
+    const initials = name.split(/\s+/).map(w => w[0]).join('');
+    return words.includes(name) || (initials.length > 1 && words.includes(initials));
+  })?.name || '';
 };
 
 // Leaflet is loaded by index.html with `defer`; wait for it rather than assume.
@@ -46,6 +51,7 @@ export default function RoutesPage() {
   // forms
   const [newCycleOpen, setNewCycleOpen] = useState(false);
   const [uploadArea, setUploadArea] = useState('');
+  const [areaList, setAreaList] = useState([]);
   const [uploadFile, setUploadFile] = useState(null);
   const fileRef = useRef(null);
 
@@ -59,6 +65,7 @@ export default function RoutesPage() {
   }, []);
 
   useEffect(() => { load().catch(e => setError(e.response?.data?.error || 'Could not load the routes.')); }, [load]);
+  useEffect(() => { api.get('/patrol/areas').then(r => setAreaList(r.data)).catch(() => {}); }, []);
 
   useEffect(() => {
     if (!cycleId) { setGeo(null); return; }
@@ -284,13 +291,16 @@ export default function RoutesPage() {
                       <div className="form-group" style={{ margin: 0 }}>
                         <label className="form-label" htmlFor="kmz-file">KMZ file</label>
                         <input id="kmz-file" ref={fileRef} type="file" accept=".kmz" className="form-input" style={{ width: 'auto' }}
-                          onChange={e => { const f = e.target.files?.[0] || null; setUploadFile(f); if (f && !uploadArea) setUploadArea(guessArea(f.name)); }} />
+                          onChange={e => { const f = e.target.files?.[0] || null; setUploadFile(f); if (f && !uploadArea) setUploadArea(guessArea(f.name, areaList)); }} />
                       </div>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" htmlFor="kmz-area">Area name</label>
-                        <input id="kmz-area" className="form-input" style={{ width: 160 }} placeholder="e.g. NW" value={uploadArea} onChange={e => setUploadArea(e.target.value)} />
+                        <label className="form-label" htmlFor="kmz-area">Area</label>
+                        <select id="kmz-area" className="form-select" style={{ width: 200 }} value={uploadArea} onChange={e => setUploadArea(e.target.value)}>
+                          <option value="">Choose an area…</option>
+                          {areaList.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+                        </select>
                       </div>
-                      <button className="btn btn-primary" disabled={busy || !uploadFile || !uploadArea.trim()} onClick={upload}>
+                      <button className="btn btn-primary" disabled={busy || !uploadFile || !uploadArea} onClick={upload}>
                         {busy ? 'Uploading…' : 'Upload'}
                       </button>
                       <span style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary)' }}>

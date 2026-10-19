@@ -4,6 +4,7 @@ import PasswordInput from '../components/PasswordInput';
 import TrainingIcon, { TRAINING_ICON_LIST } from '../components/TrainingIcon';
 import { useAuth } from '../utils/AuthContext';
 import { PATROL_ROLES, patrolRoleLabel } from '../utils/areas';
+import PatrolAreasAdmin from '../components/PatrolAreasAdmin';
 
 
 const ALL_PAGES = [
@@ -1167,6 +1168,8 @@ export default function AdminPage() {
             </>;
           })()}
         </div>
+
+        <PatrolAreasAdmin />
 
         {/* Pending Reasons */}
         <div className="card" style={{ marginTop: 24 }}>
