@@ -122,7 +122,7 @@ export default function PatrolPage() {
   const camRef = useRef(null);
 
   const patrol = state?.patrol || null;
-  const rules = state?.rules || { pin_max_from_officer_m: 50, pin_off_route_m: 100, photos_min: 1, photos_max: 3 };
+  const rules = state?.rules || { pin_max_from_officer_m: 100, pin_off_route_m: 100, photos_min: 1, photos_max: 3 };
 
   const load = useCallback(async () => {
     const r = await api.get('/patrol/patrols/mine');
