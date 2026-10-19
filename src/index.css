@@ -567,3 +567,9 @@ tr:hover td { background: #f9fafb; }
 .bell-item.unread .bell-title::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2563EB; margin-right: 6px; vertical-align: middle; }
 .bell-body { display: block; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bell-time { display: block; font-size: 11px; color: #9ca3af; margin-top: 2px; }
+
+/* Operations → Settings */
+.setting-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; padding: 12px 8px; border-top: 1px solid #f1f2f4; border-radius: 6px; }
+.setting-row:first-child { border-top: 0; }
+.setting-row > div:first-child { flex: 1 1 320px; }
+.settings-save { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 0 16px; background: linear-gradient(to top, var(--bg) 70%, transparent); }

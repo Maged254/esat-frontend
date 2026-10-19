@@ -16,6 +16,7 @@ const OPS_NAV = [
   // Users and roles are one list for all of OneHub, so the same Admin Panel
   // opens from either area.
   { section: 'Admin', adminOnly: true },
+  { to: '/ops/settings', label: 'Patrol Settings', icon: 'ti-adjustments', adminOnly: true },
   { to: '/ops/admin', label: 'Admin Panel', icon: 'ti-settings', adminOnly: true },
   { section: 'Account' },
   { to: '/ops/profile', label: 'My Profile', icon: 'ti-user-circle' },
