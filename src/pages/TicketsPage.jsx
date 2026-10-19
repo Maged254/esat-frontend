@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import PinDetail from '../components/PinDetail';
 import PinRows from '../components/PinRows';
@@ -17,6 +18,12 @@ export default function TicketsPage() {
   const [state, setState] = useState('open');
   const [rows, setRows] = useState(null);
   const [open, setOpen] = useState(null);
+  // ?pin=<id> (from an email or the bell) opens that pin straight away.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const id = params.get('pin');
+    if (id) { setOpen(id); setParams({}, { replace: true }); }
+  }, [params, setParams]);
   const [error, setError] = useState('');
   const [layout, setLayout] = useState('list');
   const [place, setPlace] = useState('');

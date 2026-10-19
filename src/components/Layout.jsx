@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import { AREAS, userAreas, isOpsPath } from '../utils/areas';
+import NotificationBell from './NotificationBell';
 
 // OneHub Operations. Route Patrol pages join this list stage by stage; for now
 // every page here is open to anyone with an Operations role.
@@ -90,6 +91,10 @@ export default function Layout() {
         <NavLink to={area.home} className="sidebar-logo" style={{padding:'24px 12px 12px'}}>
           <img src={area.logo} alt={area.name} style={{width:'100%',maxWidth:200,objectFit:'contain'}} />
         </NavLink>
+        {/* Pins and tickets alerts: for the people who are told about them. */}
+        {areaKey === 'ops' && (user?.role === 'admin' || ['field_supervisor', 'pm_coordinator', 'director'].includes(user?.patrol_role)) && (
+          <NotificationBell onNavigate={() => setSidebarOpen(false)} />
+        )}
 
         <nav className="nav">
           {nav.map((item, i) => {

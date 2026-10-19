@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import PinDetail, { fmtDateTime } from '../components/PinDetail';
 import PinRows from '../components/PinRows';
@@ -34,6 +35,12 @@ export default function ReviewPage() {
   const [pins, setPins] = useState(null);
   const [patrols, setPatrols] = useState([]);
   const [open, setOpen] = useState(null);
+  // ?pin=<id> (from an email or the bell) opens that pin straight away.
+  const [params, setParams] = useSearchParams();
+  useEffect(() => {
+    const id = params.get('pin');
+    if (id) { setOpen(id); setParams({}, { replace: true }); }
+  }, [params, setParams]);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
 
