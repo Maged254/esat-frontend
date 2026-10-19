@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import api from '../utils/api';
-import DateInput from '../components/DateInput';
 
 // Routes (OneHub Operations): the cycles, one KMZ per area, and the
 // map of every link and site in the chosen cycle. Planners and Admin upload;
@@ -12,7 +11,6 @@ const fmtKm = (km) => `${Number(km || 0).toLocaleString('en-GB', { maximumFracti
 const STATUS_TAG = { current: ['tag-green', 'Current'], upcoming: ['tag-navy', 'Upcoming'], past: ['tag-gray', 'Ended'] };
 // A cycle has no fixed end: it runs until the next one starts.
 const cycleSpan = (c) => c.ends_on ? `${fmtDate(c.starts_on)} – ${fmtDate(c.ends_on)}` : `from ${fmtDate(c.starts_on)}`;
-const todayLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 // "EGYPRO NW DWDM AND PTN LINKS.kmz" → "NW". Only a suggestion; the field stays editable.
 const guessArea = (filename) => {
   const base = String(filename || '').replace(/\.kmz$/i, '').trim();
@@ -47,7 +45,6 @@ export default function RoutesPage() {
 
   // forms
   const [newCycleOpen, setNewCycleOpen] = useState(false);
-  const [newStart, setNewStart] = useState(todayLocal());
   const [uploadArea, setUploadArea] = useState('');
   const [uploadFile, setUploadFile] = useState(null);
   const fileRef = useRef(null);
@@ -95,7 +92,7 @@ export default function RoutesPage() {
   };
 
   const startCycle = () => run(async () => {
-    const r = await api.post('/patrol/cycles', { starts_on: newStart });
+    const r = await api.post('/patrol/cycles');
     setNewCycleOpen(false);
     await load(r.data.id);
     return 'New cycle started. Upload a KMZ for each area.';
@@ -233,11 +230,10 @@ export default function RoutesPage() {
               )}
               {newCycleOpen && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
-                  <span style={{ fontSize: 13 }}>Starts on</span>
-                  <DateInput value={newStart} onChange={setNewStart} style={{ width: 150 }} />
+                  <span style={{ fontSize: 13 }}>Start a new cycle today, {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}?</span>
                   <button className="btn btn-primary" disabled={busy} onClick={startCycle}>Start cycle</button>
                   <button className="btn" onClick={() => setNewCycleOpen(false)}>Cancel</button>
-                  <span style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary)' }}>It runs until the next cycle is started; the current one ends the day before. Open tickets will carry over.</span>
+                  <span style={{ width: '100%', fontSize: 12, color: 'var(--text-secondary)' }}>{data.current_cycle_id ? 'The current cycle will be closed with yesterday as its last day. ' : ''}The new cycle runs until the next one is started. Open tickets will carry over.</span>
                 </div>
               )}
             </div>
