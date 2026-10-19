@@ -528,3 +528,16 @@ tr:hover td { background: #f9fafb; }
 .pin-photo-viewer img { max-width: 100%; max-height: calc(100% - 40px); object-fit: contain; }
 .pin-photo-viewer span { color: rgba(255,255,255,0.7); font-size: 13px; }
 @media (max-width: 560px) { .pin-row-tags { max-width: 40%; } .pin-facts { grid-template-columns: 1fr; gap: 2px; } .pin-facts dd { margin-bottom: 8px; } }
+
+/* Pins map: grouping, summary, outside-the-view note */
+.pinmap-pin { background: none; border: 0; }
+.pinmap-dot { display: block; width: 16px; height: 16px; margin: 4px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.pinmap-dot.off { box-shadow: 0 0 0 3px #7C3AED, 0 1px 4px rgba(0,0,0,0.4); }
+.pinmap-cluster { background: none; border: 0; }
+.pinmap-cluster span {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  color: #fff; font-weight: 700; font-size: 14px; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.pinmap-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 8px; font-size: 13px; }
+.pinmap-outside { background: #FAEEDA; color: #854F0B; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pinmap-limit { background: #FCEBEB; color: #A32D2D; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 8px; }

@@ -15,6 +15,7 @@ const END_REASON = {
   midnight: 'at midnight',
   restart: 'OneHub restarted',
 };
+const MAP_LIMIT = 500;
 const VIEWS = [
   { key: 'awaiting', label: 'Awaiting review' },
   { key: 'reviewed', label: 'Reviewed' },
@@ -43,9 +44,11 @@ export default function ReviewPage() {
     if (place) params.set('place', place);
     if (from) params.set('from', from);
     if (to) params.set('to', to);
+    // The map shows every pin that matches; the list keeps to the latest 200.
+    if (layout === 'map') params.set('limit', String(MAP_LIMIT));
     api.get(`/patrol/pins?${params}`).then(r => setPins(r.data)).catch(e => setError(e.response?.data?.error || 'Could not load the pins.'));
     api.get('/patrol/review/patrols').then(r => setPatrols(r.data)).catch(() => {});
-  }, [view, status, q, place, from, to]);
+  }, [view, status, q, place, from, to, layout]);
 
   useEffect(() => { setPins(null); const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
 
@@ -149,13 +152,13 @@ export default function ReviewPage() {
 
         {layout === 'map'
           ? <>
-              <PinsMap pins={pins} routes={routes} onOpen={setOpen} />
-              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
-                {pins ? `${pins.length} pin${pins.length === 1 ? '' : 's'} shown. Tap one to open it.` : 'Loading…'}
-              </p>
+              {pins ? <PinsMap pins={pins} routes={routes} onOpen={setOpen} limit={MAP_LIMIT} /> : <div className="card" style={{ padding: 18, fontSize: 13 }}>Loading…</div>}
             </>
-          : <PinRows pins={pins} onOpen={setOpen}
-              empty={view === 'awaiting' && !filtersOn ? 'Nothing to review. New pins appear here as officers add them.' : 'No pins match.'} />}
+          : <>
+            {pins && pins.length >= 200 && <div className="pinmap-limit">The latest 200 pins are listed. Narrow the filters, or use the Map, to see the rest.</div>}
+            <PinRows pins={pins} onOpen={setOpen}
+              empty={view === 'awaiting' && !filtersOn ? 'Nothing to review. New pins appear here as officers add them.' : 'No pins match.'} />
+          </>}
 
         {open && <PinDetail pinId={open} onClose={() => setOpen(null)} onChanged={load} />}
       </div>
