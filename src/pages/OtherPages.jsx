@@ -832,11 +832,16 @@ export function EmployeesPage({ outsource = false }) {
               {editFields.map(f=>{
                 const on = editForm.edit[f.key];
                 const before = editModal[f.key] || '—';
-                // Interns keep the job title "Intern" — that row can't be changed.
-                const locked = f.key === 'job_title' && editModal.job_title === 'Intern';
+                // Interns keep their job title here -- changing it is how someone
+                // stops being an intern, and that has to go through Convert to
+                // In-House so an Employment ID is captured. Matched on the WORD,
+                // as everywhere else: an exact === 'Intern' let "Field Intern"
+                // through, and the person became in-house with no ID (Tony
+                // Murandi Wanjiru, 21/10/2026).
+                const locked = f.key === 'job_title' && /\bintern\b/i.test(editModal.job_title || '');
                 return (
                   <div key={f.key} style={{display:'grid',gridTemplateColumns:'34px 140px 1fr 1fr',gap:8,alignItems:'center',padding:'8px 12px',borderTop:'1px solid #f0f0f0',background:on?'#F8FBFF':'#fff'}}>
-                    <input type="checkbox" checked={on} disabled={locked} onChange={()=>toggleField(f.key)} style={{cursor:locked?'not-allowed':'pointer',width:16,height:16,opacity:locked?0.4:1}} title={locked?'Interns keep the job title "Intern"':(on?'Will change':'Tick to change this field')} />
+                    <input type="checkbox" checked={on} disabled={locked} onChange={()=>toggleField(f.key)} style={{cursor:locked?'not-allowed':'pointer',width:16,height:16,opacity:locked?0.4:1}} title={locked?'Use Convert to In-House to change an intern\u2019s job title \u2014 it records the Employment ID':(on?'Will change':'Tick to change this field')} />
                     <div style={{fontSize:13,fontWeight:600,color:locked?'#9ca3af':'#374151'}}>{f.label}</div>
                     <div style={{fontSize:13,color:on?'#9ca3af':'#374151',textDecoration:on?'line-through':'none'}}>{before}</div>
                     <div>
