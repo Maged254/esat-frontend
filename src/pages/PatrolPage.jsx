@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../utils/AuthContext';
-import { useLeaflet, AREA_COLOURS, STATUS_COLOUR } from '../utils/patrolShared';
+import { useLeaflet, AREA_COLOURS, STATUS_COLOUR, escapeHtml } from '../utils/patrolShared';
 
 // The officer's phone screen (OneHub Operations → My Patrol). Full screen, no
 // sidebar: a map with the routes, the officer's position and their pins, and
